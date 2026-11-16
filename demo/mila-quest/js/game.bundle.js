@@ -39194,6 +39194,7 @@
     syncDevButton(id);
     document.body.dataset.ui = id;
     closeAccountMenu();
+    if (id === "hud") requestAnimationFrame(() => refitLaneOpts());
   }
   function showModal(html) {
     $("modal-box").innerHTML = html;
@@ -40898,9 +40899,49 @@
       el.textContent = o;
       el.classList.toggle("closed", o === CLOSED);
       const n = String(o).length;
-      el.classList.toggle("long", n >= 16);
-      el.style.fontSize = n >= 28 ? "14px" : n >= 22 ? "16px" : n >= 16 ? "18px" : n >= 12 ? "18px" : n >= 10 ? "22px" : n >= 8 ? "26px" : n >= 6 ? "30px" : "";
+      el.classList.toggle("long", n >= 16 && /\s/.test(String(o).trim()));
+      fitLaneOpt(el);
     });
+    requestAnimationFrame(() => refitLaneOpts());
+  }
+  function fitLaneOpt(el) {
+    if (!el || !el.offsetParent && getComputedStyle(el).position !== "fixed" && !el.getClientRects().length) return;
+    const txt = String(el.textContent || "").trim();
+    const multi = /\s/.test(txt);
+    el.style.fontSize = "";
+    el.style.whiteSpace = multi ? "normal" : "nowrap";
+    el.style.textOverflow = "clip";
+    el.style.overflowWrap = "normal";
+    el.style.lineHeight = multi ? "1.12" : "";
+    let size = parseFloat(getComputedStyle(el).fontSize) || 24;
+    const MIN = 9;
+    const fits = () => {
+      if (el.scrollWidth > el.clientWidth + 1) return false;
+      if (!multi) return true;
+      const r = document.createRange();
+      r.selectNodeContents(el);
+      const h = r.getBoundingClientRect().height;
+      const lh = parseFloat(getComputedStyle(el).lineHeight) || size * 1.12;
+      return h <= lh * 2 + 2;
+    };
+    let guard = 0;
+    while (!fits() && size > MIN && guard++ < 80) {
+      size = Math.max(MIN, size - (size > 26 ? 2 : 1));
+      el.style.fontSize = size + "px";
+    }
+  }
+  function refitLaneOpts() {
+    const row = $("lane-opts");
+    if (!row || row.classList.contains("hidden")) return;
+    for (let i = 0; i < 3; i++) fitLaneOpt($("lane-opt-" + i));
+  }
+  if (typeof window !== "undefined") {
+    window.addEventListener("resize", () => requestAnimationFrame(refitLaneOpts));
+    window.addEventListener("orientationchange", () => setTimeout(refitLaneOpts, 250));
+    try {
+      if (document.fonts && document.fonts.ready) document.fonts.ready.then(refitLaneOpts);
+    } catch (e) {
+    }
   }
   function setPrompt(sub, q, emoji) {
     $("prompt-sub").textContent = sub || "";
@@ -41107,6 +41148,10 @@
     for (const o of obstacles) {
       if (o.hit) continue;
       if (o.s > run.spell.zone[0] && o.s < run.spell.zone[1] && !letterObstacleOK(o.s)) {
+        if (o.type === "animal") {
+          o.calm = true;
+          continue;
+        }
         o.hit = true;
         disposeDeep(o.mesh);
       }
@@ -41573,17 +41618,33 @@
     <div style="font-size:48px">${"\u2B50".repeat(st)}${"\u2606".repeat(3 - st)}</div>
     <p>\u05E0\u05D9\u05E7\u05D5\u05D3: <b>${run.score}</b> <span class="score-mul">\xD7${scoreMul()} (${esc2((DIFFS[run.layout && run.layout.diff && run.layout.diff.level] || DIFFS.normal).label)})</span> \xB7 ${coinHtml("+" + run.coins)} \xB7 \u05E0\u05DB\u05D5\u05DF \u05D1\u05E0\u05D9\u05E1\u05D9\u05D5\u05DF \u05E8\u05D0\u05E9\u05D5\u05DF: ${run.firstTry}/${run.queue.length}</p>
     ${ok && run.boss && run.bossHP <= 0 && run.world < WORLDS.length ? "<p>\u{1F511} \u05E7\u05D9\u05D1\u05DC\u05EA\u05DD \u05DE\u05E4\u05EA\u05D7 \u05D6\u05D4\u05D1! \u05D4\u05E2\u05D5\u05DC\u05DD \u05D4\u05D1\u05D0 \u05E0\u05E4\u05EA\u05D7.</p>" : ""}
-  </div>
-  <div class="row" style="margin-top:12px">${nx}
-    <button class="btn" id="again">\u05E9\u05D5\u05D1</button>
-    <button class="btn" id="to-map">\u05DC\u05DE\u05E4\u05D4</button>
+    <div class="row end-actions">${nx}
+      <button class="btn" id="again">\u05E9\u05D5\u05D1</button>
+      <button class="btn" id="to-map">\u05DC\u05DE\u05E4\u05D4</button>
+    </div>
   </div>`;
-    $("to-map").onclick = () => goMapMode();
-    $("again").onclick = () => startLevel(run.world, run.st, run.lost);
+    const r = run, opt = { bypassLock: !!r.dev };
+    let busy = false;
+    const go = (wid, st2, lost) => {
+      if (busy) return;
+      busy = true;
+      Promise.resolve(startLevel(wid, st2, lost, opt)).then((res) => {
+        busy = false;
+        if (res === false) goMapMode();
+      }).catch((e) => {
+        busy = false;
+        console.error(e);
+        goMapMode();
+      });
+    };
+    $("to-map").onclick = () => {
+      if (!busy) goMapMode();
+    };
+    $("again").onclick = () => go(r.world, r.st, r.lost);
     const nxb = $("nx");
     if (nxb) nxb.onclick = () => {
-      if (run.st < BOSS_ST) startLevel(run.world, run.st + 1);
-      else startLevel(run.world + 1, 0);
+      if (r.st < BOSS_ST) go(r.world, r.st + 1);
+      else go(r.world + 1, 0);
     };
   }
   function recordRunSession() {
@@ -41729,6 +41790,7 @@
       world: wid,
       st,
       lost,
+      dev: !!bypass,
       mode,
       qmode: mode,
       modes,
@@ -42244,6 +42306,7 @@
         continue;
       }
       if (o.type === "animal") animateAnimal(o, dt);
+      if (o.calm) continue;
       if (Math.abs((o.s || 0) - player.s) < 0.7 && o.lane === playerLaneNow()) {
         if ((o.type === "low" || o.type === "hole" || o.type === "roll" || o.type === "animal") && player.y > 0.28) continue;
         if (o.type === "wall" && player.y > 1.3) continue;
@@ -43359,6 +43422,7 @@
     worldMode: (w) => worldMode(w, S.settings),
     stageModes: (w, st, b) => stageModes(w, st, b, S.settings),
     getRun: () => run,
+    setLaneOpts: (o) => setLaneOpts(o),
     getPlayer: () => player,
     getGates: () => gates,
     getBoss: () => bossActor,
