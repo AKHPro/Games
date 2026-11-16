@@ -53,7 +53,48 @@ try {
 } catch (e) { S = def(); }
 S.stagesV = 2;
 S.settings = normSettings(S.settings);
-const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
+
+const GAME_ID = "mila-quest";
+const progressFields = (s) => ({
+  stagesV: 2,
+  prog: s.prog || {},
+  hero: s.hero || 0,
+  coins: s.coins || 0,
+  stars: s.stars || 0,
+  notebook: s.notebook || {},
+  known: s.known || {},
+  best: s.best || 0,
+  runs: s.runs || 0,
+  ach: Array.isArray(s.ach) ? s.ach.slice() : []
+});
+const keepDevice = (s) => ({
+  muted: !!s.muted,
+  quality: s.quality || "high",
+  settings: s.settings,
+  autoTier: s.autoTier,
+  free: !!s.free,
+  stagesV: 2
+});
+function applyProgressData(p) {
+  const dev = keepDevice(S);
+  S = Object.assign(def(), dev, p || {});
+  S.settings = normSettings(dev.settings);
+  S.free = dev.free;
+  S.muted = dev.muted;
+  S.stagesV = 2;
+}
+function loadActiveProgress() {
+  if (!window.Englishia || !Englishia.getName()) return;
+  const p = Englishia.getProgress(GAME_ID);
+  if (p) applyProgressData(p);
+}
+const save = () => {
+  try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {}
+  try {
+    if (window.Englishia && Englishia.getName()) Englishia.setProgress(GAME_ID, progressFields(S));
+  } catch (e) {}
+};
+loadActiveProgress();
 
 /* ===== AUDIO ===== */
 let muted = !!S.muted, ac = null;
@@ -150,6 +191,20 @@ function showModal(html) {
   $("modal").classList.remove("hidden");
 }
 function hideModal() { $("modal").classList.add("hidden"); }
+function coinHtml(n) { return `<span class="ico-coin" aria-hidden="true"></span> ${n}`; }
+function formatPlayTime(sec) {
+  sec = Math.max(0, Math.round(+sec || 0));
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = sec % 60;
+  if (h) return h + " שע׳ " + m + " דק׳";
+  if (m) return s ? (m + " דק׳ " + s + " שנ׳") : (m + " דק׳");
+  return s + " שנ׳";
+}
+function formatLbDate(iso) {
+  try { return new Date(iso).toLocaleDateString("he-IL", { timeZone: "Asia/Jerusalem", day: "numeric", month: "numeric", year: "2-digit" }); }
+  catch (e) { return ""; }
+}
 
 function refreshMapStats() {
   S.stars = starSum();
@@ -1712,7 +1767,7 @@ function updateHud() {
   $("hud-hearts").textContent = "❤️".repeat(run.hearts) + "🖤".repeat(Math.max(0, (run.maxHearts || 3) - run.hearts));
   $("hud-score").textContent = "⭐ " + run.score;
   $("hud-combo").textContent = "🔥 " + run.combo;
-  $("hud-coins").textContent = "🪙 " + S.coins;
+  $("hud-coins").innerHTML = coinHtml(S.coins);
   if (run.boss) $("hud-prog").textContent = BOSSES[run.world - 1].name + " " + "❤️".repeat(run.bossHP) + "🖤".repeat(Math.max(0, run.bossMax - run.bossHP));
   else $("hud-prog").textContent = `${Math.min(run.i + 1, run.queue.length)}/${run.queue.length}`;
 }
@@ -2062,7 +2117,7 @@ function showEndScreen(ok, st, title, nx) {
   $("s-end").innerHTML = `<div class="glass pop" style="padding:22px;max-width:640px">
     <h2>${title}</h2>
     <div style="font-size:48px">${"⭐".repeat(st)}${"☆".repeat(3 - st)}</div>
-    <p>ניקוד: <b>${run.score}</b> · 🪙 +${run.coins} · נכון בניסיון ראשון: ${run.firstTry}/${run.queue.length}</p>
+    <p>ניקוד: <b>${run.score}</b> · ${coinHtml("+" + run.coins)} · נכון בניסיון ראשון: ${run.firstTry}/${run.queue.length}</p>
     ${ok && run.boss && run.bossHP <= 0 && run.world < WORLDS.length ? "<p>🔑 קיבלתם מפתח זהב! העולם הבא נפתח.</p>" : ""}
   </div>
   <div class="row" style="margin-top:12px">${nx}
@@ -2077,8 +2132,18 @@ function showEndScreen(ok, st, title, nx) {
     else startLevel(run.world + 1, 0);
   };
 }
+function recordRunSession() {
+  if (!run || run.recorded) return;
+  run.recorded = true;
+  try {
+    if (window.Englishia && Englishia.getName()) {
+      Englishia.recordSession(GAME_ID, run.score || 0, Math.max(0, Math.round(run.playSec || 0)));
+    }
+  } catch (e) {}
+}
 function finishLevel(ok) {
   paused = true;
+  recordRunSession();
   if (player) playAnim(player, ok ? "emote-yes" : "idle");
   const acc = run.queue.length ? run.firstTry / Math.max(1, run.queue.length) : 0;
   const st = !ok ? 1 : acc >= .85 ? 3 : acc >= .6 ? 2 : 1;
@@ -2190,7 +2255,7 @@ async function startLevel(wid, st, lost, opt) {
     world: wid, st, lost, mode, qmode: mode, modes, boss, queue, i: 0, score: 0, coins: 0,
     hint: 0, wrong: 0, firstTry: 0, hearts: D.hearts, maxHearts: D.hearts, combo: 0, stumbleT: 0, iFrames: 0,
     bossHP: boss ? D.bossHP : 0, bossMax: boss ? D.bossHP : 0, nextCoinS: 8, nextObsS: 18, glanceT: 0, forceGlance: false,
-    layout
+    layout, playSec: 0, recorded: false
   };
   fpsMon.runStart = performance.now();
   // v8: course long enough for the stage (letter rows are now far apart)
@@ -2521,6 +2586,7 @@ function syncWorldFollowers() {
   }
 }
 function updateRunner(dt) {
+  run.playSec = (run.playSec || 0) + dt;
   const world = WORLDS[run.world - 1];
   let base = ((run.layout && run.layout.speed) || 8.2) * (S.settings.speed || 1);
   if (run.activeMode === "build" && run.layout && run.layout.diff) base *= run.layout.diff.letterSpeed || 1;
@@ -2754,7 +2820,7 @@ function goMapMode() {
 }
 function goTitle() {
   paused = true; appMode = "title";
-  showUI("s-title"); highlightHero(); focusTitleCam(); refreshPlayNext();
+  showUI("s-title"); highlightHero(); focusTitleCam(); refreshPlayNext(); refreshPlayerChip();
 }
 /* v9 one-click start: the next stage that is open and not finished yet (World 1 · Stage 1 for new players) */
 function nextStage() {
@@ -2776,9 +2842,179 @@ function refreshPlayNext() {
 }
 function playNow() {
   sfx.click();
+  if (!(window.Englishia && Englishia.getName())) {
+    askPlayerName(() => playNow());
+    return;
+  }
   const n = nextStage();
   selectedWorld = n.wid - 1;
   startLevel(n.wid, n.st, false, { quick: true });
+}
+
+function refreshPlayerChip() {
+  const chip = $("player-chip");
+  const el = $("player-chip-name");
+  if (!chip || !el) return;
+  const name = window.Englishia ? Englishia.getName() : "";
+  if (name) {
+    el.textContent = "שלום, " + name + "!";
+    chip.classList.remove("hidden");
+  } else if (window.Englishia && Englishia.listProfiles().length) {
+    el.textContent = "בחרו פרופיל";
+    chip.classList.remove("hidden");
+  } else {
+    el.textContent = "";
+    chip.classList.add("hidden");
+  }
+}
+function applyProfileState() {
+  muted = !!S.muted;
+  if ($("mute")) $("mute").textContent = muted ? "🔇" : "🔊";
+  if ($("btn-hud-mute")) $("btn-hud-mute").textContent = muted ? "🔇" : "🔊";
+  refreshPlayerChip();
+  refreshPlayNext();
+  drawHeroBtns();
+  highlightHero();
+  if (appMode === "map") {
+    refreshMapStats(); renderStages(); refreshLocks(); highlightIsland();
+  }
+}
+function switchToProfile(id) {
+  if (!window.Englishia) return;
+  save();
+  if (!Englishia.switchProfile(id)) return;
+  const p = Englishia.getProgress(GAME_ID);
+  applyProgressData(p || {});
+  save();
+  applyProfileState();
+  ensurePlayer().catch(() => {});
+}
+function createNewProfile(name) {
+  if (!window.Englishia) return "";
+  save();
+  const first = Englishia.listProfiles().length === 0;
+  const id = Englishia.createProfile(name);
+  if (!id) return "";
+  if (!first) applyProgressData({});
+  Englishia.setProgress(GAME_ID, progressFields(S));
+  save();
+  applyProfileState();
+  ensurePlayer().catch(() => {});
+  return id;
+}
+function deleteAndRefresh(id) {
+  if (!window.Englishia) return;
+  save();
+  Englishia.deleteProfile(id);
+  const name = Englishia.getName();
+  if (name) {
+    const p = Englishia.getProgress(GAME_ID);
+    applyProgressData(p || {});
+  } else {
+    applyProgressData({});
+  }
+  save();
+  applyProfileState();
+  ensurePlayer().catch(() => {});
+}
+function askPlayerName(onOk, opts) {
+  opts = opts || {};
+  const back = !!opts.backToPicker;
+  showModal(`<h2>מה השם שלך?</h2>
+    <input id="player-name-in" maxlength="20" autocomplete="nickname" dir="rtl" placeholder="השם שלי">
+    <p class="name-err hidden" id="name-err">צריך לכתוב שם</p>
+    <div class="row" style="margin-top:12px">
+      <button class="btn g" id="btn-name-save">שמירה</button>
+      ${back ? '<button class="btn s" id="btn-name-back">חזרה</button>' : ""}
+    </div>`);
+  const inp = $("player-name-in");
+  const err = $("name-err");
+  const go = () => {
+    const n = (inp.value || "").replace(/\s+/g, " ").trim();
+    if (!n) { err.classList.remove("hidden"); inp.focus(); return; }
+    err.classList.add("hidden");
+    if (createNewProfile(n)) {
+      hideModal();
+      if (onOk) onOk();
+    } else {
+      err.textContent = "לא ניתן להוסיף עוד פרופילים במכשיר הזה";
+      err.classList.remove("hidden");
+    }
+  };
+  $("btn-name-save").onclick = go;
+  inp.addEventListener("keydown", (e) => { if (e.key === "Enter") go(); });
+  if ($("btn-name-back")) $("btn-name-back").onclick = () => openProfilePicker();
+  setTimeout(() => inp.focus(), 50);
+}
+function profileSummary(p) {
+  const g = (p.games && p.games[GAME_ID]) || {};
+  const parts = [];
+  if (g.stars) parts.push("⭐ " + g.stars);
+  if (g.stages) parts.push(g.stages + " שלבים");
+  if (p.totalScore) parts.push("ניקוד " + p.totalScore);
+  return parts.join(" · ") || "שחקן חדש";
+}
+function openProfilePicker() {
+  if (!window.Englishia) return;
+  const list = Englishia.listProfiles();
+  const aid = Englishia.getActiveId();
+  if (!list.length) { askPlayerName(); return; }
+  const rows = list.map((p) => `<div class="profile-row">
+      <button type="button" class="btn profile-pick ${p.id === aid ? "sel" : ""}" data-id="${esc(p.id)}">
+        <b>${esc(p.name)}</b><small>${esc(profileSummary(p))}</small>
+      </button>
+      <button type="button" class="btn s profile-del" data-del="${esc(p.id)}" aria-label="מחיקת ${esc(p.name)}">✖</button>
+    </div>`).join("");
+  showModal(`<h2>החלפת פרופיל</h2>
+    <div class="profile-list">${rows}</div>
+    <div class="row">
+      <button class="btn g" id="btn-new-profile">+ פרופיל חדש</button>
+      <button class="btn s" id="btn-picker-close">סגירה</button>
+    </div>`);
+  $("btn-new-profile").onclick = () => askPlayerName(null, { backToPicker: true });
+  $("btn-picker-close").onclick = hideModal;
+  $("modal-box").querySelectorAll("[data-id]").forEach((b) => {
+    b.onclick = () => { switchToProfile(b.getAttribute("data-id")); hideModal(); sfx.click(); };
+  });
+  $("modal-box").querySelectorAll("[data-del]").forEach((b) => {
+    b.onclick = () => confirmDeleteProfile(b.getAttribute("data-del"));
+  });
+}
+function confirmDeleteProfile(id) {
+  const p = (window.Englishia ? Englishia.listProfiles() : []).find((x) => x.id === id);
+  if (!p) return;
+  showModal(`<h2>למחוק את הפרופיל?</h2>
+    <p>יימחקו כל ההתקדמות והניקוד של <b>${esc(p.name)}</b> במכשיר הזה.</p>
+    <div class="row" style="margin-top:12px">
+      <button class="btn" id="btn-del-yes" style="background:#e8553d;color:#fff;box-shadow:0 6px 0 #8a2a18">מחיקה</button>
+      <button class="btn" id="btn-del-no">ביטול</button>
+    </div>`);
+  $("btn-del-no").onclick = () => openProfilePicker();
+  $("btn-del-yes").onclick = () => { deleteAndRefresh(id); hideModal(); sfx.click(); };
+}
+function openProfilePanel() {
+  if (!window.Englishia) return;
+  if (!Englishia.getName()) { askPlayerName(() => openProfilePanel()); return; }
+  const p = Englishia.getProfile();
+  const g = (p.games && p.games[GAME_ID]) || { best: 0, plays: 0, totalScore: 0, seconds: 0 };
+  const lb = Englishia.getLeaderboard(GAME_ID);
+  const rows = lb.length ? lb.map((e, i) => {
+    const rank = i === 0 ? `<span class="ico-gold" aria-label="מקום ראשון">1</span>` : (i + 1);
+    return `<tr class="${i === 0 ? "rank1" : ""}"><td>${rank}</td><td>${esc(e.name)}</td><td>${e.score}</td><td>${esc(formatLbDate(e.date))}</td></tr>`;
+  }).join("") : `<tr><td colspan="4">עדיין אין שיאים במכשיר הזה</td></tr>`;
+  showModal(`<h2>פרופיל</h2>
+    <p class="player-hello">שלום, ${esc(p.name)}!</p>
+    <div class="profile-stats">
+      <p>ניקוד כולל: <b>${p.totalScore}</b></p>
+      <p>זמן משחק כולל: <b>${formatPlayTime(p.totalSeconds)}</b></p>
+      <h3 style="margin:12px 0 4px">מילה קווסט</h3>
+      <p>שיא: <b>${g.best || 0}</b> · משחקים: <b>${g.plays || 0}</b></p>
+    </div>
+    <h3 style="margin:14px 0 4px">טבלת שיאים</h3>
+    <table class="lb-table"><tr><th>#</th><th>שם</th><th>ניקוד</th><th>תאריך</th></tr>${rows}</table>
+    <p class="profile-note">כרגע הנתונים נשמרים רק במכשיר הזה</p>
+    <div class="row" style="margin-top:12px"><button class="btn" id="btn-profile-close">סגירה</button></div>`);
+  $("btn-profile-close").onclick = hideModal;
 }
 
 function drawHeroBtns() {
@@ -2792,6 +3028,8 @@ $("hero-btns").onclick = (e) => {
 };
 $("btn-start").onclick = () => goMapMode();
 $("btn-play").onclick = () => playNow();
+if ($("btn-profiles")) $("btn-profiles").onclick = () => { sfx.click(); openProfilePicker(); };
+if ($("btn-profile")) $("btn-profile").onclick = () => { sfx.click(); openProfilePanel(); };
 $("btn-title-settings").onclick = () => { sfx.click(); openSettings(); };
 $("btn-help").onclick = () => { showUI("s-help"); appMode = "title"; };
 $("btn-help-back").onclick = () => goTitle();
@@ -2826,11 +3064,11 @@ function openJourney() {
   const achHtml = ACH.map((a) => `<span class="pill" style="margin:3px;opacity:${S.ach.includes(a.id) ? 1 : .45}">${S.ach.includes(a.id) ? "🏅" : "▫️"} ${esc(a.name)}</span>`).join("");
   showUI("s-jr"); appMode = "map";
   $("s-jr").innerHTML = `<div class="glass" style="padding:18px;max-width:640px">
-    <h2>🧭 המסע שלי</h2>
+    <h2>🌍 המסע שלי</h2>
     <p>מילים שנלמדו: <b>${ln}</b> מתוך ${WORDS.length}</p>
     <div class="bar"><i style="width:${ln / WORDS.length * 100}%"></i></div>
     <p>לתרגול: <b>${pr}</b> · עולמות: <b>${worldsDone()}</b>/${WORLDS.length} · שלבים: ${Object.keys(S.prog).length}/${WORLDS.length * NSTAGES}</p>
-    <p>🪙 ${S.coins} · ⭐ ${starSum()}</p>
+    <p>${coinHtml(S.coins)} · ⭐ ${starSum()}</p>
     <div class="row">${achHtml}</div>
   </div>
   <div class="row" style="margin-top:10px">
@@ -3109,6 +3347,7 @@ const ready = (async function boot() {
   appMode = "title";
   showUI("s-title");
   refreshPlayNext();
+  refreshPlayerChip();
   requestAnimationFrame(tick);
 })();
 
@@ -3388,5 +3627,16 @@ window.MQ = {
   },
   changeLane, jump, slide, currentTurn: () => player && currentTurn(player.s),
   syncPlayerPose,
-  syncWorldFollowers
+  syncWorldFollowers,
+  GAME_ID,
+  refreshPlayerChip,
+  applyProfileState,
+  switchToProfile,
+  createNewProfile,
+  deleteAndRefresh,
+  openProfilePicker,
+  openProfilePanel,
+  askPlayerName,
+  formatPlayTime,
+  coinHtml
 };

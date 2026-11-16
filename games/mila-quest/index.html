@@ -19,7 +19,7 @@ html,body{height:100%;height:100dvh;margin:0;overflow:hidden;font-family:Rubik,"
 button{font:inherit;cursor:pointer}
 .en{direction:ltr;unicode-bidi:isolate;font-family:Fredoka,Rubik,sans-serif}
 .ui{position:fixed;inset:0;z-index:4;pointer-events:none}
-.ui button,.ui .pill,.ui .glass,.ui .prompt,.ui .stage-bar,.ui .world-chips,.ui .box,.ui .sign,.ui .hero-btn,.ui a,.ui table,#dev-panel{pointer-events:auto}
+.ui button,.ui .pill,.ui .glass,.ui .prompt,.ui .stage-bar,.ui .world-chips,.ui .box,.ui .sign,.ui .hero-btn,.ui a,.ui table,.ui input,#dev-panel,.player-chip{pointer-events:auto}
 .hidden{display:none !important}
 .sign{background:linear-gradient(#d49240,#8a5420);border:5px solid #4a2c0c;border-radius:24px;padding:8px 40px 12px;box-shadow:0 10px 0 #0005,0 18px 40px #0004;transform:rotate(-1deg)}
 .sign h1{margin:0;font-size:clamp(34px,7vw,64px);color:#ffd23d;font-family:Fredoka,Rubik,sans-serif;-webkit-text-stroke:2px #5b2d00;paint-order:stroke fill;text-shadow:0 4px 0 #5b2d00}
@@ -40,7 +40,7 @@ button{font:inherit;cursor:pointer}
 .prompt small{display:block;font-size:16px;font-weight:700;opacity:.7}
 .prompt .q{font-size:clamp(28px,5.5vw,48px);font-weight:800;line-height:1.15}
 .prompt .emoji{font-size:52px;line-height:1}
-#modal{position:absolute;inset:0;background:#0008;display:flex;align-items:center;justify-content:center;padding:18px}
+#modal{position:absolute;inset:0;z-index:20;background:#0008;display:flex;align-items:center;justify-content:center;padding:18px}
 #modal .box{max-width:640px;width:100%;padding:20px 22px;text-align:center;background:linear-gradient(180deg,#fffdf8f2,#ffeec4f0);border:4px solid #8a5a2b;border-radius:24px;box-shadow:0 20px 50px #0006}
 #loadbar{width:min(420px,80vw);height:16px;background:#0003;border-radius:10px;overflow:hidden;border:2px solid #fff8}
 #loadbar>i{display:block;height:100%;width:0;background:linear-gradient(90deg,#ffc83d,#2fb86a);transition:width .25s}
@@ -212,6 +212,36 @@ html.portrait .map-side .side-card{padding:0;background:none;border:0;box-shadow
 html.portrait .map-side .side-card h3,html.portrait .map-side .side-card p,html.portrait .map-side .side-card .bar{display:none}
 html.portrait .world-chips{flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start}
 html.portrait .world-type{font-size:14px}
+
+/* v10: gold coin (old Windows fonts lack the coin emoji) and profile UI */
+.ico-coin{display:inline-block;width:1.15em;height:1.15em;vertical-align:-0.22em;margin-inline:0.12em;border-radius:50%;background:radial-gradient(circle at 32% 28%,#fff3b0,#ffc83d 42%,#d4a017 78%,#8a5a12);border:2px solid #6a4510;box-shadow:inset 0 1px 0 #fff8,inset 0 -1px 0 #0002;position:relative;flex:0 0 auto}
+.ico-coin::after{content:"";position:absolute;inset:18%;border:1.5px solid rgba(106,69,16,.45);border-radius:50%}
+.ico-gold{display:inline-flex;align-items:center;justify-content:center;width:1.55em;height:1.55em;vertical-align:middle;border-radius:50%;background:radial-gradient(circle at 32% 28%,#fff3b0,#ffc83d 50%,#c58a10);border:2px solid #8a5a12;color:#5b2d00;font-weight:800;font-size:.85em;box-shadow:0 2px 0 #8a5a12;line-height:1}
+.player-chip{margin-top:8px;padding:8px 16px;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:8px 12px}
+.player-hello{font-size:clamp(18px,3vw,24px);font-weight:800}
+#player-name-in{font:inherit;font-size:clamp(22px,4vw,32px);font-weight:700;text-align:center;padding:10px 16px;border:3px solid #8a5a2b;border-radius:16px;width:min(420px,90%);background:#fffdf8;color:var(--ink)}
+.name-err{color:#a32020;font-weight:700;min-height:1.2em}
+.profile-list{display:flex;flex-direction:column;gap:8px;margin:12px 0;max-height:min(50vh,420px);overflow:auto;text-align:right}
+.profile-row{display:flex;gap:8px;align-items:stretch}
+.profile-pick{flex:1;border-radius:18px;padding:10px 16px;text-align:right;display:flex;flex-direction:column;align-items:flex-start;gap:2px;background:#fffdf8;color:var(--ink);box-shadow:0 5px 0 #c58a10}
+.profile-pick.sel{background:#ffe9a0;box-shadow:0 5px 0 #8a5a12}
+.profile-pick b{font-size:clamp(18px,3vw,24px)}
+.profile-pick small{font-size:15px;font-weight:600;opacity:.8}
+.profile-del{flex:0 0 auto;align-self:center}
+.lb-table{width:100%;border-collapse:collapse;font-size:clamp(16px,2.5vw,22px);margin-top:8px}
+.lb-table th,.lb-table td{padding:6px 8px;border-bottom:1px solid #0002;text-align:right}
+.lb-table .rank1{background:#fff4c4;font-weight:800}
+.profile-note{font-size:16px;font-weight:600;opacity:.8;margin-top:12px}
+.profile-stats{font-size:clamp(18px,2.6vw,24px);font-weight:700;text-align:right}
+#s-title{padding-bottom:64px}
+html.short .player-chip{margin-top:4px;padding:4px 10px;gap:6px}
+html.short .player-hello{font-size:16px}
+html.short #player-name-in{font-size:22px;padding:6px 12px}
+html.short .profile-pick b{font-size:18px}
+html.short .ico-coin{width:1em;height:1em;border-width:1.5px}
+#modal{padding-bottom:52px}
+html.short #modal{padding-bottom:40px}
+
 </style>
 </head>
 <body>
@@ -238,8 +268,13 @@ html.portrait .world-type{font-size:14px}
     <p class="note">משחק אוצר מילים באנגלית לכיתות ד׳–ה׳ · <span id="wordcount"></span> מילים</p>
     <button class="btn g play-btn" id="btn-play">▶ שחקו!</button>
     <p class="note play-next" id="play-next"></p>
+    <div id="player-chip" class="glass player-chip hidden">
+      <span class="player-hello" id="player-chip-name"></span>
+      <button class="btn s" id="btn-profiles">החלפת פרופיל</button>
+    </div>
     <div class="row title-sec">
       <button class="btn s" id="btn-start">🗺️ בחירת עולם ושלב</button>
+      <button class="btn s" id="btn-profile">פרופיל</button>
       <button class="btn s" id="btn-title-settings">⚙️ הגדרות</button>
       <button class="btn s" id="btn-help">❓ איך משחקים?</button>
     </div>
@@ -264,7 +299,7 @@ html.portrait .world-type{font-size:14px}
     <div class="map-top">
       <h2 class="world-title">מפת העולמות</h2>
       <div class="row">
-        <span class="pill">🪙 <span id="map-coins">0</span></span>
+        <span class="pill"><span class="ico-coin" aria-hidden="true"></span> <span id="map-coins">0</span></span>
         <span class="pill">⭐ <span id="map-stars">0</span></span>
         <span class="pill">🔑 <span id="map-keys">0</span></span>
         <button class="btn s" id="btn-map-back">חזרה</button>
@@ -273,7 +308,7 @@ html.portrait .world-type{font-size:14px}
     <aside class="map-side">
       <div class="glass side-card"><h3>🦉 רמזים</h3><p>אפשר לבקש עזרה מהינשוף בלי עונש: תמונה והסבר, אחר כך אותיות, ובסוף התשובה.</p></div>
       <div class="glass side-card"><h3>🔁 חזרה ותרגול</h3><p>מילים שטעינו בהן נשמרות וחוזרות לתרגול.</p><button class="btn s" id="btn-review">תרגול מילים שטעינו</button></div>
-      <div class="glass side-card"><h3>🧭 המסע שלי</h3>
+      <div class="glass side-card"><h3>🌍 המסע שלי</h3>
         <p>נלמדו: <b id="stat-learned">0</b> מתוך <span id="stat-total">0</span></p>
         <div class="bar"><i id="stat-bar"></i></div>
         <p>לתרגול: <b id="stat-practice">0</b> · עולמות: <b id="stat-worlds">0</b>/8</p>
@@ -308,7 +343,7 @@ html.portrait .world-type{font-size:14px}
     <div class="hud-bot">
       <button class="btn s p" id="btn-hint">🦉 צריכים עזרה?</button>
       <span class="pill" id="hud-prog">1/8</span>
-      <span class="pill" id="hud-coins">🪙 0</span>
+      <span class="pill" id="hud-coins"><span class="ico-coin" aria-hidden="true"></span> 0</span>
     </div>
     <div id="turn-cue" class="turn-cue hidden"></div>
   </section>
@@ -353,6 +388,7 @@ html.portrait .world-type{font-size:14px}
     });
   }
   var chain = Promise.resolve();
+  chain = chain.then(function () { return loadScript("./js/englishia-player.js"); });
   // DEMO ONLY: js/dev-flag.js sets window.MQ_DEV = true.
   // Production: omit that file (this load fails silently) and the DEVELOPER button will not appear.
   // v9: only the demo folder (or a local file) even tries to load it, so the official game never shows it.
@@ -364,10 +400,10 @@ html.portrait .world-type{font-size:14px}
     .catch(function (e) { console.error(e); });
 })();
 </script>
-<div id="mq-credit" style="position:fixed;left:0;right:0;bottom:4px;text-align:center;font:600 12px/1.2 system-ui,sans-serif;color:rgba(255,255,255,.75);text-shadow:0 1px 2px rgba(0,0,0,.6);pointer-events:none;z-index:9999;direction:ltr"></div>
+<div id="mq-credit" style="position:fixed;left:0;right:0;bottom:4px;text-align:center;font:600 12px/1.2 system-ui,sans-serif;color:rgba(255,255,255,.75);text-shadow:0 1px 2px rgba(0,0,0,.6);pointer-events:none;z-index:3;direction:ltr"></div>
 <script>
 (function(){var demo=/\/demo\//.test(location.pathname);
-var V="9b";var el=document.getElementById("mq-credit");
+var V="10";var el=document.getElementById("mq-credit");
 var l1=document.createElement("div");l1.textContent="\u00A9 2026 Amir \u00B7 Englishia \u00B7 All rights reserved \u00B7 "+(demo?"Demo version "+V:"Version "+V);
 var l2=document.createElement("div");l2.dir="rtl";l2.textContent="\u00A9 2026 \u05D0\u05DE\u05D9\u05E8 \u00B7 \u05D0\u05D9\u05E0\u05D2\u05DC\u05D9\u05E9\u05D9\u05D4 \u00B7 \u05DB\u05DC \u05D4\u05D6\u05DB\u05D5\u05D9\u05D5\u05EA \u05E9\u05DE\u05D5\u05E8\u05D5\u05EA \u00B7 "+(demo?"\u05D2\u05E8\u05E1\u05EA \u05D3\u05DE\u05D5 "+V:"\u05D2\u05E8\u05E1\u05D4 "+V);
 el.appendChild(l1);el.appendChild(l2);})();
