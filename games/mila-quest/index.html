@@ -242,6 +242,39 @@ html.short .ico-coin{width:1em;height:1em;border-width:1.5px}
 #modal{padding-bottom:52px}
 html.short #modal{padding-bottom:40px}
 
+
+/* v10.1: track progress bar + finish cue (CSS flag/runner, no new emoji) */
+body.mq-run #mq-credit{visibility:hidden}
+.track-bar{position:absolute;left:max(14px,env(safe-area-inset-left));right:max(14px,env(safe-area-inset-right));bottom:max(10px,env(safe-area-inset-bottom));z-index:5;pointer-events:none;direction:rtl}
+#hud .hud-bot{padding-bottom:46px}
+.track-bar-track{position:relative;height:28px;border-radius:999px;background:rgba(16,8,24,.78);border:3px solid #140818;box-shadow:0 4px 0 #140818,0 0 14px #0005;overflow:visible}
+.track-bar-fill{position:absolute;top:3px;bottom:3px;right:0;width:var(--p,0%);border-radius:999px;background:linear-gradient(to left,#3edc7a,#ffc83d 78%);box-shadow:inset 0 1px 0 #fff6}
+.track-bar-boss{position:absolute;top:0;bottom:0;left:0;width:22%;background:repeating-linear-gradient(-45deg,rgba(196,48,48,.5) 0 8px,rgba(70,10,20,.38) 8px 16px);border-radius:999px 0 0 999px;border-inline-start:3px solid #8a1a1a}
+.track-bar-boss span{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:12px;font-weight:800;color:#fff;text-shadow:0 1px 2px #000;letter-spacing:.02em}
+.track-bar-runner{position:absolute;top:50%;right:var(--p,0%);transform:translate(50%,-58%);z-index:2;width:22px;height:22px;border-radius:50%;background:radial-gradient(circle at 32% 28%,#fff,#ffc83d 55%,#c58a10);border:2px solid #140818;box-shadow:0 2px 0 #140818}
+.track-bar-runner::after{content:"";position:absolute;left:50%;top:100%;width:0;height:0;border:5px solid transparent;border-top-color:#140818;transform:translate(-50%,-2px)}
+.track-bar-flag{position:absolute;left:7px;top:50%;transform:translateY(-78%);z-index:2;width:20px;height:26px;pointer-events:none}
+.track-bar-flag::before{content:"";position:absolute;left:0;bottom:0;width:3px;height:28px;background:#140818;border-radius:2px}
+.track-bar-flag::after{content:"";position:absolute;left:3px;top:0;width:16px;height:12px;background:repeating-conic-gradient(#111 0 25%,#fff 0 50%);background-size:6px 6px;border:1px solid #111;border-radius:1px 2px 2px 1px}
+#finish-cue{position:absolute;bottom:28%;left:50%;transform:translateX(-50%);background:#111f2ee8;color:#fff;border:5px solid #111;border-radius:999px;padding:10px 26px;font-weight:800;font-size:clamp(22px,3.4vw,36px);box-shadow:0 8px 0 #111,0 0 26px #fff8;z-index:6;pointer-events:none;font-family:Fredoka,Rubik,sans-serif;white-space:nowrap}
+#finish-cue .chk{display:inline-block;width:1.05em;height:1.05em;vertical-align:-.18em;margin-inline:8px;background:repeating-conic-gradient(#111 0 25%,#fff 0 50%);background-size:50% 50%;border:2px solid #111;border-radius:3px}
+html.short #hud .hud-bot{padding-bottom:36px}
+html.short .track-bar-track{height:20px;border-width:2px}
+html.short .track-bar-runner{width:16px;height:16px}
+html.short .track-bar-boss span{font-size:10px}
+html.short #finish-cue{font-size:18px;padding:6px 16px;bottom:32%}
+html.portrait .track-bar{bottom:max(12px,env(safe-area-inset-bottom))}
+
+
+.lane-opt.long{white-space:normal;overflow:visible;text-overflow:unset;font-size:clamp(13px,1.8vw,20px);line-height:1.25;padding:6px 8px}
+.prompt .passage{direction:ltr;unicode-bidi:isolate;font-size:clamp(18px,2.6vw,26px);font-weight:700;line-height:1.35;text-align:left;margin:0 0 8px;font-family:Fredoka,Rubik,sans-serif}
+.prompt .gap-en{direction:ltr;unicode-bidi:isolate}
+#set-age .seg-b{min-width:88px}
+
+/* v11: Englishia accounts */
+.eng-signed-in #btn-profiles,.eng-signed-in #btn-profile{display:none!important}
+.eng-signed-in #player-chip{display:none!important}
+#s-title .eng-menu button{font-size:clamp(16px,2.2vw,20px)}
 </style>
 </head>
 <body>
@@ -265,7 +298,7 @@ html.short #modal{padding-bottom:40px}
       <h2 style="margin:0 0 8px">בחרו גיבור</h2>
       <div class="row" id="hero-btns"></div>
     </div>
-    <p class="note">משחק אוצר מילים באנגלית לכיתות ד׳–ה׳ · <span id="wordcount"></span> מילים</p>
+    <p class="note">משחק אוצר מילים באנגלית · <span id="wordcount"></span> מילים</p>
     <button class="btn g play-btn" id="btn-play">▶ שחקו!</button>
     <p class="note play-next" id="play-next"></p>
     <div id="player-chip" class="glass player-chip hidden">
@@ -287,7 +320,7 @@ html.short #modal{padding-bottom:40px}
       <p>כל עולם נעול במנעול. כשמנצחים את הבוס מקבלים מפתח זהב שפותח את האי הבא.</p>
       <p>8 עולמות, ובכל עולם 7 שלבים — 6 שלבים ובוס. כל שלב קשה יותר מהקודם, וכל עולם קשה יותר מהעולם שלפניו.</p>
       <p>לכל עולם סוג תרגיל משלו: 1 תרגום לעברית · 2 תרגום לאנגלית · 3 תמונה ומילה · 4 אות חסרה · 5 האזנה ופירוש · 6 האזנה בלבד · 7 איות באותיות · 8 סיבוב מהיר של הכול.</p>
-      <p>⬆ / רווח — קפיצה מעל בורות ומכשולים נמוכים &nbsp; ←→ — מעבר נתיב, ובפנייה חדה של 90° חייבים להחליק לכיוון הפנייה &nbsp; ⬇ — החלקה מתחת לקורה</p>
+      <p>⬆ / רווח — קפיצה מעל בורות, מכשולים נמוכים וחיות במסלול &nbsp; ←→ — מעבר נתיב, ובפנייה חדה של 90° חייבים להחליק לכיוון הפנייה &nbsp; ⬇ — החלקה מתחת לקורה</p>
       <p>בעולמות ההאזנה המילה לא כתובה על המסך – רק שומעים אותה. לחצו 🔊 «שמעו שוב» או על המקש R כדי לשמוע שוב.</p>
       <p>🦉 תקועים? לחצו ״צריכים עזרה?״ — שלושה רמזים בלי עונש.</p>
       <p>🔊 המילה באנגלית מושמעת בקול. לבבות מתמלאים מחדש בכל שלב. איכות גרפית חסכונית זמינה למחשבים חלשים.</p>
@@ -345,7 +378,16 @@ html.short #modal{padding-bottom:40px}
       <span class="pill" id="hud-prog">1/8</span>
       <span class="pill" id="hud-coins"><span class="ico-coin" aria-hidden="true"></span> 0</span>
     </div>
+    <div id="track-bar" class="track-bar hidden" dir="rtl" role="progressbar" aria-label="התקדמות במסלול" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+      <div class="track-bar-track">
+        <div class="track-bar-boss hidden" id="track-bar-boss"><span>בוס</span></div>
+        <div class="track-bar-fill" id="track-bar-fill"></div>
+        <span class="track-bar-runner" id="track-bar-runner" aria-hidden="true"></span>
+        <span class="track-bar-flag" aria-hidden="true"></span>
+      </div>
+    </div>
     <div id="turn-cue" class="turn-cue hidden"></div>
+    <div id="finish-cue" class="hidden"><span class="chk" aria-hidden="true"></span>קו הסיום!<span class="chk" aria-hidden="true"></span></div>
   </section>
 
   <section id="modal" class="hidden"><div class="box" id="modal-box"></div></section>
@@ -389,6 +431,19 @@ html.short #modal{padding-bottom:40px}
   }
   var chain = Promise.resolve();
   chain = chain.then(function () { return loadScript("./js/englishia-player.js"); });
+  // v11: one Englishia account for all games (../../js/englishia-auth.js). Guests still play.
+  chain = chain.then(function () { return loadScript("../../js/englishia-auth.js").catch(function () {}); })
+    .then(function () {
+      if (!window.EnglishiaAuth) return;
+      EnglishiaAuth.init({ gameId: "mila-quest", gameTitle: "\u05de\u05d9\u05dc\u05d4 \u05e7\u05d5\u05d5\u05e1\u05d8", mount: "#s-title .title-sec", reloadOnChange: true,
+        devTools: function () { var b = document.getElementById("btn-dev"); if (b) b.click(); },
+        devToolsLabel: "DEVELOPER \u00b7 \u05e7\u05e4\u05d9\u05e6\u05d4 \u05dc\u05e2\u05d5\u05dc\u05de\u05d5\u05ea \u05d5\u05e9\u05dc\u05d1\u05d9\u05dd" });
+      var wait = EnglishiaAuth.bridgeLocal(window.Englishia, "mila-quest");
+      return Promise.race([wait, new Promise(function (r) { setTimeout(r, 9000); })]).then(function () {
+        // Admins get the DEVELOPER button in the official game too.
+        if (EnglishiaAuth.isAdmin) window.MQ_DEV = true;
+      });
+    });
   // DEMO ONLY: js/dev-flag.js sets window.MQ_DEV = true.
   // Production: omit that file (this load fails silently) and the DEVELOPER button will not appear.
   // v9: only the demo folder (or a local file) even tries to load it, so the official game never shows it.
@@ -403,7 +458,7 @@ html.short #modal{padding-bottom:40px}
 <div id="mq-credit" style="position:fixed;left:0;right:0;bottom:4px;text-align:center;font:600 12px/1.2 system-ui,sans-serif;color:rgba(255,255,255,.75);text-shadow:0 1px 2px rgba(0,0,0,.6);pointer-events:none;z-index:3;direction:ltr"></div>
 <script>
 (function(){var demo=/\/demo\//.test(location.pathname);
-var V="10";var el=document.getElementById("mq-credit");
+var V="11";var el=document.getElementById("mq-credit");
 var l1=document.createElement("div");l1.textContent="\u00A9 2026 Amir \u00B7 Englishia \u00B7 All rights reserved \u00B7 "+(demo?"Demo version "+V:"Version "+V);
 var l2=document.createElement("div");l2.dir="rtl";l2.textContent="\u00A9 2026 \u05D0\u05DE\u05D9\u05E8 \u00B7 \u05D0\u05D9\u05E0\u05D2\u05DC\u05D9\u05E9\u05D9\u05D4 \u00B7 \u05DB\u05DC \u05D4\u05D6\u05DB\u05D5\u05D9\u05D5\u05EA \u05E9\u05DE\u05D5\u05E8\u05D5\u05EA \u00B7 "+(demo?"\u05D2\u05E8\u05E1\u05EA \u05D3\u05DE\u05D5 "+V:"\u05D2\u05E8\u05E1\u05D4 "+V);
 el.appendChild(l1);el.appendChild(l2);})();

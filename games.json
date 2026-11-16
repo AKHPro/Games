@@ -20,7 +20,7 @@
       "description": "A 3D running game for English vocabulary: 8 worlds, 56 stages, bosses, and difficulty settings.",
       "category": "Vocabulary",
       "tags": ["Words", "Worlds"],
-      "level": "כיתות ד׳–ה׳",
+      "level": "בחירת גיל בהגדרות",
       "path": "games/mila-quest/",
       "thumbnail": "assets/thumbs/mila-quest.png"
     }

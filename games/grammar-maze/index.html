@@ -333,6 +333,7 @@ body.pseudo-full #app{height:100%; height:100svh; height:100dvh; padding-left:en
   <div class="overlay" id="startScreen">
     <div class="card">
       <h2>Grammar Maze</h2>
+      <div class="noprint" id="engSlotStart" style="margin:4px 0 10px"></div>
       <p>Every fork in the tunnel has a question. Click the sign with the right answer and you walk that way. Right answers lead deeper, through four zones, to the mountain of gold. Too many wrong turns and you walk into a deadly trap. Watch out for monsters: answer fast to defeat them.</p>
       <div class="group"><span>Players</span><div class="chips" id="modeChips"></div>
         <div class="teamNames" id="teamNames"><input id="t0in" maxlength="18" aria-label="Team 1 name"><input id="t1in" maxlength="18" aria-label="Team 2 name"></div>
@@ -372,6 +373,7 @@ body.pseudo-full #app{height:100%; height:100svh; height:100dvh; padding-left:en
       <h2 id="endTitle"></h2>
       <p id="endText"></p>
       <div class="stats" id="stats"></div>
+      <div class="noprint" id="engSlotEnd" style="margin:10px 0"></div>
       <div class="endbtns noprint">
         <button class="go secondary" id="onlyBadBtn">Show only mistakes</button>
         <button class="go secondary" id="printBtn">🖨 Print answer key</button>
@@ -404,6 +406,8 @@ body.pseudo-full #app{height:100%; height:100svh; height:100dvh; padding-left:en
 </div>
 <div id="rotateTip" hidden>🔄 Turn your phone sideways (landscape) for the best view</div>
 
+<script src="../../js/englishia-auth.js"></script>
+<script>EnglishiaAuth.init({ gameId: "grammar-maze", gameTitle: "מבוך הדקדוק", mount: "#engSlotStart" }); EnglishiaAuth.mountMenu("#engSlotEnd");</script>
 <script src="firebase-config.js"></script>
 <script>
 const $ = id=>document.getElementById(id);
@@ -1704,7 +1708,7 @@ function startGame(){
   const {pool}=buildPool();
   if(pool.length<2){ $("warn").textContent = settings.custom==="only" ? "Write at least 2 of your own questions first (under More options)." : "Choose more topics or question types."; return; }
   $("warn").textContent="";
-  G.run++; G.pool=pool;
+  G.run++; G.pool=pool; G.t0=Date.now();
   // no repeats: unique questions, ones not seen recently first
   const uniq=[...new Map(pool.map(q=>[q[1]+"|"+q[2],q])).values()], seen=getSeen();
   G.deck=shuffle(uniq.filter(q=>!seen.has(q[1]+"|"+q[2]))).concat(shuffle(uniq.filter(q=>seen.has(q[1]+"|"+q[2]))));
@@ -1889,6 +1893,7 @@ async function endGame(kind,run){
   }
   if(kind!=="gold"){ addDeath(); updateHud(); }
   if(G.score>G.best){ G.newBest=G.best>0||G.score>0; G.best=G.score; saveBest(G.score); }
+  try{ if(window.EnglishiaAuth&&EnglishiaAuth.user&&G.t0){ EnglishiaAuth.recordSession("grammar-maze",G.score,(Date.now()-G.t0)/1000); G.t0=0; } }catch(e){}
   if(run!==G.run) return;
   await wait(700);
   if(run!==G.run) return;

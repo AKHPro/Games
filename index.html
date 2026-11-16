@@ -54,7 +54,7 @@
     </noscript>
     <p class="loading">Loading games…</p>
   </main>
-  <footer class="footer">Englishia · Amir Khoury · Grades 10–12. No accounts and no tracking.</footer>
+  <footer class="footer">Englishia · Amir Khoury. Optional student accounts (username + password) save progress and scores across all games. <span lang="he" dir="rtl">חשבון אחד לכל המשחקים · אפשר לשחק גם בלי חשבון.</span></footer>
 </div>
 <script id="games-fallback" type="application/json">
 {
@@ -76,5 +76,7 @@
 }
 </script>
 <script src="assets/hub.js"></script>
+<script src="js/englishia-auth.js"></script>
+<script>EnglishiaAuth.init({ mount: ".topbar .bar-inner" });</script>
 </body>
 </html>
