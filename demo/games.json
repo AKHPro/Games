@@ -10,7 +10,7 @@
       "tags": ["Tenses", "Sentences", "Bagrut", "Word types"],
       "level": "Grades 10–12",
       "path": "games/grammar-maze/",
-      "thumbnail": "../assets/thumbs/grammar-maze.png",
+      "thumbnail": "assets/thumbs/grammar-maze.png",
       "featured": true
     },
     {
@@ -22,7 +22,7 @@
       "tags": ["Words", "Worlds"],
       "level": "בחירת גיל בהגדרות",
       "path": "mila-quest/",
-      "thumbnail": "../assets/thumbs/mila-quest.png"
+      "thumbnail": "assets/thumbs/mila-quest.jpg"
     }
   ]
 }
