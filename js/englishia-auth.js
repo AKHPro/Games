@@ -78,7 +78,8 @@
       var appM = m[0], A = m[1], F = m[2];
       var app = appM.getApps().filter(function (a) { return a.name === "englishia"; })[0] || appM.initializeApp(cfg, "englishia");
       var auth = A.getAuth(app);
-      var db = F.getFirestore(app);
+      var db;
+      try { db = F.initializeFirestore(app, { experimentalForceLongPolling: true }); } catch (e) { db = F.getFirestore(app); }
       if (EMU) {
         try { A.connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true }); } catch (e) {}
         try { F.connectFirestoreEmulator(db, "127.0.0.1", 8085); } catch (e) {}
@@ -163,13 +164,21 @@
   }
 
   /* ---------- auth state ---------- */
+  function retryGet(ref, n) {
+    return fb.F.getDoc(ref).catch(function (e) {
+      if (n > 0 && e && (e.code === "unavailable" || e.code === "deadline-exceeded")) {
+        return new Promise(function (r) { setTimeout(r, 900); }).then(function () { return retryGet(ref, n - 1); });
+      }
+      throw e;
+    });
+  }
   function loadUserState(u) {
     if (!u) { state.user = null; state.doc = null; state.admin = false; return Promise.resolve(); }
     state.user = u;
     var F = fb.F;
     return Promise.all([
-      F.getDoc(userRef(u.uid)).then(function (s) { return s.exists() ? s.data() : null; }),
-      F.getDoc(F.doc(fb.db, "admins", u.uid)).then(function (s) { return s.exists(); }).catch(function () { return false; })
+      retryGet(userRef(u.uid), 3).then(function (s) { return s.exists() ? s.data() : null; }),
+      retryGet(F.doc(fb.db, "admins", u.uid), 3).then(function (s) { return s.exists(); }).catch(function () { return false; })
     ]).then(function (r) {
       state.doc = r[0];
       state.admin = !!r[1];
@@ -226,6 +235,7 @@
   }
 
   function register(username, password, displayName) {
+    if (!displayName) displayName = String(username == null ? "" : username).trim();
     username = normUsername(username);
     var bad = checkUsername(username);
     if (bad) return Promise.reject({ heb: bad });
@@ -248,7 +258,8 @@
     return loadFirebase().then(function () {
       return fb.A.signInWithEmailAndPassword(fb.auth, usernameToEmail(username), password);
     }).then(function (cred) {
-      return loadUserState(cred.user);
+      // a slow/blocked network must not block a correct login; profile data loads again on the next auth event
+      return loadUserState(cred.user).catch(function (e) { console.warn("englishia user", e); state.user = cred.user; });
     }).then(function () {
       touch();
       return logEvent("login", opts.gameId || "", "");
