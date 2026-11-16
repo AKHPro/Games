@@ -34,7 +34,7 @@
   var EMAIL_DOMAIN = "englishia.app";
   var ACTIVITY_DAYS = 7;
   var CHANGE_DAYS = 365;
-  var LONG_TYPES = ["name_change", "password_change", "username_change", "admin_edit", "admin_reset_progress", "admin_password_reset"];
+  var LONG_TYPES = ["name_change", "password_change", "username_change", "admin_edit", "admin_reset_progress", "admin_password_reset", "admin_points", "admin_rank", "admin_perms", "admin_delete", "admin_restore", "admin_rankdefs"];
   var GAME_TITLES = { "mila-quest": "מילה קווסט", "grammar-maze": "מבוך הדקדוק" };
 
   var script = document.currentScript;
@@ -486,8 +486,173 @@
       .then(function () { return logEvent("password_change", opts.gameId || "", "התלמיד/ה שינה/תה סיסמה"); });
   }
 
-  /* ---------- admin ---------- */
-  function needAdmin() { if (!state.admin) throw { heb: "רק למנהל." }; }
+  /* ---------- admin, managers, ranks, audit ---------- */
+  // Roles: owner = admins/{uid} (set in the Firebase console, irrevocable from the site).
+  // Managers = managers/{uid} {perms}. Every permission is enforced by firestore.rules too.
+  var PERMS = ["view", "points", "names", "ranks", "rankdefs", "delete", "managers", "audit"];
+  var PERM_HE = {
+    view: "צפייה בתלמידים, בהתקדמות ובפעילות",
+    points: "עריכת נקודות והתקדמות (הוספה, שינוי, מחיקה)",
+    names: "שינוי שם תצוגה של תלמידים",
+    ranks: "קביעת דרגה ידנית לתלמיד",
+    rankdefs: "עריכת הדרגות (שמות וניקוד נדרש)",
+    "delete": "מחיקת תלמידים ושחזור",
+    managers: "מינוי מנהלים (רק בהרשאות שיש לו)",
+    audit: "צפייה ביומן הביקורת של כל המנהלים"
+  };
+  var ACTION_HE = {
+    points: "עריכת נקודות", reset_game: "מחיקת ניקוד במשחק", rename: "שינוי שם", rank: "שינוי דרגה",
+    rankdefs: "עריכת הדרגות", delete_user: "מחיקת תלמיד", restore_user: "שחזור תלמיד", perms: "הרשאות מנהל",
+    password_reset: "איפוס סיסמה", username_change: "שינוי שם משתמש"
+  };
+  var staff = { uid: null, owner: false, perms: null, loading: null };
+  function isOwner() { return !!(state.user && staff.uid === state.user.uid && staff.owner); }
+  function can(p) {
+    if (!state.user || staff.uid !== state.user.uid) return false;
+    return staff.owner || !!(staff.perms && staff.perms[p] === true);
+  }
+  function isStaff() { return isOwner() || PERMS.some(function (p) { return can(p); }); }
+  function needPerm(p) { if (!can(p)) throw { heb: "אין לך הרשאה לפעולה הזאת." }; }
+  function needAdmin() { if (!isStaff()) throw { heb: "רק למנהל." }; }
+  function needOwner() { if (!isOwner()) throw { heb: "רק בעל האתר (amir) יכול לעשות את זה." }; }
+  function loadStaff() {
+    if (!fb || !state.user) { staff = { uid: null, owner: false, perms: null, loading: null }; return Promise.resolve(); }
+    var uid = state.user.uid;
+    if (staff.uid === uid && staff.loading) return staff.loading;
+    var F = fb.F;
+    var s = { uid: uid, owner: false, perms: null, loading: null };
+    s.loading = Promise.all([
+      F.getDoc(F.doc(fb.db, "admins", uid)).then(function (x) { return x.exists(); }).catch(function () { return false; }),
+      F.getDoc(F.doc(fb.db, "managers", uid)).then(function (x) { return x.exists() ? x.data() : null; }).catch(function () { return null; }),
+      F.getDoc(F.doc(fb.db, "ranks", uid)).then(function (x) { return x.exists() ? x.data() : null; }).catch(function () { return null; }),
+      getTiers(),
+      F.getDoc(F.doc(fb.db, "tombstones", uid)).then(function (x) { return x.exists(); }).catch(function () { return false; })
+    ]).then(function (r) {
+      s.deleted = !!r[4];
+      s.owner = !!r[0];
+      var p = {};
+      if (r[1] && r[1].perms) PERMS.forEach(function (k) { p[k] = r[1].perms[k] === true; });
+      s.perms = r[1] ? p : null;
+      s.rank = r[2];
+      if (state.user && state.user.uid === uid) {
+        staff = s;
+        state.admin = isStaff();
+      }
+    });
+    staff = s;
+    return s.loading;
+  }
+  // keep state.admin = owner OR manager with a permission, after every auth/profile event
+  listeners.push(function (u) {
+    if (!u) { if (staff.uid) staff = { uid: null, owner: false, perms: null, loading: null }; return; }
+    if (staff.uid !== u.uid) {
+      loadStaff().then(function () { setTimeout(function () { emit(); }, 0); });
+    } else if (staff.loading) {
+      staff.loading.then(function () {
+        var want = isStaff();
+        if (state.admin !== want) { state.admin = want; setTimeout(function () { emit(); }, 0); }
+      });
+    }
+  });
+  // ready() resolves after the role is known (games read isAdmin once on start)
+  readyPromise = readyPromise.then(function () { return loadStaff().catch(function () {}); }).then(function () { return publicUser(); });
+
+  /* ranks */
+  var DEFAULT_TIERS = [
+    { id: "t1", name: "מתחיל", min: 0, color: "#7c8a96" },
+    { id: "t2", name: "מתקדם", min: 500, color: "#2f9e44" },
+    { id: "t3", name: "ותיק", min: 2000, color: "#1c7ed6" },
+    { id: "t4", name: "מקצוען", min: 5000, color: "#7048e8" },
+    { id: "t5", name: "אלוף", min: 10000, color: "#e8890c" },
+    { id: "t6", name: "אגדה", min: 25000, color: "#c92a2a" }
+  ];
+  var TIER_COLORS = ["#7c8a96", "#2f9e44", "#1c7ed6", "#7048e8", "#e8890c", "#c92a2a", "#0b7285", "#a61e4d", "#5c940d", "#495057", "#d6336c", "#364fc7"];
+  var tiersCache = null, tiersAt = 0;
+  function cleanTiers(list) {
+    var seen = {}, out = [];
+    (Array.isArray(list) ? list : []).slice(0, 12).forEach(function (t, i) {
+      if (!t) return;
+      var name = cleanName(t.name);
+      if (!name) return;
+      var id = String(t.id || "").replace(/[^a-z0-9_]/gi, "").slice(0, 20) || ("t" + Date.now().toString(36) + i);
+      while (seen[id]) id += "x";
+      seen[id] = 1;
+      var color = /^#[0-9a-f]{6}$/i.test(t.color || "") ? t.color : TIER_COLORS[i % TIER_COLORS.length];
+      out.push({ id: id, name: name, min: Math.min(1000000000, num(t.min)), color: color });
+    });
+    out.sort(function (a, b) { return a.min - b.min; });
+    if (out.length) out[0].min = 0;
+    return out;
+  }
+  function getTiers(force) {
+    if (!force && tiersCache && Date.now() - tiersAt < 60e3) return Promise.resolve(tiersCache);
+    return loadFirebase().then(function () {
+      return fb.F.getDoc(fb.F.doc(fb.db, "config", "ranks"));
+    }).then(function (s) {
+      var t = s.exists() ? cleanTiers(s.data().tiers) : [];
+      tiersCache = t.length ? t : DEFAULT_TIERS.slice(); tiersAt = Date.now();
+      return tiersCache;
+    }).catch(function () { return tiersCache || DEFAULT_TIERS.slice(); });
+  }
+  function rankOf(total, manual, tiers) {
+    tiers = tiers || tiersCache || DEFAULT_TIERS;
+    total = num(total);
+    var idx = 0;
+    tiers.forEach(function (t, i) { if (total >= t.min) idx = i; });
+    var auto = idx, isManual = false;
+    if (manual) {
+      for (var i = 0; i < tiers.length; i++) if (tiers[i].id === manual) { idx = i; isManual = true; break; }
+    }
+    var next = auto + 1 < tiers.length ? tiers[auto + 1] : null;
+    return { tier: tiers[idx], index: idx, level: idx + 1, manual: isManual, auto: tiers[auto], next: next, toNext: next ? next.min - total : 0, total: total };
+  }
+  // drawn badge (SVG shield with a star and the level number); no emoji
+  function badgeSVG(tier, level, size) {
+    size = size || 28;
+    var c = (tier && tier.color) || "#7c8a96";
+    var n = Math.max(1, Math.min(12, level || 1));
+    return '<svg class="eng-badge" width="' + size + '" height="' + Math.round(size * 1.15) + '" viewBox="0 0 40 46" aria-hidden="true" focusable="false">' +
+      '<path d="M20 1.5 37 7.5v13c0 11.5-7.4 19.6-17 23.5C10.4 40.1 3 32 3 20.5v-13z" fill="' + c + '" stroke="#1d1a16" stroke-width="2.2"/>' +
+      '<path d="M20 6 32.5 10.4v9.9c0 8.6-5.3 14.8-12.5 18-7.2-3.2-12.5-9.4-12.5-18v-9.9z" fill="none" stroke="rgba(255,255,255,.55)" stroke-width="1.6"/>' +
+      '<path d="M20 9.5l2.9 5.9 6.5.9-4.7 4.6 1.1 6.5L20 24.3l-5.8 3.1 1.1-6.5-4.7-4.6 6.5-.9z" fill="#fff6d5" stroke="#1d1a16" stroke-width="1.1"/>' +
+      '<text x="20" y="38" text-anchor="middle" font-family="Arial,sans-serif" font-weight="700" font-size="9.5" fill="#fff">' + n + "</text></svg>";
+  }
+  function rankChip(r, size) {
+    if (!r || !r.tier) return "";
+    return '<span class="eng-rank" title="' + esc("דרגה " + r.level + (r.manual ? " (נקבעה ע״י המנהל)" : "")) + '">' + badgeSVG(r.tier, r.level, size) +
+      "<span>" + esc(r.tier.name) + "</span></span>";
+  }
+  function readRank(uid) {
+    return fb.F.getDoc(fb.F.doc(fb.db, "ranks", uid)).then(function (s) { return s.exists() ? s.data() : null; }).catch(function () { return null; });
+  }
+  // public ranks/{uid} = {total, manual}; total always equals the profile's totalScore
+  function syncRank(uid) {
+    if (!fb || !state.user) return Promise.resolve();
+    uid = uid || state.user.uid;
+    var F = fb.F;
+    return Promise.all([F.getDoc(userRef(uid)), readRank(uid)]).then(function (r) {
+      if (!r[0].exists()) return;
+      var total = num(r[0].data().totalScore), manual = (r[1] && r[1].manual) || "";
+      if (r[1] && r[1].total === total) return;
+      return F.setDoc(F.doc(fb.db, "ranks", uid), { total: total, manual: manual, updatedAt: F.serverTimestamp() });
+    }).catch(function (e) { console.warn("englishia rank", e); });
+  }
+  var origRecordSession = recordSession;
+  recordSession = function (gameId, score, seconds, progress) {
+    return origRecordSession(gameId, score, seconds, progress).then(function (ok) {
+      if (ok) return syncRank().then(function () { if (staff.uid && state.user && staff.uid === state.user.uid) return readRank(staff.uid).then(function (x) { staff.rank = x; }); }).then(function () { return ok; });
+      return ok;
+    });
+  };
+  function myRank() {
+    var d = state.doc || {};
+    return rankOf(d.totalScore, staff.rank && staff.rank.manual);
+  }
+  function ranksFor(uids) {
+    return Promise.all(uids.map(function (u) { return readRank(u); }));
+  }
+
+  /* audit */
   var ownerToken = null;
   function getOwnerToken() {
     // Password reset / username change need the project owner's Google sign-in.
@@ -508,7 +673,6 @@
       return A.signOut(auth2).then(function () {
         if (!t) throw { heb: "לא התקבל אישור מגוגל." };
         ownerToken = { t: t, exp: Date.now() + 50 * 60e3 };
-        // remove the helper Google user from the Auth list (keeps the user list clean)
         if (googleUid) idtk("accounts:delete", { localId: googleUid }, t).catch(function () {});
         return t;
       });
@@ -537,91 +701,290 @@
     });
     return t;
   }
+  function str(v, max) {
+    if (v == null) v = "";
+    if (typeof v !== "string") { try { v = JSON.stringify(v); } catch (e) { v = String(v); } }
+    return v.length > max ? v.slice(0, max - 1) + "…" : v;
+  }
+  // a batch that starts with the audit entry + pointer; the rules require both for every manager change
+  function auditBatch(action, target, targetName, before, after, detail) {
+    var F = fb.F, b = F.writeBatch(fb.db), me = state.user.uid;
+    var ref = F.doc(F.collection(fb.db, "audit"));
+    b.set(ref, {
+      actor: me, actorName: cleanName((state.doc && state.doc.displayName) || (state.doc && state.doc.username) || "?") || "?",
+      action: action, target: String(target || ""), targetName: str(targetName, 40),
+      before: str(before, 2000), after: str(after, 2000), detail: str(detail, 300), at: F.serverTimestamp()
+    });
+    b.set(F.doc(fb.db, "auditptr", me), { id: ref.id, at: F.serverTimestamp() });
+    return b;
+  }
+  function statsTxt(g, gameId) {
+    g = statsOf(g);
+    return (GAME_TITLES[gameId] || gameId) + ": שיא " + g.best + ", ניקוד " + g.totalScore + ", " + fmtTime(g.seconds) + ", " + g.plays + " משחקים";
+  }
+  function knownGames(u) {
+    var ids = {};
+    Object.keys(GAME_TITLES).forEach(function (k) { ids[k] = 1; });
+    Object.keys((u && u.games) || {}).forEach(function (k) { if (/^[a-z0-9-]{1,40}$/.test(k)) ids[k] = 1; });
+    return Object.keys(ids);
+  }
+  function permList(p) { return PERMS.filter(function (k) { return p && p[k] === true; }); }
+  function permTxt(p) { var l = permList(p); return l.length ? l.map(function (k) { return PERM_HE[k]; }).join(" · ") : "ללא הרשאות"; }
+
   var admin = {
+    PERMS: PERMS, PERM_HE: PERM_HE, ACTION_HE: ACTION_HE,
     listUsers: function () {
-      return Promise.resolve().then(needAdmin).then(function () {
+      return Promise.resolve().then(function () { needPerm("view"); }).then(function () {
         return fb.F.getDocs(fb.F.collection(fb.db, "users"));
       }).then(function (snap) {
         var out = [];
         snap.forEach(function (s) { out.push(Object.assign({ uid: s.id }, s.data())); });
         out.sort(function (a, b) { return String(a.displayName).localeCompare(String(b.displayName), "he"); });
-        return out;
+        return Promise.all([ranksFor(out.map(function (u) { return u.uid; })), getTiers(),
+          can("managers") ? admin.listManagers().catch(function () { return []; }) : Promise.resolve([])]).then(function (r) {
+          var mg = {}; r[2].forEach(function (m) { mg[m.uid] = m; });
+          out.forEach(function (u, i) {
+            u.rankDoc = r[0][i]; u.rank = rankOf(u.totalScore, r[0][i] && r[0][i].manual, r[1]);
+            u.manager = mg[u.uid] || null;
+          });
+          return out;
+        });
       });
     },
     getUser: function (uid) {
-      return Promise.resolve().then(needAdmin).then(function () { return fb.F.getDoc(userRef(uid)); })
-        .then(function (s) { return s.exists() ? Object.assign({ uid: uid }, s.data()) : null; });
+      return Promise.resolve().then(function () { needPerm("view"); }).then(function () { return Promise.all([fb.F.getDoc(userRef(uid)), readRank(uid), getTiers()]); })
+        .then(function (r) {
+          if (!r[0].exists()) return null;
+          var u = Object.assign({ uid: uid }, r[0].data());
+          u.rankDoc = r[1]; u.rank = rankOf(u.totalScore, r[1] && r[1].manual, r[2]);
+          return u;
+        });
     },
-    loadProgress: function (uid, gameId) { needAdmin(); return loadProgress(gameId, uid); },
+    loadProgress: function (uid, gameId) { needPerm("view"); return loadProgress(gameId, uid); },
     setProgress: function (uid, gameId, data) {
-      needAdmin();
-      return admin.getUser(uid).then(function (u) {
-        return saveProgress(gameId, data, uid).then(function (ok) {
-          if (!ok) throw { heb: "השמירה נכשלה." };
+      needPerm("points");
+      var json;
+      try { json = JSON.stringify(data == null ? {} : data); } catch (e) { return Promise.reject({ heb: "הטקסט לא תקין." }); }
+      if (json.length > 300000) return Promise.reject({ heb: "ההתקדמות גדולה מדי." });
+      var F = fb.F;
+      return Promise.all([admin.getUser(uid), loadProgress(gameId, uid)]).then(function (r) {
+        var u = r[0]; if (!u) throw { heb: "התלמיד לא נמצא." };
+        var b = auditBatch("points", uid, u.displayName, r[1], json, "עריכת התקדמות · " + (GAME_TITLES[gameId] || gameId));
+        b.set(F.doc(fb.db, "users", uid, "progress", gameId), { json: json, updatedAt: F.serverTimestamp(), by: state.user.uid });
+        return b.commit().then(function () {
           return logEvent("admin_edit", gameId, "המנהל ערך את ההתקדמות", { uid: uid, name: u.displayName });
         });
       });
     },
+    // edit one game's numbers; totals and leaderboard follow
     setStats: function (uid, gameId, stats) {
-      needAdmin();
+      needPerm("points");
       var F = fb.F;
       return admin.getUser(uid).then(function (u) {
-        var games = Object.assign({}, u.games || {});
+        if (!u) throw { heb: "התלמיד לא נמצא." };
+        var games = Object.assign({}, u.games || {}), old = games[gameId];
         var g = { best: num(stats.best), totalScore: num(stats.totalScore), seconds: num(stats.seconds), plays: num(stats.plays), lastPlayed: F.serverTimestamp() };
         games[gameId] = g;
         var t = recomputeTotals(games);
-        return F.updateDoc(userRef(uid), new F.FieldPath("games", gameId), g, "totalScore", t.totalScore,
-          "totalSeconds", t.totalSeconds, "plays", t.plays).then(function () {
-          var lb = F.doc(fb.db, "leaderboards", gameId, "scores", uid);
-          delete lbCache[gameId];
-          return g.best > 0 ? F.setDoc(lb, { name: u.displayName, score: g.best, updatedAt: F.serverTimestamp() }) : F.deleteDoc(lb);
-        }).then(function () {
-          return logEvent("admin_edit", gameId, "ניקוד: שיא " + g.best + ", סה״כ " + g.totalScore + ", " + fmtTime(g.seconds) + ", " + g.plays + " משחקים",
-            { uid: uid, name: u.displayName });
+        var before = statsTxt(old, gameId) + " · סה״כ " + num(u.totalScore);
+        var after = statsTxt(g, gameId) + " · סה״כ " + t.totalScore;
+        var b = auditBatch("points", uid, u.displayName, before, after, GAME_TITLES[gameId] || gameId);
+        b.update(userRef(uid), new F.FieldPath("games", gameId), g, "totalScore", t.totalScore, "totalSeconds", t.totalSeconds, "plays", t.plays);
+        var lb = F.doc(fb.db, "leaderboards", gameId, "scores", uid);
+        if (g.best > 0) b.set(lb, { name: cleanName(u.displayName) || "?", score: g.best, updatedAt: F.serverTimestamp() }); else b.delete(lb);
+        b.set(F.doc(fb.db, "ranks", uid), { total: t.totalScore, manual: (u.rankDoc && u.rankDoc.manual) || "", updatedAt: F.serverTimestamp() });
+        delete lbCache[gameId];
+        return b.commit().then(function () {
+          if (state.user && uid === state.user.uid && state.doc) { state.doc.games = games; Object.assign(state.doc, t); }
+          return logEvent("admin_points", gameId, "ניקוד: " + after, { uid: uid, name: u.displayName });
         });
       });
     },
+    // add (or remove, with a negative number) points to one game's total score
+    addPoints: function (uid, gameId, delta) {
+      delta = Math.round(+delta || 0);
+      if (!delta) return Promise.reject({ heb: "צריך לכתוב כמה נקודות." });
+      return admin.getUser(uid).then(function (u) {
+        if (!u) throw { heb: "התלמיד לא נמצא." };
+        var g = statsOf((u.games || {})[gameId]);
+        g.totalScore = Math.max(0, g.totalScore + delta);
+        return admin.setStats(uid, gameId, g);
+      });
+    },
     resetGame: function (uid, gameId) {
-      needAdmin();
+      needPerm("points");
       var F = fb.F;
       return admin.getUser(uid).then(function (u) {
-        var games = Object.assign({}, u.games || {});
+        if (!u) throw { heb: "התלמיד לא נמצא." };
+        var games = Object.assign({}, u.games || {}), old = games[gameId];
         delete games[gameId];
         var t = recomputeTotals(games);
-        return F.updateDoc(userRef(uid), new F.FieldPath("games", gameId), F.deleteField(), "totalScore", t.totalScore,
-          "totalSeconds", t.totalSeconds, "plays", t.plays)
-          .then(function () { return F.deleteDoc(F.doc(fb.db, "users", uid, "progress", gameId)); })
-          .then(function () { delete lbCache[gameId]; return F.deleteDoc(F.doc(fb.db, "leaderboards", gameId, "scores", uid)); })
-          .then(function () { return logEvent("admin_reset_progress", gameId, "המנהל איפס את ההתקדמות במשחק", { uid: uid, name: u.displayName }); });
+        var b = auditBatch("reset_game", uid, u.displayName, statsTxt(old, gameId) + " · סה״כ " + num(u.totalScore), "נמחק · סה״כ " + t.totalScore, GAME_TITLES[gameId] || gameId);
+        b.update(userRef(uid), new F.FieldPath("games", gameId), F.deleteField(), "totalScore", t.totalScore, "totalSeconds", t.totalSeconds, "plays", t.plays);
+        b.delete(F.doc(fb.db, "users", uid, "progress", gameId));
+        b.delete(F.doc(fb.db, "leaderboards", gameId, "scores", uid));
+        b.set(F.doc(fb.db, "ranks", uid), { total: t.totalScore, manual: (u.rankDoc && u.rankDoc.manual) || "", updatedAt: F.serverTimestamp() });
+        delete lbCache[gameId];
+        return b.commit().then(function () {
+          return logEvent("admin_reset_progress", gameId, "המנהל מחק את הניקוד וההתקדמות במשחק", { uid: uid, name: u.displayName });
+        });
       });
     },
     rename: function (uid, name) {
-      needAdmin();
+      needPerm("names");
       name = cleanName(name);
       if (!name) return Promise.reject({ heb: "צריך לכתוב שם." });
       var F = fb.F;
       return admin.getUser(uid).then(function (u) {
-        return F.updateDoc(userRef(uid), { displayName: name }).then(function () {
-          return renameLeaderboards(uid, name, Object.keys(u.games || {}));
-        }).then(function () {
-          if (state.user && uid === state.user.uid) state.doc.displayName = name;
+        if (!u) throw { heb: "התלמיד לא נמצא." };
+        var b = auditBatch("rename", uid, name, u.displayName, name, "");
+        b.update(userRef(uid), { displayName: name });
+        Object.keys(u.games || {}).forEach(function (g) {
+          var best = num(u.games[g] && u.games[g].best);
+          if (best > 0 && /^[a-z0-9-]{1,40}$/.test(g)) { b.set(F.doc(fb.db, "leaderboards", g, "scores", uid), { name: name, score: best, updatedAt: F.serverTimestamp() }); delete lbCache[g]; }
+        });
+        return b.commit().then(function () {
+          if (state.user && uid === state.user.uid && state.doc) state.doc.displayName = name;
           return logEvent("name_change", "", "המנהל שינה שם: " + u.displayName + " ← " + name, { uid: uid, name: name });
         });
       });
     },
-    resetPassword: function (uid, newPassword) {
+    // tierId '' = back to automatic (by score)
+    setRank: function (uid, tierId) {
+      needPerm("ranks");
+      var F = fb.F;
+      return Promise.all([admin.getUser(uid), getTiers(true)]).then(function (r) {
+        var u = r[0], tiers = r[1];
+        if (!u) throw { heb: "התלמיד לא נמצא." };
+        tierId = String(tierId || "");
+        if (tierId && !tiers.some(function (t) { return t.id === tierId; })) throw { heb: "הדרגה לא קיימת." };
+        var oldR = u.rank, newR = rankOf(u.totalScore, tierId, tiers);
+        var label = function (x) { return x.tier.name + (x.manual ? " (ידני)" : " (לפי ניקוד)"); };
+        var b = auditBatch("rank", uid, u.displayName, label(oldR), label(newR), "");
+        b.set(F.doc(fb.db, "ranks", uid), { total: num(u.totalScore), manual: tierId, updatedAt: F.serverTimestamp() });
+        return b.commit().then(function () {
+          if (state.user && uid === state.user.uid) staff.rank = { total: num(u.totalScore), manual: tierId };
+          return logEvent("admin_rank", "", "דרגה: " + label(oldR) + " ← " + label(newR), { uid: uid, name: u.displayName });
+        });
+      });
+    },
+    getTiers: function () { return getTiers(true); },
+    setTiers: function (list) {
+      needPerm("rankdefs");
+      var tiers = cleanTiers(list);
+      if (!tiers.length) return Promise.reject({ heb: "צריך לפחות דרגה אחת." });
+      var F = fb.F;
+      return getTiers(true).then(function (old) {
+        var fmt = function (l) { return l.map(function (t) { return t.name + " " + t.min; }).join(" · "); };
+        var b = auditBatch("rankdefs", "config", "דרגות", fmt(old), fmt(tiers), tiers.length + " דרגות");
+        b.set(F.doc(fb.db, "config", "ranks"), { tiers: tiers, updatedAt: F.serverTimestamp(), by: state.user.uid });
+        return b.commit().then(function () { tiersCache = tiers; tiersAt = Date.now(); return tiers; });
+      });
+    },
+    // removes the profile, progress, scores and rank; the account cannot create a new profile until restored
+    deleteUser: function (uid) {
+      needPerm("delete");
+      if (state.user && uid === state.user.uid) return Promise.reject({ heb: "אי אפשר למחוק את החשבון של עצמך." });
+      var F = fb.F;
+      return admin.getUser(uid).then(function (u) {
+        if (!u) throw { heb: "התלמיד לא נמצא." };
+        var b = auditBatch("delete_user", uid, u.displayName, u.username + " · ניקוד " + num(u.totalScore) + " · " + Object.keys(u.games || {}).map(function (g) { return statsTxt(u.games[g], g); }).join(" | "), "נמחק", "");
+        b.delete(userRef(uid));
+        knownGames(u).forEach(function (g) {
+          b.delete(F.doc(fb.db, "users", uid, "progress", g));
+          b.delete(F.doc(fb.db, "leaderboards", g, "scores", uid));
+          delete lbCache[g];
+        });
+        b.delete(F.doc(fb.db, "ranks", uid));
+        b.set(F.doc(fb.db, "tombstones", uid), { by: state.user.uid, at: F.serverTimestamp(), name: cleanName(u.displayName) || "?", username: String(u.username || "").slice(0, 15) });
+        return b.commit().then(function () {
+          return logEvent("admin_delete", "", "המנהל מחק את התלמיד", { uid: uid, name: u.displayName });
+        });
+      });
+    },
+    listDeleted: function () {
+      needPerm("view");
+      return fb.F.getDocs(fb.F.collection(fb.db, "tombstones")).then(function (snap) {
+        var out = []; snap.forEach(function (s) { out.push(Object.assign({ uid: s.id }, s.data())); }); return out;
+      });
+    },
+    restoreUser: function (uid) {
+      needPerm("delete");
+      var F = fb.F;
+      return F.getDoc(F.doc(fb.db, "tombstones", uid)).then(function (s) {
+        if (!s.exists()) throw { heb: "לא נמצא." };
+        var t = s.data();
+        var b = auditBatch("restore_user", uid, t.name, "נמחק", "שוחזר (יתחיל מאפס בכניסה הבאה)", t.username || "");
+        b.delete(F.doc(fb.db, "tombstones", uid));
+        return b.commit().then(function () {
+          return logEvent("admin_restore", "", "המנהל שחזר את החשבון", { uid: uid, name: t.name || "?" });
+        });
+      });
+    },
+    listManagers: function () {
+      return Promise.resolve().then(function () { needPerm("managers"); }).then(function () {
+        return fb.F.getDocs(fb.F.collection(fb.db, "managers"));
+      }).then(function (snap) {
+        var out = []; snap.forEach(function (s) { var d = s.data(); out.push({ uid: s.id, name: d.name, perms: d.perms || {}, grantedBy: d.grantedBy, updatedAt: d.updatedAt }); });
+        return out;
+      });
+    },
+    // perms: {view:true, points:false, ...}; an empty set removes the manager
+    setManager: function (uid, perms, name) {
+      needPerm("managers");
+      if (state.user && uid === state.user.uid) return Promise.reject({ heb: "אי אפשר לשנות הרשאות לעצמך." });
+      var p = {}; PERMS.forEach(function (k) { p[k] = !!(perms && perms[k]); });
+      var lacking = PERMS.filter(function (k) { return p[k] && !can(k); });
+      if (lacking.length) return Promise.reject({ heb: "אפשר לתת רק הרשאות שיש לך: " + lacking.map(function (k) { return PERM_HE[k]; }).join(", ") });
+      var F = fb.F, ref = F.doc(fb.db, "managers", uid);
+      return Promise.all([F.getDoc(ref), admin.getUser(uid).catch(function () { return null; })]).then(function (r) {
+        var old = r[0].exists() ? r[0].data().perms : null;
+        var u = r[1], nm = cleanName(name || (u && u.displayName) || (r[0].exists() && r[0].data().name) || "") || "?";
+        if (old && PERMS.some(function (k) { return old[k] === true && !can(k); }))
+          throw { heb: "למנהל הזה יש הרשאות שאין לך, ולכן רק בעל האתר יכול לשנות אותו." };
+        var none = !permList(p).length;
+        if (!old && none) return;
+        var b = auditBatch("perms", uid, nm, old ? permTxt(old) : "לא מנהל", none ? "לא מנהל" : permTxt(p), none ? "הסרת מנהל" : (old ? "שינוי הרשאות" : "מינוי מנהל"));
+        if (none) b.delete(ref);
+        else b.set(ref, { perms: p, name: nm.slice(0, 20), grantedBy: state.user.uid, updatedAt: F.serverTimestamp() });
+        return b.commit().then(function () {
+          return logEvent("admin_perms", "", none ? "הוסר/ה מניהול" : "הרשאות: " + permList(p).join(", "), { uid: uid, name: nm });
+        });
+      });
+    },
+    removeManager: function (uid) { return admin.setManager(uid, {}); },
+    // owner / audit permission: everything; other managers: their own entries only
+    listAudit: function (o) {
+      o = o || {};
       needAdmin();
+      var F = fb.F, col = F.collection(fb.db, "audit"), q;
+      var all = can("audit");
+      var actor = all ? o.actor : state.user.uid;
+      if (actor && o.target) q = F.query(col, F.where("actor", "==", actor), F.where("target", "==", o.target), F.limit(o.limit || 500));
+      else if (actor) q = F.query(col, F.where("actor", "==", actor), F.limit(o.limit || 1000));
+      else if (o.target) q = F.query(col, F.where("target", "==", o.target), F.limit(o.limit || 1000));
+      else q = F.query(col, F.orderBy("at", "desc"), F.limit(o.limit || 500));
+      return F.getDocs(q).then(function (snap) {
+        var out = []; snap.forEach(function (s) { out.push(Object.assign({ id: s.id }, s.data())); });
+        out.sort(function (a, b) { return ((b.at && b.at.toMillis && b.at.toMillis()) || 0) - ((a.at && a.at.toMillis && a.at.toMillis()) || 0); });
+        return out;
+      });
+    },
+    resetPassword: function (uid, newPassword) {
+      needOwner();
       if (String(newPassword || "").length < 6) return Promise.reject({ heb: "הסיסמה החדשה קצרה מדי. צריך לפחות 6 תווים." });
       return admin.getUser(uid).then(function (u) {
         return getOwnerToken().then(function (t) {
           return idtk("accounts:update", { localId: uid, password: newPassword }, t);
+        }).then(function () {
+          return auditBatch("password_reset", uid, u.displayName, "", "סיסמה חדשה נקבעה", u.username).commit().catch(function (e) { console.warn("englishia audit", e); });
         }).then(function () {
           return logEvent("admin_password_reset", "", "המנהל איפס סיסמה", { uid: uid, name: u.displayName });
         });
       });
     },
     changeUsername: function (uid, newUsername) {
-      needAdmin();
+      needOwner();
       newUsername = normUsername(newUsername);
       var bad = checkUsername(newUsername);
       if (bad) return Promise.reject({ heb: bad });
@@ -630,7 +993,9 @@
         return getOwnerToken().then(function (t) {
           return idtk("accounts:update", { localId: uid, email: email }, t);
         }).then(function () {
-          return F.updateDoc(userRef(uid), { username: newUsername, email: email });
+          var b = auditBatch("username_change", uid, u.displayName, u.username, newUsername, "");
+          b.update(userRef(uid), { username: newUsername, email: email });
+          return b.commit();
         }).then(function () {
           return logEvent("username_change", "", "שם משתמש לכניסה: " + u.username + " ← " + newUsername, { uid: uid, name: u.displayName });
         });
@@ -641,7 +1006,7 @@
     },
     listActivity: function (o) {
       o = o || {};
-      needAdmin();
+      needPerm("view");
       var F = fb.F, days = o.days || ACTIVITY_DAYS;
       var since = F.Timestamp.fromMillis(Date.now() - days * 864e5);
       var col = F.collection(fb.db, "activity");
@@ -653,7 +1018,7 @@
       });
     },
     listChanges: function (uid) {
-      needAdmin();
+      needPerm("view");
       var F = fb.F;
       var q = F.query(F.collection(fb.db, "activity"), F.where("uid", "==", uid), F.where("at", ">=", F.Timestamp.fromMillis(Date.now() - CHANGE_DAYS * 864e5)),
         F.orderBy("at", "desc"), F.limit(500));
@@ -662,8 +1027,8 @@
       });
     },
     cleanupActivity: function () {
-      // Backup for the TTL policy: delete short-lived events older than 7 days.
-      needAdmin();
+      // Backup for the TTL policy: delete short-lived events older than 7 days (owner only).
+      if (!isOwner()) return Promise.resolve(0);
       var F = fb.F, cutoff = F.Timestamp.fromMillis(Date.now() - ACTIVITY_DAYS * 864e5);
       return F.getDocs(F.query(F.collection(fb.db, "activity"), F.where("at", "<", cutoff), F.orderBy("at", "asc"), F.limit(300))).then(function (snap) {
         var jobs = [];
@@ -850,76 +1215,178 @@
     });
   }
 
-  /* in-game admin panel */
+  /* in-game admin panel (owner and managers; each part shows only with its permission) */
+  var CSS2 = "" +
+    ".eng-rank{display:inline-flex;align-items:center;gap:6px;vertical-align:middle;font-weight:700;white-space:nowrap}" +
+    ".eng-badge{flex:none;filter:drop-shadow(0 1px 0 rgba(0,0,0,.25))}" +
+    ".eng-rankbar{background:#fff;border:2px solid #eadcbf;border-radius:16px;padding:12px 14px;margin:8px 0;display:flex;align-items:center;gap:14px;flex-wrap:wrap}" +
+    ".eng-rankbar .big{font-size:28px;font-weight:800}.eng-prog{flex:1;min-width:160px;height:16px;background:#f1e6cf;border-radius:999px;overflow:hidden}" +
+    ".eng-prog i{display:block;height:100%;background:linear-gradient(90deg,#ffb84d,#ef8f1e)}" +
+    ".eng-perm{display:flex !important;align-items:flex-start;gap:10px;font-weight:600 !important;font-size:20px;margin:8px 0 !important;cursor:pointer}" +
+    ".eng-perm input{width:26px !important;height:26px;flex:none;margin-top:3px}" +
+    ".eng-perm.off{opacity:.45;cursor:not-allowed}" +
+    ".eng-tag{display:inline-block;border-radius:999px;padding:2px 10px;font-size:15px;font-weight:700;background:#1d1a16;color:#ffd43b;margin-inline-start:6px}" +
+    ".eng-sec{border-top:2px dashed #eadcbf;margin-top:14px;padding-top:4px}" +
+    ".eng-inline{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.eng-inline input,.eng-inline select{width:auto;flex:1;min-width:120px}" +
+    ".eng-box select{font-size:22px;padding:10px 12px;border:3px solid #d9c9a8;border-radius:14px;background:#fff;color:#111}" +
+    ".eng-lb li .eng-rank{font-size:17px;color:#5b5348;margin-inline-start:8px}";
+  function injectCSS2() {
+    injectCSS();
+    if (document.getElementById("eng-css2")) return;
+    var s = document.createElement("style"); s.id = "eng-css2"; s.textContent = CSS2; document.head.appendChild(s);
+  }
+  function deletedNotice() {
+    openBox("<h2>החשבון הוסר</h2><p style=\"text-align:center\">המורה הסיר/ה את החשבון הזה. אפשר לבקש מהמורה לשחזר אותו, או לשחק בלי חשבון.</p>" +
+      '<div class="eng-row" style="justify-content:center"><button class="eng-btn red" data-eng="out">יציאה מהחשבון</button></div>');
+    q(ov, '[data-eng="out"]').onclick = function () { logout().then(function () { closeBox(); afterChange(); }); };
+  }
+  // profile: add the rank card
+  var origOpenProfile = openProfile;
+  openProfile = function (gameId) {
+    if (state.user && staff.deleted && !state.doc) return deletedNotice();
+    origOpenProfile(gameId);
+    if (!state.user || !ov) return;
+    injectCSS2();
+    var box = q(ov, ".eng-box"), h = box && box.querySelector("h2");
+    if (!h) return;
+    var card = document.createElement("div");
+    card.className = "eng-rankbar";
+    function paint() {
+      var r = myRank();
+      var pct = r.next ? Math.max(0, Math.min(100, Math.round(100 * (r.total - r.auto.min) / Math.max(1, r.next.min - r.auto.min)))) : 100;
+      card.innerHTML = badgeSVG(r.tier, r.level, 54) + '<div><div class="big">' + esc(r.tier.name) + "</div><div class=\"eng-hint\">דרגה " + r.level +
+        (r.manual ? " · נקבעה ע״י המורה" : "") + "</div></div>" +
+        (r.manual ? "" : '<div style="flex:1;min-width:180px"><div class="eng-prog"><i style="width:' + pct + '%"></i></div><div class="eng-hint">' +
+          (r.next ? "עוד " + r.toNext + " נקודות לדרגה " + esc(r.next.name) : "הגעת לדרגה הגבוהה ביותר!") + "</div></div>");
+    }
+    paint();
+    var after = h.nextElementSibling || h;
+    after.parentNode.insertBefore(card, after.nextSibling);
+    getTiers().then(paint);
+  };
+  // leaderboard with rank badges
+  openLeaderboard = function (gameId) {
+    gameId = gameId || opts.gameId;
+    injectCSS2();
+    var box = openBox("<h2>🏆 טבלת שיאים</h2><p class=\"eng-hint\" style=\"text-align:center\">" + esc(opts.gameTitle || GAME_TITLES[gameId] || gameId) + " · 10 השיאים הגבוהים</p><div class=\"eng-lbw\">טוען…</div>");
+    loadFirebase().then(function () {
+      var F = fb.F;
+      return F.getDocs(F.query(F.collection(fb.db, "leaderboards", gameId, "scores"), F.orderBy("score", "desc"), F.limit(10)));
+    }).then(function (snap) {
+      var me = state.user && state.user.uid, list = [];
+      snap.forEach(function (s) { var v = s.data(); list.push({ uid: s.id, rank: list.length + 1, name: v.name, score: v.score, isMe: s.id === me }); });
+      lbCache[gameId] = list.map(function (e) { return { rank: e.rank, name: e.name, score: e.score, isMe: e.isMe }; });
+      return Promise.all([ranksFor(list.map(function (e) { return e.uid; })), getTiers()]).then(function (r) {
+        list.forEach(function (e, i) { e.r = r[0][i] ? rankOf(r[0][i].total, r[0][i].manual, r[1]) : null; });
+        return list;
+      });
+    }).catch(function (e) {
+      console.warn("englishia leaderboard", e);
+      return (lbCache[gameId] || []).map(function (e) { return Object.assign({}, e); });
+    }).then(function (list) {
+      var w = q(box, ".eng-lbw");
+      if (!w) return;
+      if (!list.length) { w.innerHTML = "<p>עוד אין שיאים. היו הראשונים!</p>"; return; }
+      w.innerHTML = '<ol class="eng-lb">' + list.map(function (e) {
+        return '<li class="' + (e.rank === 1 ? "first " : "") + (e.isMe ? "me" : "") + '"><span>' + (e.rank === 1 ? "🥇 " : e.rank === 2 ? "🥈 " : e.rank === 3 ? "🥉 " : e.rank + ". ") +
+          esc(e.name) + (e.isMe ? " (אני)" : "") + (e.r ? rankChip(e.r, 24) : "") + "</span><b>" + e.score + "</b></li>";
+      }).join("") + "</ol>";
+    });
+  };
+
   function openAdmin(gameId) {
     gameId = gameId || opts.gameId;
-    if (!state.admin) return;
+    if (!isStaff()) return;
+    injectCSS2();
     var title = opts.gameTitle || GAME_TITLES[gameId] || gameId || "אינגלישיה";
-    var box = openBox("<h2>🛠️ ניהול · " + esc(title) + "</h2>" +
+    var role = isOwner() ? "בעל האתר" : "מנהל · " + permList(staff.perms).length + " הרשאות";
+    var box = openBox("<h2>🛠️ ניהול · " + esc(title) + '<span class="eng-tag">' + esc(role) + "</span></h2>" +
       '<div class="eng-row">' + (devTools ? '<button class="eng-btn" data-eng="dev">🧪 ' + esc(devTools.label) + "</button>" : "") +
       '<a class="eng-btn sec" style="text-decoration:none;display:inline-flex;align-items:center" href="' + esc(ROOT + "admin/") + '" target="_blank" rel="noopener">📋 עמוד ניהול מלא</a></div>' +
-      (gameId ? "<h3>תלמידים במשחק הזה</h3><div class=\"eng-users\">טוען…</div>" : ""), true);
+      (gameId ? (can("view") ? "<h3>תלמידים במשחק הזה</h3><div class=\"eng-users\">טוען…</div>" : '<p class="eng-hint">אין לך הרשאת צפייה בתלמידים.</p>') : ""), true);
     if (q(box, '[data-eng="dev"]')) q(box, '[data-eng="dev"]').onclick = function () { closeBox(); devTools.fn(); };
-    if (!gameId) return;
+    if (!gameId || !can("view")) return;
     admin.listUsers().then(function (users) {
       var w = q(box, ".eng-users");
+      if (!w) return;
       if (!users.length) { w.textContent = "אין עדיין משתמשים."; return; }
-      w.innerHTML = '<table class="eng-tbl"><tr><th>שם</th><th>שם משתמש</th><th>שיא</th><th>ניקוד</th><th>זמן</th><th>פעמים</th><th></th></tr>' +
+      w.innerHTML = '<table class="eng-tbl"><tr><th>שם</th><th>דרגה</th><th>שיא</th><th>ניקוד</th><th>זמן</th><th>פעמים</th><th></th></tr>' +
         users.map(function (u) {
           var s = statsOf((u.games || {})[gameId]);
-          return "<tr><td><b>" + esc(u.displayName) + "</b></td><td>" + esc(u.username) + "</td><td>" + s.best + "</td><td>" + s.totalScore +
+          return "<tr><td><b>" + esc(u.displayName) + "</b><br><small>" + esc(u.username) + "</small></td><td>" + rankChip(u.rank, 22) + "</td><td>" + s.best + "</td><td>" + s.totalScore +
             "</td><td>" + esc(fmtTime(s.seconds)) + "</td><td>" + s.plays + '</td><td><button class="eng-btn sm" data-uid="' + esc(u.uid) + '">ניהול</button></td></tr>';
         }).join("") + "</table>";
       Array.prototype.forEach.call(w.querySelectorAll("[data-uid]"), function (b) {
         b.onclick = function () { openAdminUser(b.getAttribute("data-uid"), gameId); };
       });
-    }).catch(function (e) { q(box, ".eng-users").textContent = errText(e); });
+    }).catch(function (e) { var w = q(box, ".eng-users"); if (w) w.textContent = errText(e); });
   }
   function openAdminUser(uid, gameId) {
-    admin.getUser(uid).then(function (u) {
+    Promise.all([admin.getUser(uid), getTiers()]).then(function (r) {
+      var u = r[0], tiers = r[1];
+      if (!u) { openBox("<p>התלמיד לא נמצא.</p>"); return; }
       var s = statsOf((u.games || {})[gameId]);
-      var box = openBox("<h2>🛠️ " + esc(u.displayName) + "</h2><p class=\"eng-hint\" style=\"text-align:center\">שם משתמש: " + esc(u.username) + " · " + esc(opts.gameTitle || gameId) + "</p>" +
-        "<h3>ניקוד וזמן במשחק הזה</h3>" +
-        '<label>שיא</label><input id="eng-a-best" type="number" min="0" value="' + s.best + '">' +
-        '<label>ניקוד כולל</label><input id="eng-a-total" type="number" min="0" value="' + s.totalScore + '">' +
-        '<label>זמן משחק (דקות)</label><input id="eng-a-min" type="number" min="0" value="' + Math.round(s.seconds / 60) + '">' +
-        '<label>כמה פעמים שיחק/ה</label><input id="eng-a-plays" type="number" min="0" value="' + s.plays + '">' +
-        '<div class="eng-row"><button class="eng-btn green" data-eng="save">✓ שמירת ניקוד</button><button class="eng-btn red" data-eng="reset">איפוס התקדמות במשחק</button></div>' +
-        "<h3>סיסמה</h3><label>סיסמה חדשה לתלמיד/ה</label><p class=\"eng-hint\">לפחות 6 תווים. בפעם הראשונה תתבקשו לאשר עם חשבון הגוגל של המורה.</p>" +
-        '<input id="eng-a-pass" autocomplete="off"><div class="eng-row"><button class="eng-btn" data-eng="pass">🔑 איפוס סיסמה</button></div>' +
-        "<h3>שם</h3><input id=\"eng-a-name\" maxlength=\"20\" value=\"" + esc(u.displayName) + '"><div class="eng-row"><button class="eng-btn sec" data-eng="name">✏️ שינוי שם</button></div>' +
-        "<h3>התקדמות (מתקדם)</h3><p class=\"eng-hint\">הנתונים השמורים של המשחק, לעריכה זהירה.</p><textarea id=\"eng-a-json\">טוען…</textarea>" +
-        '<div class="eng-row"><button class="eng-btn sec" data-eng="json">שמירת התקדמות</button><button class="eng-btn sec" data-eng="back">חזרה לרשימה</button></div>', true);
-      admin.loadProgress(uid, gameId).then(function (p) { q(box, "#eng-a-json").value = p ? JSON.stringify(p, null, 1) : "{}"; });
-      q(box, '[data-eng="back"]').onclick = function () { openAdmin(gameId); };
-      function act(btn, fn, okText) {
-        busy(btn, true);
-        Promise.resolve().then(fn).then(function () { busy(btn, false); showMsg(box, okText, true); })
-          .catch(function (e) { busy(btn, false); showMsg(box, errText(e)); });
+      var html = "<h2>🛠️ " + esc(u.displayName) + "</h2><p class=\"eng-hint\" style=\"text-align:center\">שם משתמש: " + esc(u.username) + " · " + esc(opts.gameTitle || gameId) + "</p>" +
+        '<div class="eng-rankbar">' + badgeSVG(u.rank.tier, u.rank.level, 44) + '<div><div class="big">' + esc(u.rank.tier.name) + '</div><div class="eng-hint">' +
+        (u.rank.manual ? "דרגה ידנית" : "לפי ניקוד") + " · ניקוד כולל באינגלישיה: " + num(u.totalScore) + "</div></div></div>";
+      if (can("points")) {
+        html += '<div class="eng-sec"><h3>ניקוד וזמן במשחק הזה</h3>' +
+          '<label>הוספת נקודות (מספר שלילי מוריד)</label><div class="eng-inline"><input id="eng-a-add" type="number" placeholder="למשל 100"><button class="eng-btn green" data-eng="add">➕ הוספה</button></div>' +
+          '<label>שיא</label><input id="eng-a-best" type="number" min="0" value="' + s.best + '">' +
+          '<label>ניקוד כולל במשחק</label><input id="eng-a-total" type="number" min="0" value="' + s.totalScore + '">' +
+          '<label>זמן משחק (דקות)</label><input id="eng-a-min" type="number" min="0" value="' + Math.round(s.seconds / 60) + '">' +
+          '<label>כמה פעמים שיחק/ה</label><input id="eng-a-plays" type="number" min="0" value="' + s.plays + '">' +
+          '<div class="eng-row"><button class="eng-btn green" data-eng="save">✓ שמירת ניקוד</button><button class="eng-btn red" data-eng="reset">מחיקת הניקוד וההתקדמות במשחק</button></div></div>';
       }
-      q(box, '[data-eng="save"]').onclick = function () {
+      if (can("ranks")) {
+        html += '<div class="eng-sec"><h3>דרגה</h3><p class="eng-hint">דרגה ידנית נשארת עד שמחזירים ל"לפי ניקוד".</p><div class="eng-inline"><select id="eng-a-rank"><option value="">לפי ניקוד (אוטומטי)</option>' +
+          tiers.map(function (t, i) { return '<option value="' + esc(t.id) + '"' + (u.rankDoc && u.rankDoc.manual === t.id ? " selected" : "") + ">" + (i + 1) + ". " + esc(t.name) + "</option>"; }).join("") +
+          '</select><button class="eng-btn" data-eng="rank">שמירת דרגה</button></div></div>';
+      }
+      if (isOwner()) {
+        html += "<div class=\"eng-sec\"><h3>סיסמה</h3><label>סיסמה חדשה לתלמיד/ה</label><p class=\"eng-hint\">לפחות 6 תווים. בפעם הראשונה תתבקשו לאשר עם חשבון הגוגל של המורה.</p>" +
+          '<input id="eng-a-pass" autocomplete="off"><div class="eng-row"><button class="eng-btn" data-eng="pass">🔑 איפוס סיסמה</button></div></div>';
+      }
+      if (can("names")) {
+        html += "<div class=\"eng-sec\"><h3>שם</h3><input id=\"eng-a-name\" maxlength=\"20\" value=\"" + esc(u.displayName) + '"><div class="eng-row"><button class="eng-btn sec" data-eng="name">✏️ שינוי שם</button></div></div>';
+      }
+      if (can("points")) {
+        html += "<div class=\"eng-sec\"><h3>התקדמות (מתקדם)</h3><p class=\"eng-hint\">הנתונים השמורים של המשחק, לעריכה זהירה.</p><textarea id=\"eng-a-json\">טוען…</textarea>" +
+          '<div class="eng-row"><button class="eng-btn sec" data-eng="json">שמירת התקדמות</button></div></div>';
+      }
+      html += '<div class="eng-row"><button class="eng-btn sec" data-eng="back">חזרה לרשימה</button></div>';
+      var box = openBox(html, true);
+      if (q(box, "#eng-a-json")) admin.loadProgress(uid, gameId).then(function (p) { q(box, "#eng-a-json").value = p ? JSON.stringify(p, null, 1) : "{}"; });
+      q(box, '[data-eng="back"]').onclick = function () { openAdmin(gameId); };
+      function act(btn, fn, okText, reopen) {
+        busy(btn, true);
+        Promise.resolve().then(fn).then(function () {
+          busy(btn, false);
+          if (reopen) { openAdminUser(uid, gameId); setTimeout(function () { if (ov) showMsg(q(ov, ".eng-box"), okText, true); }, 400); }
+          else showMsg(box, okText, true);
+        }).catch(function (e) { busy(btn, false); showMsg(box, errText(e)); });
+      }
+      function on(sel, fn) { var el = q(box, '[data-eng="' + sel + '"]'); if (el) el.onclick = fn; }
+      on("add", function () { var v = q(box, "#eng-a-add").value; act(this, function () { return admin.addPoints(uid, gameId, v); }, "הנקודות נוספו.", true); });
+      on("save", function () {
         act(this, function () {
           return admin.setStats(uid, gameId, { best: q(box, "#eng-a-best").value, totalScore: q(box, "#eng-a-total").value,
             seconds: (+q(box, "#eng-a-min").value || 0) * 60, plays: q(box, "#eng-a-plays").value });
-        }, "הניקוד נשמר.");
-      };
-      q(box, '[data-eng="reset"]').onclick = function () {
-        if (!confirm("לאפס את כל ההתקדמות והניקוד של " + u.displayName + " במשחק הזה?")) return;
-        act(this, function () { return admin.resetGame(uid, gameId); }, "ההתקדמות אופסה.");
-      };
-      q(box, '[data-eng="pass"]').onclick = function () {
-        var p = q(box, "#eng-a-pass").value;
-        act(this, function () { return admin.resetPassword(uid, p); }, "הסיסמה החדשה נשמרה. תנו אותה לתלמיד/ה.");
-      };
-      q(box, '[data-eng="name"]').onclick = function () {
-        act(this, function () { return admin.rename(uid, q(box, "#eng-a-name").value); }, "השם שונה.");
-      };
-      q(box, '[data-eng="json"]').onclick = function () {
+        }, "הניקוד נשמר.", true);
+      });
+      on("reset", function () {
+        if (!confirm("למחוק את כל הניקוד וההתקדמות של " + u.displayName + " במשחק הזה?")) return;
+        act(this, function () { return admin.resetGame(uid, gameId); }, "הניקוד וההתקדמות נמחקו.", true);
+      });
+      on("rank", function () { var v = q(box, "#eng-a-rank").value; act(this, function () { return admin.setRank(uid, v); }, "הדרגה נשמרה.", true); });
+      on("pass", function () { var p = q(box, "#eng-a-pass").value; act(this, function () { return admin.resetPassword(uid, p); }, "הסיסמה החדשה נשמרה. תנו אותה לתלמיד/ה."); });
+      on("name", function () { act(this, function () { return admin.rename(uid, q(box, "#eng-a-name").value); }, "השם שונה."); });
+      on("json", function () {
         var data;
         try { data = JSON.parse(q(box, "#eng-a-json").value); } catch (e) { showMsg(box, "הטקסט לא תקין (JSON)."); return; }
         act(this, function () { return admin.setProgress(uid, gameId, data); }, "ההתקדמות נשמרה.");
-      };
-    });
+      });
+    }).catch(function (e) { openBox("<p>" + esc(errText(e)) + "</p>"); });
   }
 
   /* menu button(s) */
@@ -1111,4 +1578,9 @@
     formatTime: fmtTime, formatDate: fmtDate, gameTitles: GAME_TITLES,
     admin: admin
   };
+  /* roles + ranks API (v12) */
+  Object.defineProperty(global.EnglishiaAuth, "isOwner", { get: function () { return isOwner(); } });
+  Object.defineProperty(global.EnglishiaAuth, "perms", { get: function () { var o = {}; PERMS.forEach(function (k) { o[k] = can(k); }); return o; } });
+  global.EnglishiaAuth.can = can;
+  global.EnglishiaAuth.ranks = { tiers: getTiers, of: rankOf, badge: badgeSVG, chip: rankChip, defaults: DEFAULT_TIERS, mine: function () { return state.user ? myRank() : null; } };
 })(window);
