@@ -84,10 +84,52 @@
         try { A.connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true }); } catch (e) {}
         try { F.connectFirestoreEmulator(db, "127.0.0.1", 8085); } catch (e) {}
       }
-      fb = { app: app, auth: auth, db: db, A: A, F: F, appM: appM, cfg: cfg };
+      fb = { app: app, auth: auth, db: db, A: A, F: guardReads(F, db), appM: appM, cfg: cfg };
       return fb;
     });
     return loading;
+  }
+
+  /* ---------- network guard (v12.1) ----------
+     Every Firestore read gets a time limit and retries. On iPhone Safari the
+     long-polling channel can drop or stall; a stalled read used to wait forever
+     ("טוען…") and a dropped one made the admin check fail silently. On a stall we
+     also restart the Firestore connection (disable + enable network). */
+  var READ_MS = 9000, READ_TRIES = 3;
+  function netErr(e) {
+    var c = e && e.code;
+    return c === "unavailable" || c === "deadline-exceeded" || c === "timeout" || c === "aborted" ||
+      /offline|network|timed? ?out/i.test((e && e.message) || "");
+  }
+  var kickAt = 0;
+  function kickNetwork(F, db) {
+    if (Date.now() - kickAt < 4000) return Promise.resolve();
+    kickAt = Date.now();
+    try { console.warn("englishia: restarting the Firestore connection"); } catch (e) {}
+    return F.disableNetwork(db).then(function () { return F.enableNetwork(db); }).catch(function () {});
+  }
+  function guardReads(F, db) {
+    function guarded(fn) {
+      return function () {
+        var args = arguments, left = READ_TRIES;
+        function attempt() {
+          var timer;
+          var t = new Promise(function (_, rej) { timer = setTimeout(function () { rej({ code: "timeout", message: "timeout" }); }, READ_MS); });
+          return Promise.race([fn.apply(null, args), t]).then(function (v) { clearTimeout(timer); return v; }, function (e) {
+            clearTimeout(timer);
+            if (!netErr(e)) throw e;
+            if (--left <= 0) throw { code: e.code || "unavailable", heb: "אין חיבור לשרת כרגע (" + (e.code === "timeout" ? "השרת לא ענה בזמן" : "החיבור נותק") + "). בדקו את האינטרנט ונסו שוב.", cause: e };
+            return (e.code === "timeout" ? kickNetwork(F, db) : Promise.resolve())
+              .then(function () { return new Promise(function (r) { setTimeout(r, 600 * (READ_TRIES - left)); }); }).then(attempt);
+          });
+        }
+        return attempt();
+      };
+    }
+    var G = Object.assign({}, F);
+    G.getDoc = guarded(F.getDoc);
+    G.getDocs = guarded(F.getDocs);
+    return G;
   }
 
   /* ---------- usernames ---------- */
@@ -221,7 +263,7 @@
   /* ---------- auth state ---------- */
   function retryGet(ref, n) {
     return fb.F.getDoc(ref).catch(function (e) {
-      if (n > 0 && e && (e.code === "unavailable" || e.code === "deadline-exceeded")) {
+      if (n > 0 && e && !e.heb && (e.code === "unavailable" || e.code === "deadline-exceeded")) {
         return new Promise(function (r) { setTimeout(r, 900); }).then(function () { return retryGet(ref, n - 1); });
       }
       throw e;
@@ -236,7 +278,8 @@
       retryGet(F.doc(fb.db, "admins", u.uid), 3).then(function (s) { return s.exists(); }).catch(function () { return false; })
     ]).then(function (r) {
       state.doc = r[0];
-      state.admin = !!r[1];
+      if (r[1] && staff.uid === u.uid) staff.owner = true;
+      state.admin = !!r[1] || (typeof isStaff === "function" && isStaff());
       if (!state.doc) return ensureUserDoc(u, null, null);
     });
   }
@@ -518,18 +561,21 @@
   function loadStaff() {
     if (!fb || !state.user) { staff = { uid: null, owner: false, perms: null, loading: null }; return Promise.resolve(); }
     var uid = state.user.uid;
-    if (staff.uid === uid && staff.loading) return staff.loading;
+    if (staff.uid === uid && staff.loading && !staff.failed) return staff.loading;
     var F = fb.F;
-    var s = { uid: uid, owner: false, perms: null, loading: null };
+    var s = { uid: uid, owner: false, perms: null, loading: null, done: false, failed: false, error: null };
+    function soft(e) { if (netErr(e) || (e && e.heb)) { s.failed = true; s.error = e; } }
     s.loading = Promise.all([
-      F.getDoc(F.doc(fb.db, "admins", uid)).then(function (x) { return x.exists(); }).catch(function () { return false; }),
-      F.getDoc(F.doc(fb.db, "managers", uid)).then(function (x) { return x.exists() ? x.data() : null; }).catch(function () { return null; }),
+      F.getDoc(F.doc(fb.db, "admins", uid)).then(function (x) { return x.exists(); }).catch(function (e) { soft(e); return false; }),
+      F.getDoc(F.doc(fb.db, "managers", uid)).then(function (x) { return x.exists() ? x.data() : null; }).catch(function (e) { soft(e); return null; }),
       F.getDoc(F.doc(fb.db, "ranks", uid)).then(function (x) { return x.exists() ? x.data() : null; }).catch(function () { return null; }),
       getTiers(),
       F.getDoc(F.doc(fb.db, "tombstones", uid)).then(function (x) { return x.exists(); }).catch(function () { return false; })
     ]).then(function (r) {
       s.deleted = !!r[4];
       s.owner = !!r[0];
+      s.done = true;
+      if (s.failed) console.warn("englishia role check failed", s.error);
       var p = {};
       if (r[1] && r[1].perms) PERMS.forEach(function (k) { p[k] = r[1].perms[k] === true; });
       s.perms = r[1] ? p : null;
@@ -543,17 +589,37 @@
     return s.loading;
   }
   // keep state.admin = owner OR manager with a permission, after every auth/profile event
+  var roleSig = "";
+  function roleSignature() { return [staff.uid, staff.done, staff.failed, staff.owner, JSON.stringify(staff.perms), state.admin].join("|"); }
+  function afterStaff() {
+    var want = isStaff();
+    if (want || !staff.failed) state.admin = want || (state.admin && staff.failed);
+    var sig = roleSignature();
+    if (sig !== roleSig) { roleSig = sig; setTimeout(function () { emit(); }, 0); }
+  }
   listeners.push(function (u) {
     if (!u) { if (staff.uid) staff = { uid: null, owner: false, perms: null, loading: null }; return; }
     if (staff.uid !== u.uid) {
-      loadStaff().then(function () { setTimeout(function () { emit(); }, 0); });
+      loadStaff().then(afterStaff);
     } else if (staff.loading) {
-      staff.loading.then(function () {
-        var want = isStaff();
-        if (state.admin !== want) { state.admin = want; setTimeout(function () { emit(); }, 0); }
-      });
+      staff.loading.then(afterStaff);
     }
   });
+  // "loading" until the role is known, "error" if it could not be checked (network), else "ok"
+  function roleState() {
+    if (state.restoring) return "loading";
+    if (!state.user) return "ok";
+    if (staff.uid !== state.user.uid || !staff.done) return "loading";
+    if (staff.failed && !isStaff()) return "error";
+    return "ok";
+  }
+  function retryRole() {
+    if (!state.user) return Promise.resolve();
+    staff.failed = true;
+    var p = loadStaff().then(afterStaff);
+    roleSig = ""; setTimeout(function () { emit(); }, 0);
+    return p;
+  }
   // ready() resolves after the role is known (games read isAdmin once on start)
   readyPromise = readyPromise.then(function () { return loadStaff().catch(function () {}); }).then(function () { return publicUser(); });
 
@@ -740,7 +806,12 @@
         var out = [];
         snap.forEach(function (s) { out.push(Object.assign({ uid: s.id }, s.data())); });
         out.sort(function (a, b) { return String(a.displayName).localeCompare(String(b.displayName), "he"); });
-        return Promise.all([ranksFor(out.map(function (u) { return u.uid; })), getTiers(),
+        var uids = out.map(function (u) { return u.uid; });
+        var rk = fb.F.getDocs(fb.F.collection(fb.db, "ranks")).then(function (rs) {
+          var m = {}; rs.forEach(function (x) { m[x.id] = x.data(); });
+          return uids.map(function (id) { return m[id] || null; });
+        }).catch(function () { return ranksFor(uids); });
+        return Promise.all([rk, getTiers(),
           can("managers") ? admin.listManagers().catch(function () { return []; }) : Promise.resolve([])]).then(function (r) {
           var mg = {}; r[2].forEach(function (m) { mg[m.uid] = m; });
           out.forEach(function (u, i) {
@@ -1582,5 +1653,7 @@
   Object.defineProperty(global.EnglishiaAuth, "isOwner", { get: function () { return isOwner(); } });
   Object.defineProperty(global.EnglishiaAuth, "perms", { get: function () { var o = {}; PERMS.forEach(function (k) { o[k] = can(k); }); return o; } });
   global.EnglishiaAuth.can = can;
+  Object.defineProperty(global.EnglishiaAuth, "roleState", { get: function () { return roleState(); } });
+  global.EnglishiaAuth.retryRole = retryRole;
   global.EnglishiaAuth.ranks = { tiers: getTiers, of: rankOf, badge: badgeSVG, chip: rankChip, defaults: DEFAULT_TIERS, mine: function () { return state.user ? myRank() : null; } };
 })(window);

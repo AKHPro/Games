@@ -59,6 +59,7 @@
     <h2>כניסת מנהל</h2>
     <p class="hint" id="gate-msg">טוען…</p>
     <button class="btn main hidden" id="gate-login">👤 התחברות</button>
+    <button class="btn main hidden" id="gate-retry">לנסות שוב</button>
   </div>
 
   <div id="app" class="hidden">
@@ -139,9 +140,14 @@
   var gateKey = null;
   function gate() {
     var u = E.user;
-    var key = u ? u.uid + "|" + u.username + "|" + u.displayName + "|" + E.isAdmin + "|" + JSON.stringify(E.perms) : "-";
+    var rs = E.roleState || "ok";
+    var key = u ? u.uid + "|" + u.username + "|" + u.displayName + "|" + E.isAdmin + "|" + rs + "|" + JSON.stringify(E.perms) : "-" + (E.restoring ? "r" : "");
     if (key === gateKey) return;
     gateKey = key;
+    $("gate-retry").classList.add("hidden");
+    if (!u && E.restoring) { $("gate-msg").textContent = "מתחבר…"; $("gate-login").classList.add("hidden"); $("app").classList.add("hidden"); $("gate").classList.remove("hidden"); return; }
+    if (u && rs === "loading" && !(E.isAdmin && E.can("view"))) { $("gate-msg").textContent = "בודק הרשאות ניהול…"; $("gate-login").classList.add("hidden"); $("app").classList.add("hidden"); $("gate").classList.remove("hidden"); return; }
+    if (u && rs === "error" && !E.isAdmin) { $("gate-msg").textContent = "לא הצלחתי לבדוק את הרשאות הניהול, כי אין כרגע חיבור לשרת. בדקו את האינטרנט ולחצו \"לנסות שוב\"."; $("gate-login").classList.add("hidden"); $("gate-retry").classList.remove("hidden"); $("app").classList.add("hidden"); $("gate").classList.remove("hidden"); return; }
     if (!u) { $("gate-msg").textContent = "צריך להתחבר עם חשבון מנהל."; $("gate-login").classList.remove("hidden"); $("app").classList.add("hidden"); $("gate").classList.remove("hidden"); return; }
     if (!E.isAdmin) { $("gate-msg").textContent = "לחשבון " + (u.username || "הזה") + " אין הרשאות ניהול (החשבון אינו חשבון מנהל)."; $("gate-login").classList.add("hidden"); $("app").classList.add("hidden"); $("gate").classList.remove("hidden"); return; }
     $("gate").classList.add("hidden"); $("app").classList.remove("hidden");
@@ -149,9 +155,12 @@
     Array.prototype.forEach.call(document.querySelectorAll("[data-need]"), function (b) { b.classList.toggle("hidden", !E.can(b.getAttribute("data-need"))); });
     A.cleanupActivity().catch(function () {});
     R.tiers().then(function (t) { tiers = t; });
-    if (E.can("view")) { tab("users"); loadUsers(); } else tab("audit");
+    if (E.can("view")) { tab("users"); if (usersState !== "loading") loadUsers(); } else tab("audit");
   }
   $("gate-login").onclick = function () { E.openLogin(); };
+  $("gate-retry").onclick = function () { $("gate-msg").textContent = "בודק הרשאות ניהול…"; $("gate-retry").classList.add("hidden"); E.retryRole(); };
+  // safety net: never leave "טוען…" / "בודק…" on screen forever
+  setTimeout(function () { if (!E.user && !$("gate").classList.contains("hidden") && /טוען|מתחבר/.test($("gate-msg").textContent)) { gateKey = null; gate(); } }, 15000);
 
   Array.prototype.forEach.call(document.querySelectorAll("[data-tab]"), function (b) {
     b.onclick = function () { tab(b.getAttribute("data-tab")); };
@@ -159,6 +168,7 @@
   function tab(name) {
     ["users", "user", "activity", "boards", "ranks", "managers", "audit"].forEach(function (t) { $("tab-" + t).classList.toggle("hidden", t !== name); });
     Array.prototype.forEach.call(document.querySelectorAll("[data-tab]"), function (b) { b.classList.toggle("on", b.getAttribute("data-tab") === name || (name === "user" && b.getAttribute("data-tab") === "users")); });
+    if (name === "users" && E.can("view") && !usersState) loadUsers();
     if (name === "activity") loadActivity();
     if (name === "boards") loadBoards();
     if (name === "ranks") loadRanks();
@@ -166,12 +176,20 @@
     if (name === "audit") loadAudit();
   }
 
+  var usersState = null; // null | "loading" | "ok" | "error"
+  function retryBox(el, text, again) {
+    el.innerHTML = '<div class="msg err">' + esc(text) + '</div><button class="btn sm">לנסות שוב</button>';
+    el.querySelector("button").onclick = again;
+  }
   function loadUsers() {
+    usersState = "loading";
+    if (!users.length) $("users").textContent = "טוען…";
     return A.listUsers().then(function (list) {
+      usersState = "ok";
       users = list; byUid = {}; list.forEach(function (u) { byUid[u.uid] = u; });
       renderUsers();
       loadDeleted();
-    }).catch(function (e) { $("users").textContent = errText(e); });
+    }).catch(function (e) { usersState = "error"; retryBox($("users"), errText(e), loadUsers); });
   }
   function renderUsers() {
     var qv = ($("user-q").value || "").trim().toLowerCase();
@@ -192,7 +210,7 @@
   }
   $("user-q").oninput = renderUsers;
   function loadDeleted() {
-    A.listDeleted().then(function (l) {
+    A.listDeleted().catch(function () { return []; }).then(function (l) {
       if (!l.length) { $("deleted").innerHTML = ""; return; }
       $("deleted").innerHTML = '<div class="sec"><h3>🗑️ חשבונות שהוסרו</h3><p class="hint">אי אפשר להיכנס איתם לפרופיל עד ששחזרו אותם. בשחזור, התלמיד יתחיל מאפס.</p><table><tr><th>שם</th><th>שם משתמש</th><th>מתי</th><th></th></tr>' +
         l.map(function (t) { return "<tr><td>" + esc(t.name) + "</td><td>" + esc(t.username) + "</td><td>" + esc(D(t.at)) + "</td><td>" + (E.can("delete") ? '<button class="btn sm" data-restore="' + esc(t.uid) + '">שחזור</button>' : "") + "</td></tr>"; }).join("") + "</table></div>";
@@ -434,7 +452,7 @@
           $("lb-" + g).innerHTML = l.length ? "<table><tr><th>#</th><th>שם</th><th>שיא</th></tr>" + l.map(function (e) {
             return "<tr" + (e.rank === 1 ? ' style="background:#ffe066;font-weight:800"' : "") + "><td>" + e.rank + "</td><td>" + esc(e.name) + "</td><td>" + e.score + "</td></tr>";
           }).join("") + "</table>" : "<p>עוד אין שיאים.</p>";
-        });
+        }).catch(function (e) { $("lb-" + g).textContent = errText(e); });
       });
     });
   }
