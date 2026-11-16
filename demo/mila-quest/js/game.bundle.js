@@ -33327,6 +33327,257 @@
   // mila-quest/js/data.js
   var WORDS = [{ "en": "English", "he": "\u05D0\u05E0\u05D2\u05DC\u05D9\u05EA", "pic": "\u{1F1EC}\u{1F1E7}", "clue": "\u05D4\u05E9\u05E4\u05D4 \u05E9\u05D0\u05EA\u05DD \u05DC\u05D5\u05DE\u05D3\u05D9\u05DD \u05E2\u05DB\u05E9\u05D9\u05D5", "w": 1, "lvl": 1 }, { "en": "Brother", "he": "\u05D0\u05D7", "pic": "\u{1F466}", "clue": "\u05D1\u05DF \u05D1\u05D0\u05D5\u05EA\u05D4 \u05DE\u05E9\u05E4\u05D7\u05D4, \u05E9\u05D4\u05D5\u05D0 \u05D0\u05D7\u05D9\u05DB\u05DD", "w": 1, "lvl": 1 }, { "en": "Sister", "he": "\u05D0\u05D7\u05D5\u05EA", "pic": "\u{1F467}", "clue": "\u05D1\u05EA \u05D1\u05D0\u05D5\u05EA\u05D4 \u05DE\u05E9\u05E4\u05D7\u05D4, \u05E9\u05D4\u05D9\u05D0 \u05D0\u05D7\u05D5\u05EA\u05DB\u05DD", "w": 1, "lvl": 1 }, { "en": "Beautiful", "he": "\u05D9\u05E4\u05D4", "pic": "\u{1F33A}", "clue": "\u05DB\u05DE\u05D5 \u05E4\u05E8\u05D7 \u05D0\u05D5 \u05E9\u05E7\u05D9\u05E2\u05D4 \u05DE\u05E7\u05E1\u05D9\u05DE\u05D4", "w": 1, "lvl": 2 }, { "en": "Family", "he": "\u05DE\u05E9\u05E4\u05D7\u05D4", "pic": "\u{1F468}\u200D\u{1F469}\u200D\u{1F467}\u200D\u{1F466}", "clue": "\u05D0\u05DE\u05D0, \u05D0\u05D1\u05D0, \u05D9\u05DC\u05D3\u05D9\u05DD, \u05E1\u05D1\u05D0 \u05D5\u05E1\u05D1\u05EA\u05D0", "w": 1, "lvl": 1 }, { "en": "Read", "he": "\u05DC\u05E7\u05E8\u05D5\u05D0", "pic": "\u{1F4D6}", "clue": "\u05DE\u05D4 \u05E2\u05D5\u05E9\u05D9\u05DD \u05E2\u05DD \u05E1\u05E4\u05E8?", "w": 1, "lvl": 1 }, { "en": "Eat", "he": "\u05DC\u05D0\u05DB\u05D5\u05DC", "pic": "\u{1F34E}", "clue": "\u05DE\u05D4 \u05E2\u05D5\u05E9\u05D9\u05DD \u05E2\u05DD \u05EA\u05E4\u05D5\u05D7?", "w": 1, "lvl": 1 }, { "en": "Drink", "he": "\u05DC\u05E9\u05EA\u05D5\u05EA", "pic": "\u{1F964}", "clue": "\u05DE\u05D4 \u05E2\u05D5\u05E9\u05D9\u05DD \u05E2\u05DD \u05DE\u05D9\u05DD \u05D0\u05D5 \u05DE\u05D9\u05E5?", "w": 1, "lvl": 1 }, { "en": "Mother", "he": "\u05D0\u05DE\u05D0", "pic": "\u{1F469}", "clue": "\u05D4\u05D4\u05D5\u05E8\u05D4 \u05E9\u05D4\u05D9\u05D0 \u05D0\u05D9\u05E9\u05D4", "w": 1, "lvl": 1 }, { "en": "Father", "he": "\u05D0\u05D1\u05D0", "pic": "\u{1F468}", "clue": "\u05D4\u05D4\u05D5\u05E8\u05D4 \u05E9\u05D4\u05D5\u05D0 \u05D2\u05D1\u05E8", "w": 1, "lvl": 1 }, { "en": "Baby", "he": "\u05EA\u05D9\u05E0\u05D5\u05E7", "pic": "\u{1F476}", "clue": "\u05D9\u05DC\u05D3 \u05D0\u05D5 \u05D9\u05DC\u05D3\u05D4 \u05E7\u05D8\u05E0\u05D9\u05DD \u05DE\u05D0\u05D5\u05D3", "w": 1, "lvl": 1 }, { "en": "Grandfather", "he": "\u05E1\u05D1\u05D0", "pic": "\u{1F474}", "clue": "\u05D0\u05D1\u05D0 \u05E9\u05DC \u05D0\u05DE\u05D0 \u05D0\u05D5 \u05E9\u05DC \u05D0\u05D1\u05D0", "w": 1, "lvl": 2 }, { "en": "Grandmother", "he": "\u05E1\u05D1\u05EA\u05D0", "pic": "\u{1F475}", "clue": "\u05D0\u05DE\u05D0 \u05E9\u05DC \u05D0\u05DE\u05D0 \u05D0\u05D5 \u05E9\u05DC \u05D0\u05D1\u05D0", "w": 1, "lvl": 2 }, { "en": "Boy", "he": "\u05D9\u05DC\u05D3", "pic": "\u{1F466}", "clue": "\u05D9\u05DC\u05D3, \u05DC\u05D0 \u05D9\u05DC\u05D3\u05D4", "w": 1, "lvl": 1 }, { "en": "Girl", "he": "\u05D9\u05DC\u05D3\u05D4", "pic": "\u{1F467}", "clue": "\u05D9\u05DC\u05D3\u05D4, \u05DC\u05D0 \u05D9\u05DC\u05D3", "w": 1, "lvl": 1 }, { "en": "Parents", "he": "\u05D4\u05D5\u05E8\u05D9\u05DD", "pic": "\u{1F46B}", "clue": "\u05D0\u05DE\u05D0 \u05D5\u05D0\u05D1\u05D0 \u05D9\u05D7\u05D3", "w": 1, "lvl": 1 }, { "en": "Lion", "he": "\u05D0\u05E8\u05D9\u05D4", "pic": "\u{1F981}", "clue": "\u05DE\u05DC\u05DA \u05D4\u05D7\u05D9\u05D5\u05EA, \u05E2\u05DD \u05E8\u05E2\u05DE\u05D4 \u05D2\u05D3\u05D5\u05DC\u05D4", "w": 1, "lvl": 1 }, { "en": "Tiger", "he": "\u05E0\u05DE\u05E8", "pic": "\u{1F42F}", "clue": "\u05D7\u05EA\u05D5\u05DC \u05D2\u05D3\u05D5\u05DC \u05E2\u05DD \u05E4\u05E1\u05D9\u05DD", "w": 1, "lvl": 1 }, { "en": "Monkey", "he": "\u05E7\u05D5\u05E3", "pic": "\u{1F435}", "clue": "\u05D0\u05D5\u05D4\u05D1 \u05DC\u05E7\u05E4\u05D5\u05E5 \u05E2\u05DC \u05E2\u05E6\u05D9\u05DD", "w": 1, "lvl": 1 }, { "en": "Elephant", "he": "\u05E4\u05D9\u05DC", "pic": "\u{1F418}", "clue": "\u05D4\u05D7\u05D9\u05D4 \u05D4\u05DB\u05D9 \u05D2\u05D3\u05D5\u05DC\u05D4 \u05D1\u05D9\u05D1\u05E9\u05D4, \u05E2\u05DD \u05D7\u05D3\u05E7", "w": 1, "lvl": 1 }, { "en": "Snake", "he": "\u05E0\u05D7\u05E9", "pic": "\u{1F40D}", "clue": "\u05D0\u05E8\u05D5\u05DA \u05D5\u05D6\u05D5\u05D7\u05DC \u05D1\u05DC\u05D9 \u05E8\u05D2\u05DC\u05D9\u05D9\u05DD", "w": 1, "lvl": 1 }, { "en": "Frog", "he": "\u05E6\u05E4\u05E8\u05D3\u05E2", "pic": "\u{1F438}", "clue": "\u05D9\u05E8\u05D5\u05E7\u05D4, \u05E7\u05D5\u05E4\u05E6\u05EA \u05D5\u05D7\u05D9\u05D4 \u05DC\u05D9\u05D3 \u05DE\u05D9\u05DD", "w": 1, "lvl": 1 }, { "en": "Butterfly", "he": "\u05E4\u05E8\u05E4\u05E8", "pic": "\u{1F98B}", "clue": "\u05D9\u05E4\u05D4 \u05D5\u05E2\u05E3 \u05DE\u05E4\u05E8\u05D7 \u05DC\u05E4\u05E8\u05D7", "w": 1, "lvl": 2 }, { "en": "Bear", "he": "\u05D3\u05D5\u05D1", "pic": "\u{1F43B}", "clue": "\u05D2\u05D3\u05D5\u05DC \u05D5\u05E4\u05E8\u05D5\u05D5\u05EA\u05D9, \u05D0\u05D5\u05D4\u05D1 \u05D3\u05D1\u05E9", "w": 1, "lvl": 1 }, { "en": "Giraffe", "he": "\u05D2'\u05D9\u05E8\u05E4\u05D4", "pic": "\u{1F992}", "clue": "\u05D4\u05D7\u05D9\u05D4 \u05D4\u05DB\u05D9 \u05D2\u05D1\u05D5\u05D4\u05D4, \u05E2\u05DD \u05E6\u05D5\u05D5\u05D0\u05E8 \u05D0\u05E8\u05D5\u05DA", "w": 1, "lvl": 2 }, { "en": "Parrot", "he": "\u05EA\u05D5\u05DB\u05D9", "pic": "\u{1F99C}", "clue": "\u05E6\u05D9\u05E4\u05D5\u05E8 \u05E6\u05D1\u05E2\u05D5\u05E0\u05D9\u05EA \u05E9\u05D9\u05D5\u05D3\u05E2\u05EA \u05DC\u05D7\u05E7\u05D5\u05EA \u05E7\u05D5\u05DC\u05D5\u05EA", "w": 1, "lvl": 1 }, { "en": "Dog", "he": "\u05DB\u05DC\u05D1", "pic": "\u{1F436}", "clue": "\u05D7\u05D9\u05D4 \u05E0\u05D0\u05DE\u05E0\u05D4 \u05E9\u05E0\u05D5\u05D1\u05D7\u05EA", "w": 1, "lvl": 1 }, { "en": "Cat", "he": "\u05D7\u05EA\u05D5\u05DC", "pic": "\u{1F431}", "clue": "\u05D7\u05D9\u05D4 \u05E9\u05D0\u05D5\u05DE\u05E8\u05EA \u05DE\u05D9\u05D0\u05D5", "w": 1, "lvl": 1 }, { "en": "Horse", "he": "\u05E1\u05D5\u05E1", "pic": "\u{1F434}", "clue": "\u05D7\u05D9\u05D4 \u05E9\u05E8\u05D5\u05DB\u05D1\u05D9\u05DD \u05E2\u05DC\u05D9\u05D4", "w": 1, "lvl": 1 }, { "en": "Rabbit", "he": "\u05D0\u05E8\u05E0\u05D1", "pic": "\u{1F430}", "clue": "\u05D7\u05D9\u05D4 \u05E7\u05D8\u05E0\u05D4 \u05E2\u05DD \u05D0\u05D5\u05D6\u05E0\u05D9\u05D9\u05DD \u05D0\u05E8\u05D5\u05DB\u05D5\u05EA", "w": 1, "lvl": 1 }, { "en": "Run", "he": "\u05DC\u05E8\u05D5\u05E5", "pic": "\u{1F3C3}", "clue": "\u05DC\u05D6\u05D5\u05D6 \u05DE\u05D4\u05E8 \u05D1\u05E8\u05D2\u05DC\u05D9\u05D9\u05DD", "w": 1, "lvl": 1 }, { "en": "Jump", "he": "\u05DC\u05E7\u05E4\u05D5\u05E5", "pic": "\u{1F998}", "clue": "\u05DC\u05D4\u05EA\u05E8\u05D5\u05DE\u05DD \u05D1\u05D0\u05D5\u05D5\u05D9\u05E8 \u05DE\u05E2\u05DC \u05DE\u05E9\u05D4\u05D5", "w": 1, "lvl": 1 }, { "en": "Sleep", "he": "\u05DC\u05D9\u05E9\u05D5\u05DF", "pic": "\u{1F634}", "clue": "\u05DE\u05D4 \u05E2\u05D5\u05E9\u05D9\u05DD \u05D1\u05DC\u05D9\u05DC\u05D4 \u05D1\u05DE\u05D9\u05D8\u05D4", "w": 1, "lvl": 1 }, { "en": "Play", "he": "\u05DC\u05E9\u05D7\u05E7", "pic": "\u{1F3AE}", "clue": "\u05DE\u05D4 \u05E2\u05D5\u05E9\u05D9\u05DD \u05D1\u05E9\u05E2\u05D5\u05EA \u05D4\u05E4\u05E0\u05D0\u05D9", "w": 1, "lvl": 1 }, { "en": "Walk", "he": "\u05DC\u05DC\u05DB\u05EA", "pic": "\u{1F6B6}", "clue": "\u05DC\u05D6\u05D5\u05D6 \u05D1\u05E8\u05D2\u05DC\u05D9\u05D9\u05DD, \u05DC\u05D0 \u05DE\u05D4\u05E8", "w": 1, "lvl": 1 }, { "en": "Big", "he": "\u05D2\u05D3\u05D5\u05DC", "pic": "\u{1F9A3}", "clue": "\u05D4\u05D4\u05E4\u05DA \u05DE\u05E7\u05D8\u05DF", "w": 1, "lvl": 1 }, { "en": "Small", "he": "\u05E7\u05D8\u05DF", "pic": "\u{1F42D}", "clue": "\u05D4\u05D4\u05E4\u05DA \u05DE\u05D2\u05D3\u05D5\u05DC", "w": 1, "lvl": 1 }, { "en": "Happy", "he": "\u05E9\u05DE\u05D7", "pic": "\u{1F604}", "clue": "\u05DB\u05E9\u05DE\u05E8\u05D2\u05D9\u05E9\u05D9\u05DD \u05D8\u05D5\u05D1 \u05D5\u05E6\u05D5\u05D7\u05E7\u05D9\u05DD", "w": 1, "lvl": 1 }, { "en": "Sad", "he": "\u05E2\u05E6\u05D5\u05D1", "pic": "\u{1F622}", "clue": "\u05DB\u05E9\u05DE\u05E8\u05D2\u05D9\u05E9\u05D9\u05DD \u05DC\u05D0 \u05D8\u05D5\u05D1 \u05D5\u05E8\u05D5\u05E6\u05D9\u05DD \u05DC\u05D1\u05DB\u05D5\u05EA", "w": 1, "lvl": 1 }, { "en": "Good", "he": "\u05D8\u05D5\u05D1", "pic": "\u{1F44D}", "clue": "\u05D4\u05D4\u05E4\u05DA \u05DE\u05E8\u05E2", "w": 1, "lvl": 1 }, { "en": "Tree", "he": "\u05E2\u05E5", "pic": "\u{1F333}", "clue": "\u05D2\u05D1\u05D5\u05D4, \u05E2\u05DD \u05D2\u05D6\u05E2 \u05D5\u05E2\u05DD \u05E2\u05DC\u05D9\u05DD", "w": 1, "lvl": 1 }, { "en": "Flower", "he": "\u05E4\u05E8\u05D7", "pic": "\u{1F338}", "clue": "\u05E6\u05D5\u05DE\u05D7 \u05D1\u05D2\u05D9\u05E0\u05D4 \u05D5\u05D4\u05D5\u05D0 \u05D9\u05E4\u05D4 \u05D5\u05E8\u05D9\u05D7\u05E0\u05D9", "w": 1, "lvl": 1 }, { "en": "Forest", "he": "\u05D9\u05E2\u05E8", "pic": "\u{1F332}", "clue": "\u05DE\u05E7\u05D5\u05DD \u05E2\u05DD \u05D4\u05E8\u05D1\u05D4 \u05E2\u05E6\u05D9\u05DD", "w": 1, "lvl": 1 }, { "en": "Leaf", "he": "\u05E2\u05DC\u05D4", "pic": "\u{1F343}", "clue": "\u05D4\u05D7\u05DC\u05E7 \u05D4\u05D9\u05E8\u05D5\u05E7 \u05E9\u05D2\u05D3\u05DC \u05E2\u05DC \u05D4\u05E2\u05E5", "w": 1, "lvl": 1 }, { "en": "Grass", "he": "\u05D3\u05E9\u05D0", "pic": "\u{1F331}", "clue": "\u05D9\u05E8\u05D5\u05E7 \u05D5\u05E6\u05D5\u05DE\u05D7 \u05E2\u05DC \u05D4\u05D0\u05D3\u05DE\u05D4 \u05D1\u05D2\u05D9\u05E0\u05D4", "w": 1, "lvl": 1 }, { "en": "Animal", "he": "\u05D7\u05D9\u05D4", "pic": "\u{1F43E}", "clue": "\u05DB\u05DC\u05D1, \u05D7\u05EA\u05D5\u05DC, \u05D0\u05E8\u05D9\u05D4 \u2014 \u05DB\u05D5\u05DC\u05DD...", "w": 1, "lvl": 1 }, { "en": "Fish", "he": "\u05D3\u05D2", "pic": "\u{1F41F}", "clue": "\u05D7\u05D9 \u05D1\u05DE\u05D9\u05DD \u05D5\u05D9\u05E9 \u05DC\u05D5 \u05E1\u05E0\u05E4\u05D9\u05E8\u05D9\u05DD", "w": 2, "lvl": 1 }, { "en": "Sea", "he": "\u05D9\u05DD", "pic": "\u{1F30A}", "clue": "\u05DE\u05E7\u05D5\u05DD \u05D2\u05D3\u05D5\u05DC \u05D5\u05DE\u05DC\u05D5\u05D7 \u05E9\u05DE\u05E9\u05D9\u05D9\u05D8\u05D9\u05DD \u05D1\u05D5", "w": 2, "lvl": 1 }, { "en": "Ship", "he": "\u05E1\u05E4\u05D9\u05E0\u05D4", "pic": "\u{1F6A2}", "clue": "\u05DB\u05DC\u05D9 \u05E9\u05D9\u05D8 \u05D2\u05D3\u05D5\u05DC \u05E9\u05DE\u05E4\u05DC\u05D9\u05D2 \u05D1\u05D9\u05DD", "w": 2, "lvl": 1 }, { "en": "Island", "he": "\u05D0\u05D9", "pic": "\u{1F3DD}\uFE0F", "clue": "\u05D9\u05D1\u05E9\u05D4 \u05E7\u05D8\u05E0\u05D4 \u05E9\u05DE\u05D5\u05E7\u05E4\u05EA \u05DE\u05D9\u05DD \u05DE\u05DB\u05DC \u05D4\u05E6\u05D3\u05D3\u05D9\u05DD", "w": 2, "lvl": 1 }, { "en": "Bird", "he": "\u05E6\u05D9\u05E4\u05D5\u05E8", "pic": "\u{1F426}", "clue": "\u05D9\u05E9 \u05DC\u05D4 \u05DB\u05E0\u05E4\u05D9\u05D9\u05DD \u05D5\u05D4\u05D9\u05D0 \u05E2\u05E4\u05D4", "w": 2, "lvl": 1 }, { "en": "Shark", "he": "\u05DB\u05E8\u05D9\u05E9", "pic": "\u{1F988}", "clue": "\u05D3\u05D2 \u05D8\u05D5\u05E8\u05E3 \u05E2\u05DD \u05E9\u05D9\u05E0\u05D9\u05D9\u05DD \u05D7\u05D3\u05D5\u05EA", "w": 2, "lvl": 1 }, { "en": "Water", "he": "\u05DE\u05D9\u05DD", "pic": "\u{1F4A7}", "clue": "\u05DE\u05D4 \u05E9\u05D5\u05EA\u05D9\u05DD \u05DB\u05E9\u05E6\u05DE\u05D0\u05D9\u05DD", "w": 2, "lvl": 1 }, { "en": "Beach", "he": "\u05D7\u05D5\u05E3", "pic": "\u{1F3D6}\uFE0F", "clue": "\u05D7\u05D5\u05DC \u05D5\u05DE\u05D9\u05DD \u2014 \u05E9\u05DD \u05DE\u05EA\u05E8\u05D7\u05E6\u05D9\u05DD \u05D5\u05DE\u05E9\u05D7\u05E7\u05D9\u05DD", "w": 2, "lvl": 1 }, { "en": "Boat", "he": "\u05E1\u05D9\u05E8\u05D4", "pic": "\u{1F6A3}", "clue": "\u05DB\u05DC\u05D9 \u05E9\u05D9\u05D8 \u05E7\u05D8\u05DF \u05D9\u05D5\u05EA\u05E8 \u05DE\u05E1\u05E4\u05D9\u05E0\u05D4", "w": 2, "lvl": 1 }, { "en": "Pirate", "he": "\u05E4\u05D9\u05E8\u05D0\u05D8", "pic": "\u{1F3F4}\u200D\u2620\uFE0F", "clue": "\u05E9\u05D5\u05D3\u05D3 \u05D9\u05DD \u05E2\u05DD \u05DE\u05D8\u05E4\u05D7\u05EA \u05D5\u05E2\u05DD \u05DE\u05E4\u05D4", "w": 2, "lvl": 1 }, { "en": "Treasure", "he": "\u05D0\u05D5\u05E6\u05E8", "pic": "\u{1F4B0}", "clue": "\u05D6\u05D4\u05D1 \u05D5\u05DE\u05D8\u05D1\u05E2\u05D5\u05EA \u05E9\u05DE\u05D5\u05E6\u05D0\u05D9\u05DD \u05D1\u05EA\u05D9\u05D1\u05D4", "w": 2, "lvl": 2 }, { "en": "Wave", "he": "\u05D2\u05DC", "pic": "\u{1F30A}", "clue": "\u05D4\u05DE\u05D9\u05DD \u05E9\u05DE\u05EA\u05E8\u05D5\u05DE\u05DE\u05D9\u05DD \u05D5\u05E0\u05E9\u05D1\u05E8\u05D9\u05DD \u05D1\u05D9\u05DD", "w": 2, "lvl": 1 }, { "en": "Sand", "he": "\u05D7\u05D5\u05DC", "pic": "\u231B", "clue": "\u05DE\u05D4 \u05E9\u05D9\u05E9 \u05E2\u05DC \u05D4\u05D7\u05D5\u05E3, \u05E8\u05DA \u05D5\u05E6\u05D4\u05D5\u05D1", "w": 2, "lvl": 1 }, { "en": "Map", "he": "\u05DE\u05E4\u05D4", "pic": "\u{1F5FA}\uFE0F", "clue": "\u05DE\u05E8\u05D0\u05D4 \u05D0\u05D9\u05DA \u05DC\u05D4\u05D2\u05D9\u05E2 \u05DE\u05DE\u05E7\u05D5\u05DD \u05DC\u05DE\u05E7\u05D5\u05DD", "w": 2, "lvl": 1 }, { "en": "Gold", "he": "\u05D6\u05D4\u05D1", "pic": "\u{1F947}", "clue": "\u05DE\u05EA\u05DB\u05EA \u05D9\u05E7\u05E8\u05D4 \u05D5\u05D6\u05D4\u05D5\u05D1\u05D4", "w": 2, "lvl": 1 }, { "en": "Captain", "he": "\u05E7\u05E4\u05D8\u05DF", "pic": "\u{1F9D1}\u200D\u2708\uFE0F", "clue": "\u05DE\u05D9 \u05E9\u05DE\u05E0\u05D4\u05D9\u05D2 \u05D0\u05EA \u05D4\u05E1\u05E4\u05D9\u05E0\u05D4", "w": 2, "lvl": 2 }, { "en": "Flag", "he": "\u05D3\u05D2\u05DC", "pic": "\u{1F6A9}", "clue": "\u05D1\u05D3 \u05E2\u05DD \u05E6\u05D9\u05D5\u05E8, \u05EA\u05DC\u05D5\u05D9 \u05E2\u05DC \u05EA\u05E8\u05DF", "w": 2, "lvl": 1 }, { "en": "Red", "he": "\u05D0\u05D3\u05D5\u05DD", "pic": "\u{1F534}", "clue": "\u05E6\u05D1\u05E2 \u05E9\u05DC \u05EA\u05D5\u05EA \u05D5\u05E9\u05DC \u05E2\u05D2\u05D1\u05E0\u05D9\u05D9\u05D4", "w": 2, "lvl": 1 }, { "en": "Blue", "he": "\u05DB\u05D7\u05D5\u05DC", "pic": "\u{1F535}", "clue": "\u05E6\u05D1\u05E2 \u05E9\u05DC \u05D4\u05E9\u05DE\u05D9\u05D9\u05DD \u05D5\u05E9\u05DC \u05D4\u05D9\u05DD", "w": 2, "lvl": 1 }, { "en": "Green", "he": "\u05D9\u05E8\u05D5\u05E7", "pic": "\u{1F7E2}", "clue": "\u05E6\u05D1\u05E2 \u05E9\u05DC \u05D3\u05E9\u05D0 \u05D5\u05E9\u05DC \u05E2\u05DC\u05D9\u05DD", "w": 2, "lvl": 1 }, { "en": "Yellow", "he": "\u05E6\u05D4\u05D5\u05D1", "pic": "\u{1F7E1}", "clue": "\u05E6\u05D1\u05E2 \u05E9\u05DC \u05D1\u05E0\u05E0\u05D4 \u05D5\u05E9\u05DC \u05E9\u05DE\u05E9", "w": 2, "lvl": 1 }, { "en": "Orange", "he": "\u05DB\u05EA\u05D5\u05DD", "pic": "\u{1F7E0}", "clue": "\u05D6\u05D4 \u05D4\u05E6\u05D1\u05E2 \u2014 \u05DC\u05D0 \u05D4\u05E4\u05E8\u05D9 \u05EA\u05E4\u05D5\u05D6", "w": 2, "lvl": 1 }, { "en": "Purple", "he": "\u05E1\u05D2\u05D5\u05DC", "pic": "\u{1F7E3}", "clue": "\u05E6\u05D1\u05E2 \u05E9\u05DC \u05E2\u05E0\u05D1\u05D9\u05DD \u05D5\u05E9\u05DC \u05D7\u05E6\u05D9\u05DC", "w": 2, "lvl": 1 }, { "en": "Pink", "he": "\u05D5\u05E8\u05D5\u05D3", "pic": "\u{1F497}", "clue": "\u05E6\u05D1\u05E2 \u05D1\u05D4\u05D9\u05E8 \u05DB\u05DE\u05D5 \u05DE\u05E1\u05D8\u05D9\u05E7 \u05D0\u05D5 \u05E4\u05E8\u05D7", "w": 2, "lvl": 1 }, { "en": "Black", "he": "\u05E9\u05D7\u05D5\u05E8", "pic": "\u26AB", "clue": "\u05E6\u05D1\u05E2 \u05E9\u05DC \u05D4\u05DC\u05D9\u05DC\u05D4, \u05D4\u05D4\u05E4\u05DA \u05DE\u05DC\u05D1\u05DF", "w": 2, "lvl": 1 }, { "en": "White", "he": "\u05DC\u05D1\u05DF", "pic": "\u26AA", "clue": "\u05E6\u05D1\u05E2 \u05E9\u05DC \u05D7\u05DC\u05D1 \u05D5\u05E9\u05DC \u05E9\u05DC\u05D2", "w": 2, "lvl": 1 }, { "en": "Brown", "he": "\u05D7\u05D5\u05DD", "pic": "\u{1F90E}", "clue": "\u05E6\u05D1\u05E2 \u05E9\u05DC \u05E9\u05D5\u05E7\u05D5\u05DC\u05D3 \u05D5\u05E9\u05DC \u05D0\u05D3\u05DE\u05D4", "w": 2, "lvl": 1 }, { "en": "Color", "he": "\u05E6\u05D1\u05E2", "pic": "\u{1F3A8}", "clue": "\u05D0\u05D3\u05D5\u05DD, \u05DB\u05D7\u05D5\u05DC, \u05D9\u05E8\u05D5\u05E7 \u2014 \u05DB\u05DC \u05D0\u05D7\u05D3 \u05D4\u05D5\u05D0...", "w": 2, "lvl": 1 }, { "en": "Apple", "he": "\u05EA\u05E4\u05D5\u05D7", "pic": "\u{1F34E}", "clue": "\u05E4\u05E8\u05D9 \u05E2\u05D2\u05D5\u05DC, \u05D0\u05D3\u05D5\u05DD \u05D0\u05D5 \u05D9\u05E8\u05D5\u05E7", "w": 2, "lvl": 1 }, { "en": "Banana", "he": "\u05D1\u05E0\u05E0\u05D4", "pic": "\u{1F34C}", "clue": "\u05E4\u05E8\u05D9 \u05D0\u05E8\u05D5\u05DA \u05D5\u05E6\u05D4\u05D5\u05D1", "w": 2, "lvl": 1 }, { "en": "Bread", "he": "\u05DC\u05D7\u05DD", "pic": "\u{1F35E}", "clue": "\u05D0\u05D5\u05DB\u05DC\u05D9\u05DD \u05D0\u05D5\u05EA\u05D5 \u05D1\u05DB\u05E8\u05D9\u05DA", "w": 2, "lvl": 1 }, { "en": "Milk", "he": "\u05D7\u05DC\u05D1", "pic": "\u{1F95B}", "clue": "\u05DE\u05E9\u05E7\u05D4 \u05DC\u05D1\u05DF \u05E9\u05E9\u05D5\u05EA\u05D9\u05DD \u05D1\u05D1\u05D5\u05E7\u05E8", "w": 2, "lvl": 1 }, { "en": "Juice", "he": "\u05DE\u05D9\u05E5", "pic": "\u{1F9C3}", "clue": "\u05DE\u05E9\u05E7\u05D4 \u05E9\u05E1\u05D5\u05D7\u05D8\u05D9\u05DD \u05DE\u05E4\u05D9\u05E8\u05D5\u05EA", "w": 2, "lvl": 1 }, { "en": "Cake", "he": "\u05E2\u05D5\u05D2\u05D4", "pic": "\u{1F382}", "clue": "\u05DE\u05EA\u05D5\u05E7\u05D4, \u05D0\u05D5\u05DB\u05DC\u05D9\u05DD \u05D1\u05D9\u05D5\u05DD \u05D4\u05D5\u05DC\u05D3\u05EA", "w": 2, "lvl": 1 }, { "en": "Egg", "he": "\u05D1\u05D9\u05E6\u05D4", "pic": "\u{1F95A}", "clue": "\u05DE\u05D2\u05D9\u05E2\u05D4 \u05DE\u05EA\u05E8\u05E0\u05D2\u05D5\u05DC\u05EA, \u05E2\u05D2\u05D5\u05DC\u05D4 \u05D5\u05DC\u05D1\u05E0\u05D4", "w": 2, "lvl": 1 }, { "en": "Cheese", "he": "\u05D2\u05D1\u05D9\u05E0\u05D4", "pic": "\u{1F9C0}", "clue": "\u05E2\u05E9\u05D5\u05D9\u05D4 \u05DE\u05D7\u05DC\u05D1, \u05E9\u05DE\u05D9\u05DD \u05D1\u05DB\u05E8\u05D9\u05DA", "w": 2, "lvl": 1 }, { "en": "Pizza", "he": "\u05E4\u05D9\u05E6\u05D4", "pic": "\u{1F355}", "clue": "\u05E2\u05D2\u05D5\u05DC\u05D4, \u05E2\u05DD \u05D2\u05D1\u05D9\u05E0\u05D4 \u05D5\u05E2\u05DD \u05EA\u05D5\u05E1\u05E4\u05D5\u05EA \u05DE\u05DC\u05DE\u05E2\u05DC\u05D4", "w": 2, "lvl": 1 }, { "en": "Chocolate", "he": "\u05E9\u05D5\u05E7\u05D5\u05DC\u05D3", "pic": "\u{1F36B}", "clue": "\u05DE\u05EA\u05D5\u05E7 \u05D5\u05D7\u05D5\u05DD, \u05DE\u05DB\u05D9\u05E0\u05D9\u05DD \u05DE\u05E7\u05D9\u05E7\u05D0\u05D5", "w": 2, "lvl": 2 }, { "en": "Food", "he": "\u05D0\u05D5\u05DB\u05DC", "pic": "\u{1F37D}\uFE0F", "clue": "\u05DB\u05DC \u05DE\u05D4 \u05E9\u05D0\u05D5\u05DB\u05DC\u05D9\u05DD \u05D1\u05D0\u05E8\u05D5\u05D7\u05D4", "w": 2, "lvl": 1 }, { "en": "Ice cream", "he": "\u05D2\u05DC\u05D9\u05D3\u05D4", "pic": "\u{1F366}", "clue": "\u05E7\u05D9\u05E0\u05D5\u05D7 \u05E7\u05E8 \u05D5\u05DE\u05EA\u05D5\u05E7 \u05D1\u05E7\u05D9\u05E5", "w": 2, "lvl": 1 }, { "en": "Crab", "he": "\u05E1\u05E8\u05D8\u05DF", "pic": "\u{1F980}", "clue": "\u05D7\u05D9 \u05D1\u05D7\u05D5\u05E3 \u05D5\u05D9\u05E9 \u05DC\u05D5 \u05E6\u05D1\u05EA\u05D5\u05EA", "w": 2, "lvl": 1 }, { "en": "Turtle", "he": "\u05E6\u05D1", "pic": "\u{1F422}", "clue": "\u05D9\u05E9 \u05DC\u05D5 \u05E9\u05E8\u05D9\u05D5\u05DF \u05E2\u05DC \u05D4\u05D2\u05D1", "w": 2, "lvl": 1 }, { "en": "Dolphin", "he": "\u05D3\u05D5\u05DC\u05E4\u05D9\u05DF", "pic": "\u{1F42C}", "clue": "\u05D7\u05D9\u05D4 \u05D7\u05DB\u05DE\u05D4 \u05E9\u05E9\u05D5\u05D7\u05D4 \u05D1\u05D9\u05DD \u05D5\u05DE\u05E7\u05E4\u05E6\u05EA", "w": 2, "lvl": 2 }, { "en": "Whale", "he": "\u05DC\u05D5\u05D5\u05D9\u05D9\u05EA\u05DF", "pic": "\u{1F40B}", "clue": "\u05D4\u05D7\u05D9\u05D4 \u05D4\u05DB\u05D9 \u05D2\u05D3\u05D5\u05DC\u05D4 \u05D1\u05D9\u05DD", "w": 2, "lvl": 1 }, { "en": "Octopus", "he": "\u05EA\u05DE\u05E0\u05D5\u05DF", "pic": "\u{1F419}", "clue": "\u05D9\u05E9 \u05DC\u05D5 \u05E9\u05DE\u05D5\u05E0\u05D4 \u05D6\u05E8\u05D5\u05E2\u05D5\u05EA", "w": 2, "lvl": 2 }, { "en": "School", "he": "\u05D1\u05D9\u05EA \u05E1\u05E4\u05E8", "pic": "\u{1F3EB}", "clue": "\u05D4\u05DE\u05E7\u05D5\u05DD \u05E9\u05D1\u05D5 \u05DC\u05D5\u05DE\u05D3\u05D9\u05DD", "w": 3, "lvl": 1 }, { "en": "Book", "he": "\u05E1\u05E4\u05E8", "pic": "\u{1F4DA}", "clue": "\u05E7\u05D5\u05E8\u05D0\u05D9\u05DD \u05D1\u05D5 \u05E1\u05D9\u05E4\u05D5\u05E8\u05D9\u05DD \u05D5\u05E9\u05D9\u05E2\u05D5\u05E8\u05D9\u05DD", "w": 3, "lvl": 1 }, { "en": "Friend", "he": "\u05D7\u05D1\u05E8", "pic": "\u{1F9D1}\u200D\u{1F91D}\u200D\u{1F9D1}", "clue": "\u05DE\u05D9 \u05E9\u05D0\u05D5\u05D4\u05D1\u05D9\u05DD \u05DC\u05E9\u05D7\u05E7 \u05D5\u05DC\u05D3\u05D1\u05E8 \u05D0\u05D9\u05EA\u05D5", "w": 3, "lvl": 1 }, { "en": "Teacher", "he": "\u05DE\u05D5\u05E8\u05D4", "pic": "\u{1F469}\u200D\u{1F3EB}", "clue": "\u05DE\u05D9 \u05E9\u05DE\u05DC\u05DE\u05D3 \u05D1\u05DB\u05D9\u05EA\u05D4", "w": 3, "lvl": 1 }, { "en": "House", "he": "\u05D1\u05D9\u05EA", "pic": "\u{1F3E0}", "clue": "\u05D4\u05DE\u05E7\u05D5\u05DD \u05E9\u05D1\u05D5 \u05D2\u05E8\u05D9\u05DD", "w": 3, "lvl": 1 }, { "en": "Car", "he": "\u05DE\u05DB\u05D5\u05E0\u05D9\u05EA", "pic": "\u{1F697}", "clue": "\u05E0\u05D5\u05E1\u05E2\u05D9\u05DD \u05D1\u05D4 \u05E2\u05DC \u05D0\u05E8\u05D1\u05E2\u05D4 \u05D2\u05DC\u05D2\u05DC\u05D9\u05DD", "w": 3, "lvl": 1 }, { "en": "Street", "he": "\u05E8\u05D7\u05D5\u05D1", "pic": "\u{1F6E3}\uFE0F", "clue": "\u05D4\u05D3\u05E8\u05DA \u05E9\u05D1\u05D9\u05DF \u05D4\u05D1\u05EA\u05D9\u05DD", "w": 3, "lvl": 1 }, { "en": "City", "he": "\u05E2\u05D9\u05E8", "pic": "\u{1F306}", "clue": "\u05DE\u05E7\u05D5\u05DD \u05D2\u05D3\u05D5\u05DC \u05E2\u05DD \u05D4\u05E8\u05D1\u05D4 \u05D1\u05E0\u05D9\u05D9\u05E0\u05D9\u05DD", "w": 3, "lvl": 1 }, { "en": "Student", "he": "\u05EA\u05DC\u05DE\u05D9\u05D3", "pic": "\u{1F9D1}\u200D\u{1F393}", "clue": "\u05DE\u05D9 \u05E9\u05DC\u05D5\u05DE\u05D3 \u05D1\u05D1\u05D9\u05EA \u05D4\u05E1\u05E4\u05E8", "w": 3, "lvl": 1 }, { "en": "Pencil", "he": "\u05E2\u05D9\u05E4\u05E8\u05D5\u05DF", "pic": "\u270F\uFE0F", "clue": "\u05DB\u05D5\u05EA\u05D1\u05D9\u05DD \u05D5\u05DE\u05D5\u05D7\u05E7\u05D9\u05DD \u05D0\u05D9\u05EA\u05D5", "w": 3, "lvl": 1 }, { "en": "Pen", "he": "\u05E2\u05D8", "pic": "\u{1F58A}\uFE0F", "clue": "\u05DB\u05D5\u05EA\u05D1\u05D9\u05DD \u05D0\u05D9\u05EA\u05D5 \u05D1\u05D3\u05D9\u05D5", "w": 3, "lvl": 1 }, { "en": "Bag", "he": "\u05EA\u05D9\u05E7", "pic": "\u{1F392}", "clue": "\u05E9\u05DE\u05D9\u05DD \u05D1\u05D5 \u05E1\u05E4\u05E8\u05D9\u05DD \u05DC\u05D1\u05D9\u05EA \u05D4\u05E1\u05E4\u05E8", "w": 3, "lvl": 1 }, { "en": "Chair", "he": "\u05DB\u05D9\u05E1\u05D0", "pic": "\u{1FA91}", "clue": "\u05E2\u05DC\u05D9\u05D5 \u05D9\u05D5\u05E9\u05D1\u05D9\u05DD", "w": 3, "lvl": 1 }, { "en": "Classroom", "he": "\u05DB\u05D9\u05EA\u05D4", "pic": "\u{1F6AA}", "clue": "\u05D4\u05D7\u05D3\u05E8 \u05D1\u05D1\u05D9\u05EA \u05D4\u05E1\u05E4\u05E8 \u05E9\u05D1\u05D5 \u05DC\u05D5\u05DE\u05D3\u05D9\u05DD", "w": 3, "lvl": 2 }, { "en": "Homework", "he": "\u05E9\u05D9\u05E2\u05D5\u05E8\u05D9 \u05D1\u05D9\u05EA", "pic": "\u{1F4DD}", "clue": "\u05D4\u05E2\u05D1\u05D5\u05D3\u05D4 \u05E9\u05D4\u05DE\u05D5\u05E8\u05D4 \u05E0\u05D5\u05EA\u05DF \u05DC\u05E2\u05E9\u05D5\u05EA \u05D1\u05D1\u05D9\u05EA", "w": 3, "lvl": 2 }, { "en": "Notebook", "he": "\u05DE\u05D7\u05D1\u05E8\u05EA", "pic": "\u{1F4D3}", "clue": "\u05DE\u05D7\u05D1\u05E8\u05EA \u05DC\u05DB\u05EA\u05D9\u05D1\u05D4 \u05D1\u05E9\u05D9\u05E2\u05D5\u05E8", "w": 3, "lvl": 2 }, { "en": "Computer", "he": "\u05DE\u05D7\u05E9\u05D1", "pic": "\u{1F4BB}", "clue": "\u05DE\u05DB\u05D5\u05E0\u05D4 \u05DC\u05DC\u05DE\u05D9\u05D3\u05D4, \u05DC\u05DE\u05E9\u05D7\u05E7\u05D9\u05DD \u05D5\u05DC\u05E1\u05E8\u05D8\u05D9\u05DD", "w": 3, "lvl": 1 }, { "en": "Paper", "he": "\u05E0\u05D9\u05D9\u05E8", "pic": "\u{1F4C4}", "clue": "\u05D3\u05E3 \u05DC\u05D1\u05DF \u05E9\u05DB\u05D5\u05EA\u05D1\u05D9\u05DD \u05E2\u05DC\u05D9\u05D5", "w": 3, "lvl": 1 }, { "en": "Board", "he": "\u05DC\u05D5\u05D7", "pic": "\u{1F9D1}\u200D\u{1F3EB}", "clue": "\u05D4\u05DC\u05D5\u05D7 \u05D4\u05D2\u05D3\u05D5\u05DC \u05DE\u05DC\u05E4\u05E0\u05D9\u05DD \u05D1\u05DB\u05D9\u05EA\u05D4", "w": 3, "lvl": 1 }, { "en": "Door", "he": "\u05D3\u05DC\u05EA", "pic": "\u{1F6AA}", "clue": "\u05D3\u05E8\u05DA \u05D4\u05DB\u05E0\u05D9\u05E1\u05D4 \u05DC\u05D7\u05D3\u05E8 \u05D0\u05D5 \u05DC\u05D1\u05D9\u05EA", "w": 3, "lvl": 1 }, { "en": "Window", "he": "\u05D7\u05DC\u05D5\u05DF", "pic": "\u{1FA9F}", "clue": "\u05E4\u05D5\u05EA\u05D7\u05D9\u05DD \u05D0\u05D5\u05EA\u05D5 \u05DB\u05D3\u05D9 \u05DC\u05E8\u05D0\u05D5\u05EA \u05D4\u05D7\u05D5\u05E6\u05D4", "w": 3, "lvl": 1 }, { "en": "Room", "he": "\u05D7\u05D3\u05E8", "pic": "\u{1F6CF}\uFE0F", "clue": "\u05D7\u05DC\u05E7 \u05E1\u05D2\u05D5\u05E8 \u05D1\u05EA\u05D5\u05DA \u05D4\u05D1\u05D9\u05EA", "w": 3, "lvl": 1 }, { "en": "Kitchen", "he": "\u05DE\u05D8\u05D1\u05D7", "pic": "\u{1F373}", "clue": "\u05D4\u05D7\u05D3\u05E8 \u05E9\u05D1\u05D5 \u05DE\u05D1\u05E9\u05DC\u05D9\u05DD", "w": 3, "lvl": 1 }, { "en": "Bedroom", "he": "\u05D7\u05D3\u05E8 \u05E9\u05D9\u05E0\u05D4", "pic": "\u{1F6CC}", "clue": "\u05D4\u05D7\u05D3\u05E8 \u05E9\u05D1\u05D5 \u05D9\u05E9\u05E0\u05D9\u05DD", "w": 3, "lvl": 1 }, { "en": "Table", "he": "\u05E9\u05D5\u05DC\u05D7\u05DF", "pic": "\u{1F37D}\uFE0F", "clue": "\u05E2\u05DC\u05D9\u05D5 \u05D0\u05D5\u05DB\u05DC\u05D9\u05DD, \u05DB\u05D5\u05EA\u05D1\u05D9\u05DD \u05D0\u05D5 \u05DE\u05E9\u05D7\u05E7\u05D9\u05DD", "w": 3, "lvl": 1 }, { "en": "Bed", "he": "\u05DE\u05D9\u05D8\u05D4", "pic": "\u{1F6CF}\uFE0F", "clue": "\u05E2\u05DC\u05D9\u05D4 \u05D9\u05E9\u05E0\u05D9\u05DD \u05D1\u05DC\u05D9\u05DC\u05D4", "w": 3, "lvl": 1 }, { "en": "Lamp", "he": "\u05DE\u05E0\u05D5\u05E8\u05D4", "pic": "\u{1F4A1}", "clue": "\u05DE\u05D0\u05D9\u05E8\u05D4 \u05D0\u05EA \u05D4\u05D7\u05D3\u05E8", "w": 3, "lvl": 1 }, { "en": "Phone", "he": "\u05D8\u05DC\u05E4\u05D5\u05DF", "pic": "\u{1F4F1}", "clue": "\u05DE\u05EA\u05E7\u05E9\u05E8\u05D9\u05DD \u05D5\u05E9\u05D5\u05DC\u05D7\u05D9\u05DD \u05D0\u05D9\u05EA\u05D5 \u05D4\u05D5\u05D3\u05E2\u05D5\u05EA", "w": 3, "lvl": 1 }, { "en": "Garden", "he": "\u05D2\u05D9\u05E0\u05D4", "pic": "\u{1F3E1}", "clue": "\u05DC\u05D9\u05D3 \u05D4\u05D1\u05D9\u05EA, \u05E2\u05DD \u05E4\u05E8\u05D7\u05D9\u05DD \u05D5\u05D3\u05E9\u05D0", "w": 3, "lvl": 1 }, { "en": "Bus", "he": "\u05D0\u05D5\u05D8\u05D5\u05D1\u05D5\u05E1", "pic": "\u{1F68C}", "clue": "\u05E8\u05DB\u05D1 \u05D2\u05D3\u05D5\u05DC \u05E9\u05DE\u05E1\u05D9\u05E2 \u05D4\u05E8\u05D1\u05D4 \u05D0\u05E0\u05E9\u05D9\u05DD", "w": 3, "lvl": 1 }, { "en": "Train", "he": "\u05E8\u05DB\u05D1\u05EA", "pic": "\u{1F686}", "clue": "\u05E0\u05D5\u05E1\u05E2\u05EA \u05E2\u05DC \u05E4\u05E1\u05D9\u05DD", "w": 3, "lvl": 1 }, { "en": "Bicycle", "he": "\u05D0\u05D5\u05E4\u05E0\u05D9\u05D9\u05DD", "pic": "\u{1F6B2}", "clue": "\u05E9\u05E0\u05D9 \u05D2\u05DC\u05D2\u05DC\u05D9\u05DD, \u05E8\u05D5\u05DB\u05D1\u05D9\u05DD \u05E2\u05DD \u05E8\u05D2\u05DC\u05D9\u05D9\u05DD", "w": 3, "lvl": 2 }, { "en": "Airplane", "he": "\u05DE\u05D8\u05D5\u05E1", "pic": "\u2708\uFE0F", "clue": "\u05D8\u05E1 \u05D1\u05E9\u05DE\u05D9\u05D9\u05DD \u05DE\u05DE\u05D3\u05D9\u05E0\u05D4 \u05DC\u05DE\u05D3\u05D9\u05E0\u05D4", "w": 3, "lvl": 1 }, { "en": "Taxi", "he": "\u05DE\u05D5\u05E0\u05D9\u05EA", "pic": "\u{1F695}", "clue": "\u05DE\u05DB\u05D5\u05E0\u05D9\u05EA \u05E9\u05DE\u05E9\u05DC\u05DE\u05D9\u05DD \u05DC\u05E0\u05D4\u05D2 \u05E9\u05DC\u05D4", "w": 3, "lvl": 1 }, { "en": "Shop", "he": "\u05D7\u05E0\u05D5\u05EA", "pic": "\u{1F6CD}\uFE0F", "clue": "\u05DE\u05E7\u05D5\u05DD \u05E9\u05E7\u05D5\u05E0\u05D9\u05DD \u05D1\u05D5 \u05D3\u05D1\u05E8\u05D9\u05DD", "w": 3, "lvl": 1 }, { "en": "Park", "he": "\u05E4\u05D0\u05E8\u05E7", "pic": "\u{1F3DE}\uFE0F", "clue": "\u05DE\u05E7\u05D5\u05DD \u05E4\u05EA\u05D5\u05D7 \u05E2\u05DD \u05D3\u05E9\u05D0 \u05D5\u05DE\u05E9\u05D7\u05E7\u05D9\u05DD", "w": 3, "lvl": 1 }, { "en": "Library", "he": "\u05E1\u05E4\u05E8\u05D9\u05D9\u05D4", "pic": "\u{1F4D6}", "clue": "\u05DE\u05E7\u05D5\u05DD \u05E2\u05DD \u05D4\u05E8\u05D1\u05D4 \u05E1\u05E4\u05E8\u05D9\u05DD \u05DC\u05D4\u05E9\u05D0\u05DC\u05D4", "w": 3, "lvl": 2 }, { "en": "Hospital", "he": "\u05D1\u05D9\u05EA \u05D7\u05D5\u05DC\u05D9\u05DD", "pic": "\u{1F3E5}", "clue": "\u05DE\u05E7\u05D5\u05DD \u05E9\u05D4\u05D5\u05DC\u05DB\u05D9\u05DD \u05D0\u05DC\u05D9\u05D5 \u05DB\u05E9\u05D7\u05D5\u05DC\u05D9\u05DD", "w": 3, "lvl": 2 }, { "en": "Castle", "he": "\u05D8\u05D9\u05E8\u05D4", "pic": "\u{1F3F0}", "clue": "\u05D1\u05D9\u05EA \u05E2\u05E0\u05E7 \u05E9\u05DC \u05DE\u05DC\u05DA \u05D5\u05E9\u05DC \u05DE\u05DC\u05DB\u05D4", "w": 3, "lvl": 1 }, { "en": "King", "he": "\u05DE\u05DC\u05DA", "pic": "\u{1F934}", "clue": "\u05D4\u05E9\u05DC\u05D9\u05D8 \u05E9\u05DC \u05D4\u05DE\u05DE\u05DC\u05DB\u05D4", "w": 3, "lvl": 1 }, { "en": "Queen", "he": "\u05DE\u05DC\u05DB\u05D4", "pic": "\u{1F478}", "clue": "\u05D4\u05E9\u05DC\u05D9\u05D8\u05D4 \u05E9\u05DC \u05D4\u05DE\u05DE\u05DC\u05DB\u05D4", "w": 3, "lvl": 1 }, { "en": "Magic", "he": "\u05E7\u05E1\u05DD", "pic": "\u2728", "clue": "\u05D3\u05D1\u05E8\u05D9\u05DD \u05DE\u05D9\u05D5\u05D7\u05D3\u05D9\u05DD \u05E9\u05E7\u05D5\u05E8\u05D9\u05DD \u05D1\u05E1\u05D9\u05E4\u05D5\u05E8\u05D9 \u05E4\u05DC\u05D0", "w": 3, "lvl": 1 }, { "en": "Clock", "he": "\u05E9\u05E2\u05D5\u05DF", "pic": "\u23F0", "clue": "\u05DE\u05E8\u05D0\u05D4 \u05DC\u05E0\u05D5 \u05DE\u05D4 \u05D4\u05E9\u05E2\u05D4", "w": 3, "lvl": 1 }, { "en": "Key", "he": "\u05DE\u05E4\u05EA\u05D7", "pic": "\u{1F511}", "clue": "\u05E4\u05D5\u05EA\u05D7\u05D9\u05DD \u05D0\u05D9\u05EA\u05D5 \u05D3\u05DC\u05EA", "w": 3, "lvl": 1 }, { "en": "Star", "he": "\u05DB\u05D5\u05DB\u05D1", "pic": "\u2B50", "clue": "\u05E0\u05D5\u05E6\u05E5 \u05D1\u05E9\u05DE\u05D9\u05D9\u05DD \u05D1\u05DC\u05D9\u05DC\u05D4", "w": 4, "lvl": 1 }, { "en": "Moon", "he": "\u05D9\u05E8\u05D7", "pic": "\u{1F319}", "clue": "\u05DE\u05D0\u05D9\u05E8 \u05D1\u05DC\u05D9\u05DC\u05D4 \u05D5\u05DE\u05E7\u05D9\u05E3 \u05D0\u05EA \u05DB\u05D3\u05D5\u05E8 \u05D4\u05D0\u05E8\u05E5", "w": 4, "lvl": 1 }, { "en": "Planet", "he": "\u05DB\u05D5\u05DB\u05D1 \u05DC\u05DB\u05EA", "pic": "\u{1FA90}", "clue": "\u05DB\u05DE\u05D5 \u05DB\u05D3\u05D5\u05E8 \u05D4\u05D0\u05E8\u05E5 \u05D0\u05D5 \u05DE\u05D0\u05D3\u05D9\u05DD", "w": 4, "lvl": 1 }, { "en": "Rocket", "he": "\u05E8\u05E7\u05D8\u05D4", "pic": "\u{1F680}", "clue": "\u05E2\u05D5\u05DC\u05D4 \u05DC\u05E9\u05DE\u05D9\u05D9\u05DD \u05E2\u05DD \u05D0\u05E9 \u05DE\u05DC\u05DE\u05D8\u05D4", "w": 4, "lvl": 1 }, { "en": "Space", "he": "\u05D7\u05DC\u05DC", "pic": "\u{1F30C}", "clue": "\u05DB\u05DC \u05DE\u05D4 \u05E9\u05DE\u05E2\u05DC \u05D4\u05E9\u05DE\u05D9\u05D9\u05DD, \u05D1\u05D9\u05DF \u05D4\u05DB\u05D5\u05DB\u05D1\u05D9\u05DD", "w": 4, "lvl": 1 }, { "en": "Alien", "he": "\u05D7\u05D9\u05D9\u05D6\u05E8", "pic": "\u{1F47D}", "clue": "\u05D9\u05E6\u05D5\u05E8 \u05E9\u05D4\u05D2\u05D9\u05E2 \u05DE\u05DB\u05D5\u05DB\u05D1 \u05D0\u05D7\u05E8", "w": 4, "lvl": 1 }, { "en": "Sun", "he": "\u05E9\u05DE\u05E9", "pic": "\u2600\uFE0F", "clue": "\u05DE\u05D0\u05D9\u05E8\u05D4 \u05D1\u05D9\u05D5\u05DD \u05D5\u05DE\u05D7\u05DE\u05DE\u05EA \u05D0\u05D5\u05EA\u05E0\u05D5", "w": 4, "lvl": 1 }, { "en": "Robot", "he": "\u05E8\u05D5\u05D1\u05D5\u05D8", "pic": "\u{1F916}", "clue": "\u05DE\u05DB\u05D5\u05E0\u05D4 \u05E9\u05E0\u05E8\u05D0\u05D9\u05EA \u05E7\u05E6\u05EA \u05DB\u05DE\u05D5 \u05D0\u05D3\u05DD", "w": 4, "lvl": 1 }, { "en": "Earth", "he": "\u05DB\u05D3\u05D5\u05E8 \u05D4\u05D0\u05E8\u05E5", "pic": "\u{1F30D}", "clue": "\u05D4\u05DB\u05D5\u05DB\u05D1 \u05E9\u05D1\u05D5 \u05D0\u05E0\u05D7\u05E0\u05D5 \u05D2\u05E8\u05D9\u05DD", "w": 4, "lvl": 1 }, { "en": "Astronaut", "he": "\u05D0\u05E1\u05D8\u05E8\u05D5\u05E0\u05D0\u05D5\u05D8", "pic": "\u{1F468}\u200D\u{1F680}", "clue": "\u05D0\u05D3\u05DD \u05E9\u05D8\u05E1 \u05DC\u05D7\u05DC\u05DC", "w": 4, "lvl": 2 }, { "en": "Galaxy", "he": "\u05D2\u05DC\u05E7\u05E1\u05D9\u05D4", "pic": "\u{1F300}", "clue": "\u05E7\u05D1\u05D5\u05E6\u05D4 \u05E2\u05E0\u05E7\u05D9\u05EA \u05E9\u05DC \u05DE\u05D9\u05DC\u05D9\u05D5\u05E0\u05D9 \u05DB\u05D5\u05DB\u05D1\u05D9\u05DD", "w": 4, "lvl": 2 }, { "en": "Spaceship", "he": "\u05D7\u05DC\u05DC\u05D9\u05EA", "pic": "\u{1F6F8}", "clue": "\u05DB\u05DC\u05D9 \u05E8\u05DB\u05D1 \u05E9\u05D8\u05E1 \u05D1\u05D7\u05DC\u05DC", "w": 4, "lvl": 2 }, { "en": "Comet", "he": "\u05E9\u05D1\u05D9\u05D8", "pic": "\u2604\uFE0F", "clue": "\u05DB\u05D5\u05DB\u05D1 \u05E2\u05DD \u05D6\u05E0\u05D1 \u05D0\u05D5\u05E8 \u05E9\u05D8\u05E1 \u05D1\u05E9\u05DE\u05D9\u05D9\u05DD", "w": 4, "lvl": 1 }, { "en": "One", "he": "\u05D0\u05D7\u05D3", "pic": "1\uFE0F\u20E3", "clue": "\u05D4\u05DE\u05E1\u05E4\u05E8 1", "w": 4, "lvl": 1 }, { "en": "Two", "he": "\u05E9\u05EA\u05D9\u05D9\u05DD", "pic": "2\uFE0F\u20E3", "clue": "\u05D4\u05DE\u05E1\u05E4\u05E8 2", "w": 4, "lvl": 1 }, { "en": "Three", "he": "\u05E9\u05DC\u05D5\u05E9", "pic": "3\uFE0F\u20E3", "clue": "\u05D4\u05DE\u05E1\u05E4\u05E8 3", "w": 4, "lvl": 1 }, { "en": "Four", "he": "\u05D0\u05E8\u05D1\u05E2", "pic": "4\uFE0F\u20E3", "clue": "\u05D4\u05DE\u05E1\u05E4\u05E8 4", "w": 4, "lvl": 1 }, { "en": "Five", "he": "\u05D7\u05DE\u05E9", "pic": "5\uFE0F\u20E3", "clue": "\u05D4\u05DE\u05E1\u05E4\u05E8 5", "w": 4, "lvl": 1 }, { "en": "Six", "he": "\u05E9\u05E9", "pic": "6\uFE0F\u20E3", "clue": "\u05D4\u05DE\u05E1\u05E4\u05E8 6", "w": 4, "lvl": 1 }, { "en": "Seven", "he": "\u05E9\u05D1\u05E2", "pic": "7\uFE0F\u20E3", "clue": "\u05D4\u05DE\u05E1\u05E4\u05E8 7", "w": 4, "lvl": 1 }, { "en": "Eight", "he": "\u05E9\u05DE\u05D5\u05E0\u05D4", "pic": "8\uFE0F\u20E3", "clue": "\u05D4\u05DE\u05E1\u05E4\u05E8 8", "w": 4, "lvl": 1 }, { "en": "Nine", "he": "\u05EA\u05E9\u05E2", "pic": "9\uFE0F\u20E3", "clue": "\u05D4\u05DE\u05E1\u05E4\u05E8 9", "w": 4, "lvl": 1 }, { "en": "Ten", "he": "\u05E2\u05E9\u05E8", "pic": "\u{1F51F}", "clue": "\u05D4\u05DE\u05E1\u05E4\u05E8 10", "w": 4, "lvl": 1 }, { "en": "Number", "he": "\u05DE\u05E1\u05E4\u05E8", "pic": "\u{1F522}", "clue": "\u05D0\u05D7\u05D3, \u05E9\u05EA\u05D9\u05D9\u05DD, \u05E9\u05DC\u05D5\u05E9 \u05D4\u05DD...", "w": 4, "lvl": 1 }, { "en": "Day", "he": "\u05D9\u05D5\u05DD", "pic": "\u{1F4C5}", "clue": "\u05D4\u05D6\u05DE\u05DF \u05E9\u05D1\u05D5 \u05D9\u05E9 \u05D0\u05D5\u05E8 \u05E9\u05DE\u05E9", "w": 4, "lvl": 1 }, { "en": "Night", "he": "\u05DC\u05D9\u05DC\u05D4", "pic": "\u{1F303}", "clue": "\u05D4\u05D6\u05DE\u05DF \u05E9\u05D1\u05D5 \u05D7\u05E9\u05D5\u05DA \u05D5\u05D4\u05D9\u05E8\u05D7 \u05D1\u05D7\u05D5\u05E5", "w": 4, "lvl": 1 }, { "en": "Morning", "he": "\u05D1\u05D5\u05E7\u05E8", "pic": "\u{1F305}", "clue": "\u05EA\u05D7\u05D9\u05DC\u05EA \u05D4\u05D9\u05D5\u05DD, \u05D0\u05D7\u05E8\u05D9 \u05E9\u05E7\u05DE\u05D9\u05DD", "w": 4, "lvl": 1 }, { "en": "Today", "he": "\u05D4\u05D9\u05D5\u05DD", "pic": "\u{1F4CC}", "clue": "\u05D4\u05D9\u05D5\u05DD \u05D4\u05D6\u05D4, \u05DC\u05D0 \u05D0\u05EA\u05DE\u05D5\u05DC \u05D5\u05DC\u05D0 \u05DE\u05D7\u05E8", "w": 4, "lvl": 1 }, { "en": "Tomorrow", "he": "\u05DE\u05D7\u05E8", "pic": "\u23ED\uFE0F", "clue": "\u05D4\u05D9\u05D5\u05DD \u05E9\u05D9\u05D1\u05D5\u05D0 \u05D0\u05D7\u05E8\u05D9 \u05D4\u05D9\u05D5\u05DD", "w": 4, "lvl": 2 }, { "en": "Week", "he": "\u05E9\u05D1\u05D5\u05E2", "pic": "\u{1F4C6}", "clue": "\u05E9\u05D1\u05E2\u05D4 \u05D9\u05DE\u05D9\u05DD \u05D9\u05D7\u05D3", "w": 4, "lvl": 1 }, { "en": "Year", "he": "\u05E9\u05E0\u05D4", "pic": "\u{1F386}", "clue": "\u05E9\u05E0\u05D9\u05D9\u05DD-\u05E2\u05E9\u05E8 \u05D7\u05D5\u05D3\u05E9\u05D9\u05DD \u05D9\u05D7\u05D3", "w": 4, "lvl": 1 }, { "en": "Time", "he": "\u05D6\u05DE\u05DF", "pic": "\u23F1\uFE0F", "clue": "\u05DE\u05D4 \u05E9\u05D4\u05E9\u05E2\u05D5\u05DF \u05DE\u05D5\u05D3\u05D3", "w": 4, "lvl": 1 }, { "en": "Write", "he": "\u05DC\u05DB\u05EA\u05D5\u05D1", "pic": "\u270D\uFE0F", "clue": "\u05DE\u05D4 \u05E2\u05D5\u05E9\u05D9\u05DD \u05E2\u05DD \u05E2\u05D9\u05E4\u05E8\u05D5\u05DF \u05E2\u05DC \u05D3\u05E3", "w": 4, "lvl": 1 }, { "en": "See", "he": "\u05DC\u05E8\u05D0\u05D5\u05EA", "pic": "\u{1F440}", "clue": "\u05DE\u05D4 \u05E2\u05D5\u05E9\u05D9\u05DD \u05E2\u05DD \u05D4\u05E2\u05D9\u05E0\u05D9\u05D9\u05DD", "w": 4, "lvl": 1 }, { "en": "Hear", "he": "\u05DC\u05E9\u05DE\u05D5\u05E2", "pic": "\u{1F442}", "clue": "\u05DE\u05D4 \u05E2\u05D5\u05E9\u05D9\u05DD \u05E2\u05DD \u05D4\u05D0\u05D5\u05D6\u05E0\u05D9\u05D9\u05DD", "w": 4, "lvl": 1 }, { "en": "Come", "he": "\u05DC\u05D1\u05D5\u05D0", "pic": "\u{1F44B}", "clue": "\u05DC\u05D4\u05D2\u05D9\u05E2 \u05DC\u05DB\u05D0\u05DF, \u05D0\u05DC\u05D9\u05E0\u05D5", "w": 4, "lvl": 1 }, { "en": "Look", "he": "\u05DC\u05D4\u05E1\u05EA\u05DB\u05DC", "pic": "\u{1F441}\uFE0F", "clue": "\u05DC\u05DB\u05D5\u05D5\u05DF \u05D0\u05EA \u05D4\u05E2\u05D9\u05E0\u05D9\u05D9\u05DD \u05DC\u05DE\u05E9\u05D4\u05D5", "w": 4, "lvl": 1 }, { "en": "Like", "he": "\u05D0\u05D5\u05D4\u05D1", "pic": "\u{1F497}", "clue": "\u05DB\u05E9\u05DE\u05E9\u05D4\u05D5 \u05DE\u05D5\u05E6\u05D0 \u05D7\u05DF \u05D1\u05E2\u05D9\u05E0\u05D9\u05E0\u05D5", "w": 4, "lvl": 1 }, { "en": "Want", "he": "\u05DC\u05E8\u05E6\u05D5\u05EA", "pic": "\u{1F64F}", "clue": "\u05DB\u05E9\u05DE\u05DE\u05E9 \u05DE\u05E7\u05D5\u05D5\u05D9\u05DD \u05DC\u05E7\u05D1\u05DC \u05DE\u05E9\u05D4\u05D5", "w": 4, "lvl": 1 }, { "en": "Help", "he": "\u05DC\u05E2\u05D6\u05D5\u05E8", "pic": "\u{1F198}", "clue": "\u05DC\u05EA\u05EA \u05D9\u05D3 \u05DC\u05DE\u05D9\u05E9\u05D4\u05D5 \u05E9\u05E6\u05E8\u05D9\u05DA", "w": 4, "lvl": 1 }, { "en": "Find", "he": "\u05DC\u05DE\u05E6\u05D5\u05D0", "pic": "\u{1F50D}", "clue": "\u05DC\u05D2\u05DC\u05D5\u05EA \u05DE\u05E9\u05D4\u05D5 \u05E9\u05D7\u05D9\u05E4\u05E9\u05E0\u05D5", "w": 4, "lvl": 1 }, { "en": "Fly", "he": "\u05DC\u05E2\u05D5\u05E3", "pic": "\u{1F985}", "clue": "\u05DC\u05D6\u05D5\u05D6 \u05D1\u05D0\u05D5\u05D5\u05D9\u05E8 \u05DB\u05DE\u05D5 \u05E6\u05D9\u05E4\u05D5\u05E8", "w": 4, "lvl": 1 }, { "en": "New", "he": "\u05D7\u05D3\u05E9", "pic": "\u2728", "clue": "\u05DE\u05E9\u05D4\u05D5 \u05E9\u05E8\u05E7 \u05E2\u05DB\u05E9\u05D9\u05D5 \u05E7\u05D9\u05D1\u05DC\u05E0\u05D5, \u05DC\u05D0 \u05D9\u05E9\u05DF", "w": 4, "lvl": 1 }, { "en": "Old", "he": "\u05D9\u05E9\u05DF", "pic": "\u{1F4DC}", "clue": "\u05DE\u05E9\u05D4\u05D5 \u05E9\u05D4\u05D9\u05D4 \u05D4\u05E8\u05D1\u05D4 \u05D6\u05DE\u05DF, \u05D4\u05D4\u05E4\u05DA \u05DE\u05D7\u05D3\u05E9", "w": 4, "lvl": 1 }, { "en": "Fast", "he": "\u05DE\u05D4\u05D9\u05E8", "pic": "\u26A1", "clue": "\u05D6\u05D6 \u05D1\u05DE\u05D4\u05D9\u05E8\u05D5\u05EA, \u05D4\u05D4\u05E4\u05DA \u05DE\u05D0\u05D9\u05D8\u05D9", "w": 4, "lvl": 1 }, { "en": "Slow", "he": "\u05D0\u05D9\u05D8\u05D9", "pic": "\u{1F422}", "clue": "\u05D6\u05D6 \u05DC\u05D0\u05D8, \u05DB\u05DE\u05D5 \u05E6\u05D1", "w": 4, "lvl": 1 }, { "en": "Snow", "he": "\u05E9\u05DC\u05D2", "pic": "\u2744\uFE0F", "clue": "\u05D9\u05D5\u05E8\u05D3 \u05D1\u05D7\u05D5\u05E8\u05E3, \u05DC\u05D1\u05DF \u05D5\u05E7\u05E8", "w": 5, "lvl": 1 }, { "en": "Ice", "he": "\u05E7\u05E8\u05D7", "pic": "\u{1F9CA}", "clue": "\u05DE\u05D9\u05DD \u05E9\u05D4\u05E4\u05DB\u05D5 \u05DC\u05E7\u05E9\u05D9\u05DD \u05D5\u05E7\u05E8\u05D9\u05DD", "w": 5, "lvl": 1 }, { "en": "Cold", "he": "\u05E7\u05E8", "pic": "\u{1F976}", "clue": "\u05D4\u05D4\u05E4\u05DA \u05DE\u05D7\u05DD", "w": 5, "lvl": 1 }, { "en": "Jacket", "he": "\u05DE\u05E2\u05D9\u05DC", "pic": "\u{1F9E5}", "clue": "\u05DC\u05D5\u05D1\u05E9\u05D9\u05DD \u05D1\u05D7\u05D5\u05E8\u05E3 \u05E2\u05DC \u05D4\u05D2\u05D5\u05E3", "w": 5, "lvl": 1 }, { "en": "Hat", "he": "\u05DB\u05D5\u05D1\u05E2", "pic": "\u{1F9E2}", "clue": "\u05DC\u05D5\u05D1\u05E9\u05D9\u05DD \u05E2\u05DC \u05D4\u05E8\u05D0\u05E9", "w": 5, "lvl": 1 }, { "en": "Gloves", "he": "\u05DB\u05E4\u05E4\u05D5\u05EA", "pic": "\u{1F9E4}", "clue": "\u05DC\u05D5\u05D1\u05E9\u05D9\u05DD \u05E2\u05DC \u05D4\u05D9\u05D3\u05D9\u05D9\u05DD \u05D1\u05E7\u05D5\u05E8", "w": 5, "lvl": 1 }, { "en": "Winter", "he": "\u05D7\u05D5\u05E8\u05E3", "pic": "\u26C4", "clue": "\u05D4\u05E2\u05D5\u05E0\u05D4 \u05D4\u05E7\u05E8\u05D4 \u05D1\u05E9\u05E0\u05D4", "w": 5, "lvl": 1 }, { "en": "Boots", "he": "\u05DE\u05D2\u05E4\u05D9\u05D9\u05DD", "pic": "\u{1F97E}", "clue": "\u05E0\u05D5\u05E2\u05DC\u05D9\u05DD \u05D1\u05D7\u05D5\u05E8\u05E3 \u05E2\u05DC \u05D4\u05E8\u05D2\u05DC\u05D9\u05D9\u05DD", "w": 5, "lvl": 1 }, { "en": "Shirt", "he": "\u05D7\u05D5\u05DC\u05E6\u05D4", "pic": "\u{1F455}", "clue": "\u05DC\u05D5\u05D1\u05E9\u05D9\u05DD \u05E2\u05DC \u05E4\u05DC\u05D2 \u05D4\u05D2\u05D5\u05E3 \u05D4\u05E2\u05DC\u05D9\u05D5\u05DF", "w": 5, "lvl": 1 }, { "en": "Pants", "he": "\u05DE\u05DB\u05E0\u05E1\u05D9\u05D9\u05DD", "pic": "\u{1F456}", "clue": "\u05DC\u05D5\u05D1\u05E9\u05D9\u05DD \u05E2\u05DC \u05D4\u05E8\u05D2\u05DC\u05D9\u05D9\u05DD", "w": 5, "lvl": 1 }, { "en": "Shoes", "he": "\u05E0\u05E2\u05DC\u05D9\u05D9\u05DD", "pic": "\u{1F45F}", "clue": "\u05E0\u05D5\u05E2\u05DC\u05D9\u05DD \u05E2\u05DC \u05D4\u05E8\u05D2\u05DC\u05D9\u05D9\u05DD \u05DB\u05DC \u05D9\u05D5\u05DD", "w": 5, "lvl": 1 }, { "en": "Dress", "he": "\u05E9\u05DE\u05DC\u05D4", "pic": "\u{1F457}", "clue": "\u05D1\u05D2\u05D3 \u05E9\u05DC\u05DD \u05E9\u05DC\u05E8\u05D5\u05D1 \u05D1\u05E0\u05D5\u05EA \u05DC\u05D5\u05D1\u05E9\u05D5\u05EA", "w": 5, "lvl": 1 }, { "en": "Socks", "he": "\u05D2\u05E8\u05D1\u05D9\u05D9\u05DD", "pic": "\u{1F9E6}", "clue": "\u05DC\u05D5\u05D1\u05E9\u05D9\u05DD \u05E2\u05DC \u05D4\u05E8\u05D2\u05DC\u05D9\u05D9\u05DD \u05D1\u05EA\u05D5\u05DA \u05D4\u05E0\u05E2\u05DC\u05D9\u05D9\u05DD", "w": 5, "lvl": 1 }, { "en": "Coat", "he": "\u05DE\u05E2\u05D9\u05DC \u05D0\u05E8\u05D5\u05DA", "pic": "\u{1F9E5}", "clue": "\u05DE\u05E2\u05D9\u05DC \u05D0\u05E8\u05D5\u05DA \u05D1\u05DE\u05D9\u05D5\u05D7\u05D3 \u05DC\u05D9\u05DE\u05D9\u05DD \u05E7\u05E8\u05D9\u05DD", "w": 5, "lvl": 1 }, { "en": "Sweater", "he": "\u05E1\u05D5\u05D5\u05D3\u05E8", "pic": "\u{1F9F6}", "clue": "\u05D1\u05D2\u05D3 \u05D7\u05DD \u05E1\u05E8\u05D5\u05D2 \u05DC\u05D7\u05D5\u05E8\u05E3", "w": 5, "lvl": 2 }, { "en": "Umbrella", "he": "\u05DE\u05D8\u05E8\u05D9\u05D9\u05D4", "pic": "\u2602\uFE0F", "clue": "\u05E9\u05D5\u05DE\u05E8\u05EA \u05E2\u05DC\u05D9\u05E0\u05D5 \u05DE\u05D4\u05D2\u05E9\u05DD", "w": 5, "lvl": 2 }, { "en": "Rain", "he": "\u05D2\u05E9\u05DD", "pic": "\u{1F327}\uFE0F", "clue": "\u05DE\u05D9\u05DD \u05E9\u05D9\u05D5\u05E8\u05D3\u05D9\u05DD \u05DE\u05D4\u05E2\u05E0\u05E0\u05D9\u05DD", "w": 5, "lvl": 1 }, { "en": "Wind", "he": "\u05E8\u05D5\u05D7", "pic": "\u{1F4A8}", "clue": "\u05D0\u05D5\u05D5\u05D9\u05E8 \u05E9\u05D6\u05D6 \u05D5\u05DE\u05E8\u05D2\u05D9\u05E9\u05D9\u05DD \u05E2\u05DC \u05D4\u05E4\u05E0\u05D9\u05DD", "w": 5, "lvl": 1 }, { "en": "Cloud", "he": "\u05E2\u05E0\u05DF", "pic": "\u2601\uFE0F", "clue": "\u05DC\u05D1\u05DF \u05D0\u05D5 \u05D0\u05E4\u05D5\u05E8 \u05D1\u05E9\u05DE\u05D9\u05D9\u05DD", "w": 5, "lvl": 1 }, { "en": "Summer", "he": "\u05E7\u05D9\u05E5", "pic": "\u2600\uFE0F", "clue": "\u05D4\u05E2\u05D5\u05E0\u05D4 \u05D4\u05D7\u05DE\u05D4 \u05D1\u05E9\u05E0\u05D4", "w": 5, "lvl": 1 }, { "en": "Spring", "he": "\u05D0\u05D1\u05D9\u05D1", "pic": "\u{1F337}", "clue": "\u05D4\u05E2\u05D5\u05E0\u05D4 \u05E9\u05D1\u05D4 \u05D4\u05E4\u05E8\u05D7\u05D9\u05DD \u05E4\u05D5\u05E8\u05D7\u05D9\u05DD", "w": 5, "lvl": 1 }, { "en": "Autumn", "he": "\u05E1\u05EA\u05D9\u05D5", "pic": "\u{1F342}", "clue": "\u05D4\u05E2\u05D5\u05E0\u05D4 \u05E9\u05D1\u05D4 \u05D4\u05E2\u05DC\u05D9\u05DD \u05E0\u05D5\u05E9\u05E8\u05D9\u05DD", "w": 5, "lvl": 2 }, { "en": "Weather", "he": "\u05DE\u05D6\u05D2 \u05D0\u05D5\u05D5\u05D9\u05E8", "pic": "\u{1F326}\uFE0F", "clue": "\u05D7\u05DD, \u05E7\u05E8, \u05D2\u05E9\u05D5\u05DD \u05D0\u05D5 \u05E9\u05DE\u05E9\u05D9", "w": 5, "lvl": 2 }, { "en": "Hot", "he": "\u05D7\u05DD", "pic": "\u{1F975}", "clue": "\u05D4\u05D4\u05E4\u05DA \u05DE\u05E7\u05E8", "w": 5, "lvl": 1 }, { "en": "Warm", "he": "\u05D7\u05DE\u05D9\u05DD", "pic": "\u{1F60A}", "clue": "\u05DC\u05D0 \u05E7\u05E8 \u05D5\u05DC\u05D0 \u05DE\u05DE\u05E9 \u05D7\u05DD \u2014 \u05E0\u05E2\u05D9\u05DD", "w": 5, "lvl": 1 }, { "en": "Head", "he": "\u05E8\u05D0\u05E9", "pic": "\u{1F5E3}\uFE0F", "clue": "\u05D4\u05D7\u05DC\u05E7 \u05D4\u05E2\u05DC\u05D9\u05D5\u05DF \u05E9\u05DC \u05D4\u05D2\u05D5\u05E3", "w": 5, "lvl": 1 }, { "en": "Eye", "he": "\u05E2\u05D9\u05DF", "pic": "\u{1F441}\uFE0F", "clue": "\u05D1\u05D4 \u05E8\u05D5\u05D0\u05D9\u05DD", "w": 5, "lvl": 1 }, { "en": "Ear", "he": "\u05D0\u05D5\u05D6\u05DF", "pic": "\u{1F442}", "clue": "\u05D1\u05D4 \u05E9\u05D5\u05DE\u05E2\u05D9\u05DD", "w": 5, "lvl": 1 }, { "en": "Nose", "he": "\u05D0\u05E3", "pic": "\u{1F443}", "clue": "\u05D1\u05D5 \u05DE\u05E8\u05D9\u05D7\u05D9\u05DD", "w": 5, "lvl": 1 }, { "en": "Mouth", "he": "\u05E4\u05D4", "pic": "\u{1F444}", "clue": "\u05D1\u05D5 \u05DE\u05D3\u05D1\u05E8\u05D9\u05DD \u05D5\u05D0\u05D5\u05DB\u05DC\u05D9\u05DD", "w": 5, "lvl": 1 }, { "en": "Hand", "he": "\u05D9\u05D3", "pic": "\u270B", "clue": "\u05D1\u05D4 \u05D0\u05D5\u05D7\u05D6\u05D9\u05DD \u05D5\u05DB\u05D5\u05EA\u05D1\u05D9\u05DD", "w": 5, "lvl": 1 }, { "en": "Foot", "he": "\u05DB\u05E3 \u05E8\u05D2\u05DC", "pic": "\u{1F9B6}", "clue": "\u05D4\u05D7\u05DC\u05E7 \u05E9\u05E0\u05D5\u05D2\u05E2 \u05D1\u05E8\u05E6\u05E4\u05D4 \u05DB\u05E9\u05D4\u05D5\u05DC\u05DB\u05D9\u05DD", "w": 5, "lvl": 1 }, { "en": "Hair", "he": "\u05E9\u05D9\u05E2\u05E8", "pic": "\u{1F487}", "clue": "\u05E6\u05D5\u05DE\u05D7 \u05E2\u05DC \u05D4\u05E8\u05D0\u05E9", "w": 5, "lvl": 1 }, { "en": "Face", "he": "\u05E4\u05E0\u05D9\u05DD", "pic": "\u{1F603}", "clue": "\u05D4\u05D7\u05DC\u05E7 \u05D4\u05E7\u05D3\u05DE\u05D9 \u05E9\u05DC \u05D4\u05E8\u05D0\u05E9", "w": 5, "lvl": 1 }, { "en": "Body", "he": "\u05D2\u05D5\u05E3", "pic": "\u{1F9CD}", "clue": "\u05DB\u05DC \u05D4\u05D7\u05DC\u05E7\u05D9\u05DD \u05E9\u05DC\u05E0\u05D5 \u05D9\u05D7\u05D3", "w": 5, "lvl": 1 }, { "en": "Leg", "he": "\u05E8\u05D2\u05DC", "pic": "\u{1F9B5}", "clue": "\u05D1\u05D4 \u05D4\u05D5\u05DC\u05DB\u05D9\u05DD, \u05DE\u05E2\u05DC \u05DB\u05E3 \u05D4\u05E8\u05D2\u05DC", "w": 5, "lvl": 1 }, { "en": "Tired", "he": "\u05E2\u05D9\u05D9\u05E3", "pic": "\u{1F971}", "clue": "\u05DB\u05E9\u05E8\u05D5\u05E6\u05D9\u05DD \u05DC\u05D9\u05E9\u05D5\u05DF", "w": 5, "lvl": 2 }, { "en": "Hungry", "he": "\u05E8\u05E2\u05D1", "pic": "\u{1F60B}", "clue": "\u05DB\u05E9\u05E8\u05D5\u05E6\u05D9\u05DD \u05DC\u05D0\u05DB\u05D5\u05DC", "w": 5, "lvl": 2 }, { "en": "Thirsty", "he": "\u05E6\u05DE\u05D0", "pic": "\u{1F964}", "clue": "\u05DB\u05E9\u05E8\u05D5\u05E6\u05D9\u05DD \u05DC\u05E9\u05EA\u05D5\u05EA", "w": 5, "lvl": 2 }, { "en": "Scared", "he": "\u05DE\u05E4\u05D7\u05D3", "pic": "\u{1F631}", "clue": "\u05DB\u05E9\u05DE\u05E9\u05D4\u05D5 \u05DE\u05E4\u05D7\u05D9\u05D3 \u05D0\u05D5\u05EA\u05E0\u05D5", "w": 5, "lvl": 2 }, { "en": "Brave", "he": "\u05D0\u05DE\u05D9\u05E5", "pic": "\u{1F9B8}", "clue": "\u05DC\u05D0 \u05DE\u05E4\u05D7\u05D3 \u05DC\u05E2\u05D6\u05D5\u05E8 \u05D5\u05DC\u05D0 \u05DE\u05D5\u05D5\u05EA\u05E8", "w": 5, "lvl": 2 }, { "en": "Funny", "he": "\u05DE\u05E6\u05D7\u05D9\u05E7", "pic": "\u{1F602}", "clue": "\u05D2\u05D5\u05E8\u05DD \u05DC\u05E0\u05D5 \u05DC\u05E6\u05D7\u05D5\u05E7", "w": 5, "lvl": 1 }, { "en": "Nice", "he": "\u05E0\u05D7\u05DE\u05D3", "pic": "\u{1F60A}", "clue": "\u05D0\u05D3\u05DD \u05D8\u05D5\u05D1 \u05D5\u05E0\u05E2\u05D9\u05DD \u05DC\u05D0\u05D7\u05E8\u05D9\u05DD", "w": 5, "lvl": 1 }, { "en": "Clean", "he": "\u05E0\u05E7\u05D9", "pic": "\u{1F9FC}", "clue": "\u05D1\u05DC\u05D9 \u05DC\u05DB\u05DC\u05D5\u05DA, \u05D4\u05D4\u05E4\u05DA \u05DE\u05DE\u05DC\u05D5\u05DB\u05DC\u05DA", "w": 5, "lvl": 1 }, { "en": "Penguin", "he": "\u05E4\u05D9\u05E0\u05D2\u05D5\u05D5\u05D9\u05DF", "pic": "\u{1F427}", "clue": "\u05E6\u05D9\u05E4\u05D5\u05E8 \u05E9\u05D7\u05D5\u05E8\u05D4-\u05DC\u05D1\u05E0\u05D4 \u05E9\u05D7\u05D9\u05D4 \u05D1\u05E7\u05D5\u05E8", "w": 5, "lvl": 1 }, { "en": "Uncle", "he": "\u05D3\u05D5\u05D3", "pic": "\u{1F468}", "clue": "\u05D4\u05D0\u05D7 \u05E9\u05DC \u05D0\u05DE\u05D0 \u05D0\u05D5 \u05E9\u05DC \u05D0\u05D1\u05D0", "w": 1, "lvl": 2 }, { "en": "Aunt", "he": "\u05D3\u05D5\u05D3\u05D4", "pic": "\u{1F469}", "clue": "\u05D4\u05D0\u05D7\u05D5\u05EA \u05E9\u05DC \u05D0\u05DE\u05D0 \u05D0\u05D5 \u05E9\u05DC \u05D0\u05D1\u05D0", "w": 1, "lvl": 2 }, { "en": "Cousin", "he": "\u05D1\u05DF \u05D3\u05D5\u05D3", "pic": "\u{1F466}", "clue": "\u05D4\u05D1\u05DF \u05E9\u05DC \u05D4\u05D3\u05D5\u05D3 \u05D0\u05D5 \u05E9\u05DC \u05D4\u05D3\u05D5\u05D3\u05D4", "w": 1, "lvl": 2 }, { "en": "River", "he": "\u05E0\u05D4\u05E8", "pic": "\u{1F3DE}\uFE0F", "clue": "\u05DE\u05D9\u05DD \u05E9\u05D6\u05D5\u05E8\u05DE\u05D9\u05DD \u05D1\u05D9\u05DF \u05E9\u05EA\u05D9 \u05D2\u05D3\u05D5\u05EA", "w": 1, "lvl": 2 }, { "en": "Nest", "he": "\u05E7\u05DF", "pic": "\u{1FABA}", "clue": "\u05D4\u05D1\u05D9\u05EA \u05E9\u05D4\u05E6\u05D9\u05E4\u05D5\u05E8 \u05D1\u05D5\u05E0\u05D4 \u05DC\u05D1\u05D9\u05E6\u05D9\u05DD \u05E9\u05DC\u05D4", "w": 1, "lvl": 2 }, { "en": "Insect", "he": "\u05D7\u05E8\u05E7", "pic": "\u{1F41E}", "clue": "\u05D9\u05E6\u05D5\u05E8 \u05E7\u05D8\u05DF \u05E2\u05DD \u05E9\u05E9 \u05E8\u05D2\u05DC\u05D9\u05D9\u05DD, \u05DB\u05DE\u05D5 \u05E0\u05DE\u05DC\u05D4", "w": 1, "lvl": 2 }, { "en": "Climb", "he": "\u05DC\u05D8\u05E4\u05E1", "pic": "\u{1F9D7}", "clue": "\u05DC\u05E2\u05DC\u05D5\u05EA \u05DC\u05DE\u05E2\u05DC\u05D4 \u05E2\u05DC \u05E2\u05E5 \u05D0\u05D5 \u05E2\u05DC \u05E7\u05D9\u05E8", "w": 1, "lvl": 2 }, { "en": "Hide", "he": "\u05DC\u05D4\u05EA\u05D7\u05D1\u05D0", "pic": "\u{1F648}", "clue": "\u05DE\u05D4 \u05E2\u05D5\u05E9\u05D9\u05DD \u05D1\u05DE\u05E9\u05D7\u05E7 \u05DE\u05D7\u05D1\u05D5\u05D0\u05D9\u05DD?", "w": 1, "lvl": 2 }, { "en": "Wild", "he": "\u05E4\u05E8\u05D0\u05D9", "pic": "\u{1F417}", "clue": "\u05D7\u05D9 \u05D7\u05D5\u05E4\u05E9\u05D9 \u05D1\u05D8\u05D1\u05E2, \u05DC\u05D0 \u05D1\u05D1\u05D9\u05EA \u05D5\u05DC\u05D0 \u05D1\u05D2\u05DF \u05D7\u05D9\u05D5\u05EA", "w": 1, "lvl": 3 }, { "en": "Danger", "he": "\u05E1\u05DB\u05E0\u05D4", "pic": "\u26A0\uFE0F", "clue": "\u05DE\u05E6\u05D1 \u05E9\u05D1\u05D5 \u05DE\u05E9\u05D4\u05D5 \u05E8\u05E2 \u05E2\u05DC\u05D5\u05DC \u05DC\u05E7\u05E8\u05D5\u05EA", "w": 1, "lvl": 3 }, { "en": "Dangerous", "he": "\u05DE\u05E1\u05D5\u05DB\u05DF", "pic": "\u2620\uFE0F", "clue": "\u05DE\u05E9\u05D4\u05D5 \u05E9\u05E2\u05DC\u05D5\u05DC \u05DC\u05E4\u05D2\u05D5\u05E2 \u05D1\u05DB\u05DD", "w": 1, "lvl": 3 }, { "en": "Protect", "he": "\u05DC\u05D4\u05D2\u05DF", "pic": "\u{1F6E1}\uFE0F", "clue": "\u05DC\u05E9\u05DE\u05D5\u05E8 \u05E2\u05DC \u05DE\u05D9\u05E9\u05D4\u05D5 \u05E9\u05DC\u05D0 \u05D9\u05D9\u05E4\u05D2\u05E2", "w": 1, "lvl": 3 }, { "en": "Survive", "he": "\u05DC\u05E9\u05E8\u05D5\u05D3", "pic": "\u{1F4AA}", "clue": "\u05DC\u05D4\u05D9\u05E9\u05D0\u05E8 \u05D1\u05D7\u05D9\u05D9\u05DD \u05D1\u05DE\u05E6\u05D1 \u05E7\u05E9\u05D4", "w": 1, "lvl": 3 }, { "en": "Environment", "he": "\u05E1\u05D1\u05D9\u05D1\u05D4", "pic": "\u{1F30D}", "clue": "\u05D4\u05D8\u05D1\u05E2 \u05D5\u05D4\u05DE\u05E7\u05D5\u05DD \u05E9\u05DE\u05E1\u05D1\u05D9\u05D1\u05E0\u05D5", "w": 1, "lvl": 3 }, { "en": "Rare", "he": "\u05E0\u05D3\u05D9\u05E8", "pic": "\u{1F48E}", "clue": "\u05DE\u05E9\u05D4\u05D5 \u05E9\u05DB\u05DE\u05E2\u05D8 \u05D0\u05D9\u05DF \u05DE\u05DE\u05E0\u05D5, \u05E7\u05E9\u05D4 \u05DC\u05DE\u05E6\u05D5\u05D0 \u05D0\u05D5\u05EA\u05D5", "w": 1, "lvl": 3 }, { "en": "Ocean", "he": "\u05D0\u05D5\u05E7\u05D9\u05D9\u05E0\u05D5\u05E1", "pic": "\u{1F30A}", "clue": "\u05D9\u05DD \u05E2\u05E0\u05E7 \u05DE\u05D0\u05D5\u05D3, \u05DB\u05DE\u05D5 \u05D4\u05D0\u05D8\u05DC\u05E0\u05D8\u05D9", "w": 2, "lvl": 2 }, { "en": "Anchor", "he": "\u05E2\u05D5\u05D2\u05DF", "pic": "\u2693", "clue": "\u05D7\u05E4\u05E5 \u05DB\u05D1\u05D3 \u05E9\u05DE\u05D7\u05D6\u05D9\u05E7 \u05D0\u05EA \u05D4\u05E1\u05E4\u05D9\u05E0\u05D4 \u05D1\u05DE\u05E7\u05D5\u05DD", "w": 2, "lvl": 2 }, { "en": "Storm", "he": "\u05E1\u05E2\u05E8\u05D4", "pic": "\u26C8\uFE0F", "clue": "\u05E8\u05D5\u05D7 \u05D7\u05D6\u05E7\u05D4, \u05D2\u05E9\u05DD \u05D5\u05D2\u05DC\u05D9\u05DD \u05D2\u05D1\u05D5\u05D4\u05D9\u05DD", "w": 2, "lvl": 2 }, { "en": "Rope", "he": "\u05D7\u05D1\u05DC", "pic": "\u{1FAA2}", "clue": "\u05E7\u05D5\u05E9\u05E8\u05D9\u05DD \u05D0\u05D9\u05EA\u05D5 \u05D0\u05EA \u05D4\u05E1\u05D9\u05E8\u05D4 \u05DC\u05E8\u05E6\u05D9\u05E3", "w": 2, "lvl": 2 }, { "en": "Deep", "he": "\u05E2\u05DE\u05D5\u05E7", "pic": "\u{1F93F}", "clue": "\u05E8\u05D7\u05D5\u05E7 \u05DE\u05D0\u05D5\u05D3 \u05DC\u05DE\u05D8\u05D4, \u05D4\u05D4\u05E4\u05DA \u05DE\u05E8\u05D3\u05D5\u05D3", "w": 2, "lvl": 2 }, { "en": "Delicious", "he": "\u05D8\u05E2\u05D9\u05DD", "pic": "\u{1F60B}", "clue": "\u05D0\u05D5\u05DB\u05DC \u05E9\u05DE\u05DE\u05E9 \u05DB\u05D9\u05E3 \u05DC\u05D0\u05DB\u05D5\u05DC", "w": 2, "lvl": 2 }, { "en": "Vegetables", "he": "\u05D9\u05E8\u05E7\u05D5\u05EA", "pic": "\u{1F955}", "clue": "\u05D2\u05D6\u05E8, \u05DE\u05DC\u05E4\u05E4\u05D5\u05DF \u05D5\u05E2\u05D2\u05D1\u05E0\u05D9\u05D9\u05D4", "w": 2, "lvl": 2 }, { "en": "Meal", "he": "\u05D0\u05E8\u05D5\u05D7\u05D4", "pic": "\u{1F37D}\uFE0F", "clue": "\u05D1\u05D5\u05E7\u05E8, \u05E6\u05D4\u05E8\u05D9\u05D9\u05DD \u05D0\u05D5 \u05E2\u05E8\u05D1", "w": 2, "lvl": 2 }, { "en": "Salt", "he": "\u05DE\u05DC\u05D7", "pic": "\u{1F9C2}", "clue": "\u05DC\u05D1\u05DF, \u05D5\u05D9\u05E9 \u05D4\u05E8\u05D1\u05D4 \u05DE\u05DE\u05E0\u05D5 \u05D1\u05DE\u05D9 \u05D4\u05D9\u05DD", "w": 2, "lvl": 2 }, { "en": "Sweet", "he": "\u05DE\u05EA\u05D5\u05E7", "pic": "\u{1F36C}", "clue": "\u05D4\u05D8\u05E2\u05DD \u05E9\u05DC \u05E1\u05D5\u05DB\u05E8 \u05D5\u05D3\u05D1\u05E9", "w": 2, "lvl": 2 }, { "en": "Compass", "he": "\u05DE\u05E6\u05E4\u05DF", "pic": "\u{1F9ED}", "clue": "\u05DE\u05E8\u05D0\u05D4 \u05DC\u05D0\u05D9\u05D6\u05D4 \u05DB\u05D9\u05D5\u05D5\u05DF \u05D4\u05E6\u05E4\u05D5\u05DF", "w": 2, "lvl": 3 }, { "en": "Journey", "he": "\u05DE\u05E1\u05E2", "pic": "\u{1F5FA}\uFE0F", "clue": "\u05D3\u05E8\u05DA \u05D0\u05E8\u05D5\u05DB\u05D4 \u05DE\u05DE\u05E7\u05D5\u05DD \u05DC\u05DE\u05E7\u05D5\u05DD", "w": 2, "lvl": 3 }, { "en": "Discover", "he": "\u05DC\u05D2\u05DC\u05D5\u05EA", "pic": "\u{1F52D}", "clue": "\u05DC\u05DE\u05E6\u05D5\u05D0 \u05DE\u05E9\u05D4\u05D5 \u05D1\u05E4\u05E2\u05DD \u05D4\u05E8\u05D0\u05E9\u05D5\u05E0\u05D4", "w": 2, "lvl": 3 }, { "en": "Crew", "he": "\u05E6\u05D5\u05D5\u05EA", "pic": "\u{1F465}", "clue": "\u05DB\u05DC \u05D4\u05D0\u05E0\u05E9\u05D9\u05DD \u05E9\u05E2\u05D5\u05D1\u05D3\u05D9\u05DD \u05D9\u05D7\u05D3 \u05E2\u05DC \u05D4\u05E1\u05E4\u05D9\u05E0\u05D4", "w": 2, "lvl": 3 }, { "en": "Bitter", "he": "\u05DE\u05E8", "pic": "\u2615", "clue": "\u05D8\u05E2\u05DD \u05D7\u05D6\u05E7 \u05D5\u05DC\u05D0 \u05DE\u05EA\u05D5\u05E7, \u05DB\u05DE\u05D5 \u05E7\u05E4\u05D4 \u05D1\u05DC\u05D9 \u05E1\u05D5\u05DB\u05E8", "w": 2, "lvl": 3 }, { "en": "Neighbor", "he": "\u05E9\u05DB\u05DF", "pic": "\u{1F3D8}\uFE0F", "clue": "\u05DE\u05D9 \u05E9\u05D2\u05E8 \u05D1\u05D1\u05D9\u05EA \u05DC\u05D9\u05D3 \u05D4\u05D1\u05D9\u05EA \u05E9\u05DC\u05DB\u05DD", "w": 3, "lvl": 2 }, { "en": "Building", "he": "\u05D1\u05E0\u05D9\u05D9\u05DF", "pic": "\u{1F3E2}", "clue": "\u05D9\u05E9 \u05D1\u05D5 \u05D4\u05E8\u05D1\u05D4 \u05E7\u05D5\u05DE\u05D5\u05EA \u05D5\u05D3\u05D9\u05E8\u05D5\u05EA", "w": 3, "lvl": 2 }, { "en": "Bridge", "he": "\u05D2\u05E9\u05E8", "pic": "\u{1F309}", "clue": "\u05E2\u05D5\u05D1\u05E8\u05D9\u05DD \u05E2\u05DC\u05D9\u05D5 \u05DE\u05E2\u05DC \u05E0\u05D4\u05E8 \u05D0\u05D5 \u05DB\u05D1\u05D9\u05E9", "w": 3, "lvl": 2 }, { "en": "Market", "he": "\u05E9\u05D5\u05E7", "pic": "\u{1F6D2}", "clue": "\u05E7\u05D5\u05E0\u05D9\u05DD \u05D1\u05D5 \u05E4\u05D9\u05E8\u05D5\u05EA \u05D5\u05D9\u05E8\u05E7\u05D5\u05EA \u05D1\u05D3\u05D5\u05DB\u05E0\u05D9\u05DD", "w": 3, "lvl": 2 }, { "en": "Museum", "he": "\u05DE\u05D5\u05D6\u05D9\u05D0\u05D5\u05DF", "pic": "\u{1F3DB}\uFE0F", "clue": "\u05DE\u05E7\u05D5\u05DD \u05E9\u05E8\u05D5\u05D0\u05D9\u05DD \u05D1\u05D5 \u05D0\u05D5\u05DE\u05E0\u05D5\u05EA \u05D5\u05D4\u05D9\u05E1\u05D8\u05D5\u05E8\u05D9\u05D4", "w": 3, "lvl": 2 }, { "en": "Lesson", "he": "\u05E9\u05D9\u05E2\u05D5\u05E8", "pic": "\u{1F4DA}", "clue": "\u05D6\u05DE\u05DF \u05D4\u05DC\u05D9\u05DE\u05D5\u05D3 \u05D1\u05DB\u05D9\u05EA\u05D4 \u05E2\u05DD \u05D4\u05DE\u05D5\u05E8\u05D4", "w": 3, "lvl": 2 }, { "en": "Question", "he": "\u05E9\u05D0\u05DC\u05D4", "pic": "\u2753", "clue": "\u05DE\u05E9\u05E4\u05D8 \u05E9\u05DE\u05E1\u05EA\u05D9\u05D9\u05DD \u05D1\u05E1\u05D9\u05DE\u05DF ?", "w": 3, "lvl": 2 }, { "en": "Answer", "he": "\u05EA\u05E9\u05D5\u05D1\u05D4", "pic": "\u2705", "clue": "\u05DE\u05D4 \u05E9\u05D0\u05D5\u05DE\u05E8\u05D9\u05DD \u05D0\u05D7\u05E8\u05D9 \u05E9\u05E0\u05E9\u05D0\u05DC\u05D9\u05DD", "w": 3, "lvl": 2 }, { "en": "Village", "he": "\u05DB\u05E4\u05E8", "pic": "\u{1F3E1}", "clue": "\u05D9\u05D9\u05E9\u05D5\u05D1 \u05E7\u05D8\u05DF, \u05D4\u05E8\u05D1\u05D4 \u05D9\u05D5\u05EA\u05E8 \u05E7\u05D8\u05DF \u05DE\u05E2\u05D9\u05E8", "w": 3, "lvl": 2 }, { "en": "Exam", "he": "\u05DE\u05D1\u05D7\u05DF", "pic": "\u{1F4DD}", "clue": "\u05D1\u05D5\u05D3\u05E7\u05D9\u05DD \u05D1\u05D5 \u05DE\u05D4 \u05DC\u05DE\u05D3\u05EA\u05DD", "w": 3, "lvl": 3 }, { "en": "Secret", "he": "\u05E1\u05D5\u05D3", "pic": "\u{1F92B}", "clue": "\u05DE\u05E9\u05D4\u05D5 \u05E9\u05D0\u05E1\u05D5\u05E8 \u05DC\u05E1\u05E4\u05E8 \u05DC\u05D0\u05E3 \u05D0\u05D7\u05D3", "w": 3, "lvl": 3 }, { "en": "Remember", "he": "\u05DC\u05D6\u05DB\u05D5\u05E8", "pic": "\u{1F9E0}", "clue": "\u05DC\u05D0 \u05DC\u05E9\u05DB\u05D5\u05D7", "w": 3, "lvl": 3 }, { "en": "Forget", "he": "\u05DC\u05E9\u05DB\u05D5\u05D7", "pic": "\u{1F914}", "clue": "\u05D4\u05D4\u05E4\u05DA \u05DE\u05DC\u05D6\u05DB\u05D5\u05E8", "w": 3, "lvl": 3 }, { "en": "Explain", "he": "\u05DC\u05D4\u05E1\u05D1\u05D9\u05E8", "pic": "\u{1F5E3}\uFE0F", "clue": "\u05DC\u05E2\u05D6\u05D5\u05E8 \u05DC\u05DE\u05D9\u05E9\u05D4\u05D5 \u05DC\u05D4\u05D1\u05D9\u05DF \u05DE\u05E9\u05D4\u05D5", "w": 3, "lvl": 3 }, { "en": "Knowledge", "he": "\u05D9\u05D3\u05E2", "pic": "\u{1F393}", "clue": "\u05DB\u05DC \u05DE\u05D4 \u05E9\u05D0\u05EA\u05DD \u05D9\u05D5\u05D3\u05E2\u05D9\u05DD \u05D5\u05DC\u05DE\u05D3\u05EA\u05DD", "w": 3, "lvl": 3 }, { "en": "Wizard", "he": "\u05E7\u05D5\u05E1\u05DD", "pic": "\u{1F9D9}", "clue": "\u05D0\u05D9\u05E9 \u05E2\u05DD \u05DB\u05D5\u05D1\u05E2 \u05DE\u05D7\u05D5\u05D3\u05D3 \u05D5\u05E9\u05E8\u05D1\u05D9\u05D8 \u05E7\u05E1\u05DE\u05D9\u05DD", "w": 3, "lvl": 3 }, { "en": "Hundred", "he": "\u05DE\u05D0\u05D4", "pic": "\u{1F4AF}", "clue": "\u05E2\u05E9\u05E8 \u05E4\u05E2\u05DE\u05D9\u05DD \u05E2\u05E9\u05E8", "w": 4, "lvl": 2 }, { "en": "Thousand", "he": "\u05D0\u05DC\u05E3", "pic": "\u{1F522}", "clue": "\u05E2\u05E9\u05E8 \u05E4\u05E2\u05DE\u05D9\u05DD \u05DE\u05D0\u05D4", "w": 4, "lvl": 2 }, { "en": "Hour", "he": "\u05E9\u05E2\u05D4", "pic": "\u23F0", "clue": "\u05E9\u05D9\u05E9\u05D9\u05DD \u05D3\u05E7\u05D5\u05EA", "w": 4, "lvl": 2 }, { "en": "Minute", "he": "\u05D3\u05E7\u05D4", "pic": "\u23F1\uFE0F", "clue": "\u05E9\u05D9\u05E9\u05D9\u05DD \u05E9\u05E0\u05D9\u05D5\u05EA", "w": 4, "lvl": 2 }, { "en": "Month", "he": "\u05D7\u05D5\u05D3\u05E9", "pic": "\u{1F4C5}", "clue": "\u05D1\u05E9\u05E0\u05D4 \u05D9\u05E9 \u05E9\u05E0\u05D9\u05DD \u05E2\u05E9\u05E8 \u05DB\u05D0\u05DC\u05D4", "w": 4, "lvl": 2 }, { "en": "Yesterday", "he": "\u05D0\u05EA\u05DE\u05D5\u05DC", "pic": "\u{1F4C6}", "clue": "\u05D4\u05D9\u05D5\u05DD \u05E9\u05D4\u05D9\u05D4 \u05DC\u05E4\u05E0\u05D9 \u05D4\u05D9\u05D5\u05DD", "w": 4, "lvl": 2 }, { "en": "Early", "he": "\u05DE\u05D5\u05E7\u05D3\u05DD", "pic": "\u{1F305}", "clue": "\u05DC\u05E4\u05E0\u05D9 \u05D4\u05D6\u05DE\u05DF, \u05D4\u05D4\u05E4\u05DA \u05DE\u05DE\u05D0\u05D5\u05D7\u05E8", "w": 4, "lvl": 2 }, { "en": "Late", "he": "\u05DE\u05D0\u05D5\u05D7\u05E8", "pic": "\u{1F559}", "clue": "\u05D0\u05D7\u05E8\u05D9 \u05D4\u05D6\u05DE\u05DF, \u05D4\u05D4\u05E4\u05DA \u05DE\u05DE\u05D5\u05E7\u05D3\u05DD", "w": 4, "lvl": 2 }, { "en": "Future", "he": "\u05E2\u05EA\u05D9\u05D3", "pic": "\u{1F52E}", "clue": "\u05D4\u05D6\u05DE\u05DF \u05E9\u05E2\u05D5\u05D3 \u05D9\u05D1\u05D5\u05D0", "w": 4, "lvl": 3 }, { "en": "Past", "he": "\u05E2\u05D1\u05E8", "pic": "\u{1F570}\uFE0F", "clue": "\u05D4\u05D6\u05DE\u05DF \u05E9\u05DB\u05D1\u05E8 \u05D4\u05D9\u05D4", "w": 4, "lvl": 3 }, { "en": "Universe", "he": "\u05D9\u05E7\u05D5\u05DD", "pic": "\u{1F30C}", "clue": "\u05DB\u05DC \u05D4\u05DB\u05D5\u05DB\u05D1\u05D9\u05DD \u05D5\u05D4\u05D2\u05DC\u05E7\u05E1\u05D9\u05D5\u05EA \u05D1\u05D9\u05D7\u05D3", "w": 4, "lvl": 3 }, { "en": "Orbit", "he": "\u05DE\u05E1\u05DC\u05D5\u05DC", "pic": "\u{1F6F0}\uFE0F", "clue": "\u05D4\u05D3\u05E8\u05DA \u05E9\u05D1\u05D4 \u05D4\u05D9\u05E8\u05D7 \u05DE\u05E1\u05EA\u05D5\u05D1\u05D1 \u05E1\u05D1\u05D9\u05D1 \u05DB\u05D3\u05D5\u05E8 \u05D4\u05D0\u05E8\u05E5", "w": 4, "lvl": 3 }, { "en": "Explore", "he": "\u05DC\u05D7\u05E7\u05D5\u05E8", "pic": "\u{1F50D}", "clue": "\u05DC\u05D1\u05D3\u05D5\u05E7 \u05DE\u05E7\u05D5\u05DD \u05D7\u05D3\u05E9 \u05DB\u05D3\u05D9 \u05DC\u05DC\u05DE\u05D5\u05D3 \u05E2\u05DC\u05D9\u05D5", "w": 4, "lvl": 3 }, { "en": "Launch", "he": "\u05DC\u05E9\u05D2\u05E8", "pic": "\u{1F680}", "clue": "\u05DC\u05E9\u05DC\u05D5\u05D7 \u05E8\u05E7\u05D8\u05D4 \u05DC\u05D7\u05DC\u05DC", "w": 4, "lvl": 3 }, { "en": "Distance", "he": "\u05DE\u05E8\u05D7\u05E7", "pic": "\u{1F4CF}", "clue": "\u05DB\u05DE\u05D4 \u05E8\u05D7\u05D5\u05E7 \u05DE\u05DE\u05E7\u05D5\u05DD \u05D0\u05D7\u05D3 \u05DC\u05DE\u05E7\u05D5\u05DD \u05D0\u05D7\u05E8", "w": 4, "lvl": 3 }, { "en": "Scarf", "he": "\u05E6\u05E2\u05D9\u05E3", "pic": "\u{1F9E3}", "clue": "\u05E2\u05D5\u05D8\u05E4\u05D9\u05DD \u05D0\u05D9\u05EA\u05D5 \u05D0\u05EA \u05D4\u05E6\u05D5\u05D5\u05D0\u05E8 \u05D1\u05D7\u05D5\u05E8\u05E3", "w": 5, "lvl": 2 }, { "en": "Knee", "he": "\u05D1\u05E8\u05DA", "pic": "\u{1F9B5}", "clue": "\u05D4\u05DE\u05E4\u05E8\u05E7 \u05D1\u05D0\u05DE\u05E6\u05E2 \u05D4\u05E8\u05D2\u05DC", "w": 5, "lvl": 2 }, { "en": "Heart", "he": "\u05DC\u05D1", "pic": "\u2764\uFE0F", "clue": "\u05E4\u05D5\u05E2\u05DD \u05D1\u05EA\u05D5\u05DA \u05D4\u05D7\u05D6\u05D4", "w": 5, "lvl": 2 }, { "en": "Shoulder", "he": "\u05DB\u05EA\u05E3", "pic": "\u{1F937}", "clue": "\u05D1\u05D9\u05DF \u05D4\u05E6\u05D5\u05D5\u05D0\u05E8 \u05DC\u05D1\u05D9\u05DF \u05D4\u05D9\u05D3", "w": 5, "lvl": 2 }, { "en": "Sick", "he": "\u05D7\u05D5\u05DC\u05D4", "pic": "\u{1F912}", "clue": "\u05DE\u05D9 \u05E9\u05D9\u05E9 \u05DC\u05D5 \u05D7\u05D5\u05DD \u05D5\u05E9\u05E4\u05E2\u05EA", "w": 5, "lvl": 2 }, { "en": "Healthy", "he": "\u05D1\u05E8\u05D9\u05D0", "pic": "\u{1F34F}", "clue": "\u05D4\u05D4\u05E4\u05DA \u05DE\u05D7\u05D5\u05DC\u05D4", "w": 5, "lvl": 2 }, { "en": "Pain", "he": "\u05DB\u05D0\u05D1", "pic": "\u{1F915}", "clue": "\u05DE\u05D4 \u05E9\u05DE\u05E8\u05D2\u05D9\u05E9\u05D9\u05DD \u05DB\u05E9\u05E0\u05E4\u05E6\u05E2\u05D9\u05DD", "w": 5, "lvl": 2 }, { "en": "Strong", "he": "\u05D7\u05D6\u05E7", "pic": "\u{1F3CB}\uFE0F", "clue": "\u05D4\u05D4\u05E4\u05DA \u05DE\u05D7\u05DC\u05E9", "w": 5, "lvl": 2 }, { "en": "Wear", "he": "\u05DC\u05DC\u05D1\u05D5\u05E9", "pic": "\u{1F455}", "clue": "\u05DE\u05D4 \u05E2\u05D5\u05E9\u05D9\u05DD \u05E2\u05DD \u05D1\u05D2\u05D3\u05D9\u05DD?", "w": 5, "lvl": 2 }, { "en": "Freeze", "he": "\u05DC\u05E7\u05E4\u05D5\u05D0", "pic": "\u{1F976}", "clue": "\u05DE\u05D4 \u05E7\u05D5\u05E8\u05D4 \u05DC\u05DE\u05D9\u05DD \u05D1\u05E7\u05D5\u05E8 \u05D2\u05D3\u05D5\u05DC", "w": 5, "lvl": 3 }, { "en": "Temperature", "he": "\u05D8\u05DE\u05E4\u05E8\u05D8\u05D5\u05E8\u05D4", "pic": "\u{1F321}\uFE0F", "clue": "\u05DB\u05DE\u05D4 \u05D7\u05DD \u05D0\u05D5 \u05DB\u05DE\u05D4 \u05E7\u05E8, \u05D1\u05DE\u05E2\u05DC\u05D5\u05EA", "w": 5, "lvl": 3 }, { "en": "Forecast", "he": "\u05EA\u05D7\u05D6\u05D9\u05EA", "pic": "\u{1F4FA}", "clue": "\u05DE\u05D4 \u05DE\u05D6\u05D2 \u05D4\u05D0\u05D5\u05D5\u05D9\u05E8 \u05D9\u05D4\u05D9\u05D4 \u05DE\u05D7\u05E8", "w": 5, "lvl": 3 }, { "en": "Lightning", "he": "\u05D1\u05E8\u05E7", "pic": "\u26A1", "clue": "\u05D0\u05D5\u05E8 \u05D7\u05D6\u05E7 \u05D1\u05E9\u05DE\u05D9\u05D9\u05DD \u05D1\u05D6\u05DE\u05DF \u05E1\u05E2\u05E8\u05D4", "w": 5, "lvl": 3 }, { "en": "Thunder", "he": "\u05E8\u05E2\u05DD", "pic": "\u{1F329}\uFE0F", "clue": "\u05D4\u05E8\u05E2\u05E9 \u05D4\u05D7\u05D6\u05E7 \u05E9\u05D1\u05D0 \u05D0\u05D7\u05E8\u05D9 \u05D4\u05D1\u05E8\u05E7", "w": 5, "lvl": 3 }, { "en": "Medicine", "he": "\u05EA\u05E8\u05D5\u05E4\u05D4", "pic": "\u{1F48A}", "clue": "\u05DC\u05D5\u05E7\u05D7\u05D9\u05DD \u05D0\u05D5\u05EA\u05D4 \u05DB\u05E9\u05D7\u05D5\u05DC\u05D9\u05DD", "w": 5, "lvl": 3 }, { "en": "Slippery", "he": "\u05D7\u05DC\u05E7\u05DC\u05E7", "pic": "\u26F8\uFE0F", "clue": "\u05E7\u05DC \u05DE\u05D0\u05D5\u05D3 \u05DC\u05D4\u05D7\u05DC\u05D9\u05E7 \u05E2\u05DC\u05D9\u05D5, \u05DB\u05DE\u05D5 \u05E7\u05E8\u05D7", "w": 5, "lvl": 3 }, { "en": "Comfortable", "he": "\u05E0\u05D5\u05D7", "pic": "\u{1F6CB}\uFE0F", "clue": "\u05E0\u05E2\u05D9\u05DD \u05DC\u05E9\u05D1\u05EA \u05D0\u05D5 \u05DC\u05DC\u05D1\u05D5\u05E9", "w": 5, "lvl": 3 }, { "en": "Desert", "he": "\u05DE\u05D3\u05D1\u05E8", "pic": "\u{1F3DC}\uFE0F", "clue": "\u05DE\u05E7\u05D5\u05DD \u05D7\u05DD \u05D5\u05D9\u05D1\u05E9 \u05E9\u05D9\u05E9 \u05D1\u05D5 \u05D4\u05E8\u05D1\u05D4 \u05D7\u05D5\u05DC", "w": 6, "lvl": 1 }, { "en": "Camel", "he": "\u05D2\u05DE\u05DC", "pic": "\u{1F42B}", "clue": "\u05D7\u05D9\u05D4 \u05E2\u05DD \u05D3\u05D1\u05E9\u05EA \u05E9\u05D4\u05D5\u05DC\u05DB\u05EA \u05D9\u05DE\u05D9\u05DD \u05D1\u05DC\u05D9 \u05DC\u05E9\u05EA\u05D5\u05EA", "w": 6, "lvl": 1 }, { "en": "Cactus", "he": "\u05E7\u05E7\u05D8\u05D5\u05E1", "pic": "\u{1F335}", "clue": "\u05E6\u05DE\u05D7 \u05DE\u05D3\u05D1\u05E8 \u05E2\u05DD \u05E7\u05D5\u05E6\u05D9\u05DD", "w": 6, "lvl": 1 }, { "en": "Dry", "he": "\u05D9\u05D1\u05E9", "pic": "\u{1F342}", "clue": "\u05D1\u05DC\u05D9 \u05DE\u05D9\u05DD, \u05D4\u05D4\u05E4\u05DA \u05DE\u05E8\u05D8\u05D5\u05D1", "w": 6, "lvl": 1 }, { "en": "Wet", "he": "\u05E8\u05D8\u05D5\u05D1", "pic": "\u{1F4A6}", "clue": "\u05D4\u05D4\u05E4\u05DA \u05DE\u05D9\u05D1\u05E9, \u05DB\u05DE\u05D5 \u05D0\u05D7\u05E8\u05D9 \u05DE\u05E7\u05DC\u05D7\u05EA", "w": 6, "lvl": 1 }, { "en": "Tent", "he": "\u05D0\u05D5\u05D4\u05DC", "pic": "\u26FA", "clue": "\u05D1\u05D9\u05EA \u05DE\u05D1\u05D3 \u05E9\u05D9\u05E9\u05E0\u05D9\u05DD \u05D1\u05D5 \u05D1\u05D8\u05D9\u05D5\u05DC", "w": 6, "lvl": 1 }, { "en": "Crown", "he": "\u05DB\u05EA\u05E8", "pic": "\u{1F451}", "clue": "\u05E9\u05DE\u05D9\u05DD \u05D0\u05D5\u05EA\u05D5 \u05E2\u05DC \u05E8\u05D0\u05E9 \u05D4\u05DE\u05DC\u05DA", "w": 6, "lvl": 1 }, { "en": "Left", "he": "\u05E9\u05DE\u05D0\u05DC", "pic": "\u{1F448}", "clue": "\u05D4\u05D4\u05E4\u05DA \u05DE\u05D9\u05DE\u05D9\u05DF", "w": 6, "lvl": 1 }, { "en": "Right", "he": "\u05D9\u05DE\u05D9\u05DF", "pic": "\u{1F449}", "clue": "\u05D4\u05D4\u05E4\u05DA \u05DE\u05E9\u05DE\u05D0\u05DC", "w": 6, "lvl": 1 }, { "en": "Far", "he": "\u05E8\u05D7\u05D5\u05E7", "pic": "\u{1F52D}", "clue": "\u05DC\u05D0 \u05E7\u05E8\u05D5\u05D1, \u05E6\u05E8\u05D9\u05DA \u05DC\u05DC\u05DB\u05EA \u05D4\u05E8\u05D1\u05D4", "w": 6, "lvl": 1 }, { "en": "Near", "he": "\u05E7\u05E8\u05D5\u05D1", "pic": "\u{1F4CD}", "clue": "\u05DE\u05DE\u05E9 \u05DC\u05D9\u05D3, \u05D4\u05D4\u05E4\u05DA \u05DE\u05E8\u05D7\u05D5\u05E7", "w": 6, "lvl": 1 }, { "en": "Trip", "he": "\u05D8\u05D9\u05D5\u05DC", "pic": "\u{1F68C}", "clue": "\u05D9\u05E6\u05D9\u05D0\u05D4 \u05DC\u05D9\u05D5\u05DD \u05D0\u05D5 \u05DC\u05DB\u05DE\u05D4 \u05D9\u05DE\u05D9\u05DD \u05DC\u05DE\u05E7\u05D5\u05DD \u05D0\u05D7\u05E8", "w": 6, "lvl": 1 }, { "en": "Stone", "he": "\u05D0\u05D1\u05DF", "pic": "\u{1FAA8}", "clue": "\u05D7\u05EA\u05D9\u05DB\u05D4 \u05E7\u05E9\u05D4 \u05DE\u05D4\u05D0\u05D3\u05DE\u05D4", "w": 6, "lvl": 1 }, { "en": "North", "he": "\u05E6\u05E4\u05D5\u05DF", "pic": "\u2B06\uFE0F", "clue": "\u05D4\u05DB\u05D9\u05D5\u05D5\u05DF \u05E9\u05D4\u05DE\u05E6\u05E4\u05DF \u05DE\u05E8\u05D0\u05D4", "w": 6, "lvl": 2 }, { "en": "South", "he": "\u05D3\u05E8\u05D5\u05DD", "pic": "\u2B07\uFE0F", "clue": "\u05D4\u05D4\u05E4\u05DA \u05DE\u05E6\u05E4\u05D5\u05DF", "w": 6, "lvl": 2 }, { "en": "East", "he": "\u05DE\u05D6\u05E8\u05D7", "pic": "\u{1F304}", "clue": "\u05D4\u05DB\u05D9\u05D5\u05D5\u05DF \u05E9\u05DE\u05DE\u05E0\u05D5 \u05D4\u05E9\u05DE\u05E9 \u05D6\u05D5\u05E8\u05D7\u05EA", "w": 6, "lvl": 2 }, { "en": "West", "he": "\u05DE\u05E2\u05E8\u05D1", "pic": "\u{1F307}", "clue": "\u05D4\u05DB\u05D9\u05D5\u05D5\u05DF \u05E9\u05D1\u05D5 \u05D4\u05E9\u05DE\u05E9 \u05E9\u05D5\u05E7\u05E2\u05EA", "w": 6, "lvl": 2 }, { "en": "Pyramid", "he": "\u05E4\u05D9\u05E8\u05DE\u05D9\u05D3\u05D4", "pic": "\u{1F53A}", "clue": "\u05DE\u05D1\u05E0\u05D4 \u05E2\u05E0\u05E7 \u05D1\u05DE\u05E6\u05E8\u05D9\u05DD \u05E2\u05DD \u05D0\u05E8\u05D1\u05E2\u05D4 \u05E6\u05D3\u05D3\u05D9\u05DD \u05DE\u05E9\u05D5\u05DC\u05E9\u05D9\u05DD", "w": 6, "lvl": 2 }, { "en": "History", "he": "\u05D4\u05D9\u05E1\u05D8\u05D5\u05E8\u05D9\u05D4", "pic": "\u{1F4DC}", "clue": "\u05DE\u05D4 \u05E9\u05E7\u05E8\u05D4 \u05D1\u05E2\u05D5\u05DC\u05DD \u05DC\u05E4\u05E0\u05D9 \u05D4\u05E8\u05D1\u05D4 \u05E9\u05E0\u05D9\u05DD", "w": 6, "lvl": 2 }, { "en": "Travel", "he": "\u05DC\u05D8\u05D9\u05D9\u05DC", "pic": "\u{1F9F3}", "clue": "\u05DC\u05E0\u05E1\u05D5\u05E2 \u05DC\u05DE\u05E7\u05D5\u05DE\u05D5\u05EA \u05D7\u05D3\u05E9\u05D9\u05DD", "w": 6, "lvl": 2 }, { "en": "Guide", "he": "\u05DE\u05D3\u05E8\u05D9\u05DA", "pic": "\u{1F64B}", "clue": "\u05DE\u05D9 \u05E9\u05DE\u05D5\u05D1\u05D9\u05DC \u05D0\u05EA \u05D4\u05E7\u05D1\u05D5\u05E6\u05D4 \u05D1\u05D8\u05D9\u05D5\u05DC \u05D5\u05DE\u05E1\u05D1\u05D9\u05E8", "w": 6, "lvl": 2 }, { "en": "Shadow", "he": "\u05E6\u05DC", "pic": "\u{1F464}", "clue": "\u05DE\u05E7\u05D5\u05DD \u05D7\u05E9\u05D5\u05DA \u05E7\u05D8\u05DF \u05E9\u05E0\u05D5\u05E6\u05E8 \u05DB\u05E9\u05DE\u05E9\u05D4\u05D5 \u05DE\u05E1\u05EA\u05D9\u05E8 \u05D0\u05EA \u05D4\u05E9\u05DE\u05E9", "w": 6, "lvl": 2 }, { "en": "Statue", "he": "\u05E4\u05E1\u05DC", "pic": "\u{1F5FF}", "clue": "\u05D3\u05DE\u05D5\u05EA \u05DE\u05D0\u05D1\u05DF \u05D0\u05D5 \u05DE\u05DE\u05EA\u05DB\u05EA", "w": 6, "lvl": 2 }, { "en": "Adventure", "he": "\u05D4\u05E8\u05E4\u05EA\u05E7\u05D4", "pic": "\u{1F920}", "clue": "\u05DE\u05E1\u05E2 \u05DE\u05DC\u05D0 \u05E8\u05D9\u05D2\u05D5\u05E9\u05D9\u05DD \u05D5\u05D2\u05D9\u05DC\u05D5\u05D9\u05D9\u05DD", "w": 6, "lvl": 2 }, { "en": "Lost", "he": "\u05D0\u05D1\u05D5\u05D3", "pic": "\u{1F615}", "clue": "\u05DB\u05E9\u05DC\u05D0 \u05D9\u05D5\u05D3\u05E2\u05D9\u05DD \u05D0\u05D9\u05E4\u05D4 \u05E0\u05DE\u05E6\u05D0\u05D9\u05DD \u05D5\u05D0\u05D9\u05DA \u05DC\u05D7\u05D6\u05D5\u05E8", "w": 6, "lvl": 2 }, { "en": "Empty", "he": "\u05E8\u05D9\u05E7", "pic": "\u{1FAD9}", "clue": "\u05D0\u05D9\u05DF \u05D1\u05D5 \u05DB\u05DC\u05D5\u05DD, \u05D4\u05D4\u05E4\u05DA \u05DE\u05DE\u05DC\u05D0", "w": 6, "lvl": 2 }, { "en": "Full", "he": "\u05DE\u05DC\u05D0", "pic": "\u{1FAA3}", "clue": "\u05D0\u05D9\u05DF \u05D1\u05D5 \u05D9\u05D5\u05EA\u05E8 \u05DE\u05E7\u05D5\u05DD, \u05D4\u05D4\u05E4\u05DA \u05DE\u05E8\u05D9\u05E7", "w": 6, "lvl": 2 }, { "en": "Sell", "he": "\u05DC\u05DE\u05DB\u05D5\u05E8", "pic": "\u{1F3F7}\uFE0F", "clue": "\u05DC\u05EA\u05EA \u05DE\u05E9\u05D4\u05D5 \u05EA\u05DE\u05D5\u05E8\u05EA \u05DB\u05E1\u05E3", "w": 6, "lvl": 2 }, { "en": "Carry", "he": "\u05DC\u05E1\u05D7\u05D5\u05D1", "pic": "\u{1F4E6}", "clue": "\u05DC\u05D4\u05D7\u05D6\u05D9\u05E7 \u05DE\u05E9\u05D4\u05D5 \u05D5\u05DC\u05E7\u05D7\u05EA \u05D0\u05D5\u05EA\u05D5 \u05D0\u05D9\u05EA\u05DB\u05DD", "w": 6, "lvl": 2 }, { "en": "Huge", "he": "\u05E2\u05E0\u05E7", "pic": "\u{1F5FB}", "clue": "\u05D2\u05D3\u05D5\u05DC \u05DE\u05D0\u05D5\u05D3 \u05DE\u05D0\u05D5\u05D3", "w": 6, "lvl": 2 }, { "en": "Oasis", "he": "\u05E0\u05D5\u05D5\u05D4 \u05DE\u05D3\u05D1\u05E8", "pic": "\u{1F334}", "clue": "\u05DE\u05E7\u05D5\u05DD \u05E2\u05DD \u05DE\u05D9\u05DD \u05D5\u05E2\u05E6\u05D9\u05DD \u05D1\u05D0\u05DE\u05E6\u05E2 \u05D4\u05DE\u05D3\u05D1\u05E8", "w": 6, "lvl": 3 }, { "en": "Ancient", "he": "\u05E2\u05EA\u05D9\u05E7", "pic": "\u{1F3FA}", "clue": "\u05D9\u05E9\u05DF \u05DE\u05D0\u05D5\u05D3, \u05DE\u05DC\u05E4\u05E0\u05D9 \u05D0\u05DC\u05E4\u05D9 \u05E9\u05E0\u05D9\u05DD", "w": 6, "lvl": 3 }, { "en": "Footprints", "he": "\u05E2\u05E7\u05D1\u05D5\u05EA", "pic": "\u{1F463}", "clue": "\u05D4\u05E1\u05D9\u05DE\u05E0\u05D9\u05DD \u05E9\u05D4\u05E8\u05D2\u05DC\u05D9\u05D9\u05DD \u05DE\u05E9\u05D0\u05D9\u05E8\u05D5\u05EA \u05D1\u05D7\u05D5\u05DC", "w": 6, "lvl": 3 }, { "en": "Direction", "he": "\u05DB\u05D9\u05D5\u05D5\u05DF", "pic": "\u2197\uFE0F", "clue": "\u05E6\u05E4\u05D5\u05DF, \u05D3\u05E8\u05D5\u05DD, \u05DE\u05D6\u05E8\u05D7 \u05D0\u05D5 \u05DE\u05E2\u05E8\u05D1", "w": 6, "lvl": 3 }, { "en": "Hidden", "he": "\u05DE\u05D5\u05E1\u05EA\u05E8", "pic": "\u{1FAE3}", "clue": "\u05DE\u05E9\u05D4\u05D5 \u05E9\u05DE\u05D7\u05D1\u05D9\u05D0\u05D9\u05DD \u05DB\u05D3\u05D9 \u05E9\u05DC\u05D0 \u05D9\u05E8\u05D0\u05D5 \u05D0\u05D5\u05EA\u05D5", "w": 6, "lvl": 3 }, { "en": "Mystery", "he": "\u05EA\u05E2\u05DC\u05D5\u05DE\u05D4", "pic": "\u{1F575}\uFE0F", "clue": "\u05DE\u05E9\u05D4\u05D5 \u05DE\u05E1\u05EA\u05D5\u05E8\u05D9 \u05E9\u05E7\u05E9\u05D4 \u05DC\u05D4\u05D1\u05D9\u05DF", "w": 6, "lvl": 3 }, { "en": "Temple", "he": "\u05DE\u05E7\u05D3\u05E9", "pic": "\u{1F6D5}", "clue": "\u05D1\u05E0\u05D9\u05D9\u05DF \u05E2\u05EA\u05D9\u05E7 \u05E9\u05D1\u05D5 \u05D4\u05EA\u05E4\u05DC\u05DC\u05D5", "w": 6, "lvl": 3 }, { "en": "Patience", "he": "\u05E1\u05D1\u05DC\u05E0\u05D5\u05EA", "pic": "\u23F3", "clue": "\u05D4\u05D9\u05DB\u05D5\u05DC\u05EA \u05DC\u05D7\u05DB\u05D5\u05EA \u05D1\u05DC\u05D9 \u05DC\u05DB\u05E2\u05D5\u05E1", "w": 6, "lvl": 3 }, { "en": "Disappear", "he": "\u05DC\u05D4\u05D9\u05E2\u05DC\u05DD", "pic": "\u{1FAE5}", "clue": "\u05DC\u05D4\u05E4\u05E1\u05D9\u05E7 \u05DC\u05D4\u05D9\u05D5\u05EA \u05D1\u05DE\u05E7\u05D5\u05DD, \u05DB\u05D1\u05E8 \u05DC\u05D0 \u05E8\u05D5\u05D0\u05D9\u05DD", "w": 6, "lvl": 3 }, { "en": "Horizon", "he": "\u05D0\u05D5\u05E4\u05E7", "pic": "\u{1F305}", "clue": "\u05D4\u05E7\u05D5 \u05D4\u05E8\u05D7\u05D5\u05E7 \u05E9\u05D1\u05D5 \u05D4\u05E9\u05DE\u05D9\u05D9\u05DD \u05E4\u05D5\u05D2\u05E9\u05D9\u05DD \u05D0\u05EA \u05D4\u05D0\u05D3\u05DE\u05D4", "w": 6, "lvl": 3 }, { "en": "Ruins", "he": "\u05D7\u05D5\u05E8\u05D1\u05D5\u05EA", "pic": "\u{1F3DA}\uFE0F", "clue": "\u05DE\u05D4 \u05E9\u05E0\u05E9\u05D0\u05E8 \u05DE\u05D1\u05E0\u05D9\u05D9\u05DF \u05E2\u05EA\u05D9\u05E7 \u05E9\u05E0\u05D4\u05E8\u05E1", "w": 6, "lvl": 3 }, { "en": "Swim", "he": "\u05DC\u05E9\u05D7\u05D5\u05EA", "pic": "\u{1F3CA}", "clue": "\u05DC\u05D6\u05D5\u05D6 \u05D1\u05DE\u05D9\u05DD \u05E2\u05DD \u05D4\u05D9\u05D3\u05D9\u05D9\u05DD \u05D5\u05D4\u05E8\u05D2\u05DC\u05D9\u05D9\u05DD", "w": 7, "lvl": 1 }, { "en": "Shell", "he": "\u05E6\u05D3\u05E3", "pic": "\u{1F41A}", "clue": "\u05D4\u05D1\u05D9\u05EA \u05D4\u05E7\u05E9\u05D4 \u05E9\u05DC \u05D7\u05D9\u05D4 \u05E7\u05D8\u05E0\u05D4 \u05D1\u05D9\u05DD", "w": 7, "lvl": 1 }, { "en": "Bubble", "he": "\u05D1\u05D5\u05E2\u05D4", "pic": "\u{1FAE7}", "clue": "\u05DB\u05D3\u05D5\u05E8 \u05E7\u05D8\u05DF \u05E9\u05DC \u05D0\u05D5\u05D5\u05D9\u05E8 \u05D1\u05EA\u05D5\u05DA \u05DE\u05D9\u05DD", "w": 7, "lvl": 1 }, { "en": "Starfish", "he": "\u05DB\u05D5\u05DB\u05D1 \u05D9\u05DD", "pic": "\u2B50", "clue": "\u05D7\u05D9\u05D4 \u05D1\u05E6\u05D5\u05E8\u05EA \u05DB\u05D5\u05DB\u05D1 \u05E9\u05D7\u05D9\u05D4 \u05D1\u05E7\u05E8\u05E7\u05E2\u05D9\u05EA \u05D4\u05D9\u05DD", "w": 7, "lvl": 1 }, { "en": "Jellyfish", "he": "\u05DE\u05D3\u05D5\u05D6\u05D4", "pic": "\u{1FABC}", "clue": "\u05D7\u05D9\u05D4 \u05E9\u05E7\u05D5\u05E4\u05D4 \u05D1\u05D9\u05DD \u05E9\u05D9\u05DB\u05D5\u05DC\u05D4 \u05DC\u05E2\u05E7\u05D5\u05E5", "w": 7, "lvl": 1 }, { "en": "Light", "he": "\u05D0\u05D5\u05E8", "pic": "\u{1F4A1}", "clue": "\u05DE\u05D4 \u05E9\u05E2\u05D5\u05D6\u05E8 \u05DC\u05E0\u05D5 \u05DC\u05E8\u05D0\u05D5\u05EA, \u05D4\u05D4\u05E4\u05DA \u05DE\u05D7\u05D5\u05E9\u05DA", "w": 7, "lvl": 1 }, { "en": "Dark", "he": "\u05D7\u05E9\u05D5\u05DA", "pic": "\u{1F311}", "clue": "\u05D1\u05DC\u05D9 \u05D0\u05D5\u05E8, \u05DB\u05DE\u05D5 \u05D1\u05DC\u05D9\u05DC\u05D4", "w": 7, "lvl": 1 }, { "en": "Under", "he": "\u05DE\u05EA\u05D7\u05EA", "pic": "\u{1F447}", "clue": "\u05DC\u05DE\u05D8\u05D4, \u05D4\u05D4\u05E4\u05DA \u05DE\u05DE\u05E2\u05DC", "w": 7, "lvl": 1 }, { "en": "Dirty", "he": "\u05DE\u05DC\u05D5\u05DB\u05DC\u05DA", "pic": "\u{1F437}", "clue": "\u05DC\u05D0 \u05E0\u05E7\u05D9", "w": 7, "lvl": 1 }, { "en": "Seahorse", "he": "\u05E1\u05D5\u05E1\u05D5\u05DF \u05D9\u05DD", "pic": "\u{1F3A0}", "clue": "\u05D3\u05D2 \u05E7\u05D8\u05DF \u05E9\u05D4\u05E8\u05D0\u05E9 \u05E9\u05DC\u05D5 \u05E0\u05E8\u05D0\u05D4 \u05DB\u05DE\u05D5 \u05E9\u05DC \u05E1\u05D5\u05E1", "w": 7, "lvl": 2 }, { "en": "Fin", "he": "\u05E1\u05E0\u05E4\u05D9\u05E8", "pic": "\u{1F988}", "clue": "\u05D4\u05D7\u05DC\u05E7 \u05E9\u05E2\u05D5\u05D6\u05E8 \u05DC\u05D3\u05D2 \u05DC\u05E9\u05D7\u05D5\u05EA", "w": 7, "lvl": 2 }, { "en": "Diver", "he": "\u05E6\u05D5\u05DC\u05DC\u05DF", "pic": "\u{1F93F}", "clue": "\u05D0\u05D3\u05DD \u05E9\u05E9\u05D5\u05D7\u05D4 \u05DE\u05EA\u05D7\u05EA \u05DC\u05DE\u05D9\u05DD \u05E2\u05DD \u05DE\u05E1\u05DB\u05D4 \u05D5\u05DE\u05D9\u05DB\u05DC \u05D0\u05D5\u05D5\u05D9\u05E8", "w": 7, "lvl": 2 }, { "en": "Submarine", "he": "\u05E6\u05D5\u05DC\u05DC\u05EA", "pic": "\u{1F6F3}\uFE0F", "clue": "\u05DB\u05DC\u05D9 \u05E9\u05D9\u05D8 \u05E9\u05E0\u05D5\u05E1\u05E2 \u05DE\u05EA\u05D7\u05EA \u05DC\u05DE\u05D9\u05DD", "w": 7, "lvl": 2 }, { "en": "Pearl", "he": "\u05E4\u05E0\u05D9\u05E0\u05D4", "pic": "\u{1F9AA}", "clue": "\u05DB\u05D3\u05D5\u05E8 \u05DC\u05D1\u05DF \u05D5\u05D9\u05E7\u05E8 \u05E9\u05E0\u05DE\u05E6\u05D0 \u05D1\u05EA\u05D5\u05DA \u05E6\u05D3\u05E4\u05D4", "w": 7, "lvl": 2 }, { "en": "Coral", "he": "\u05D0\u05DC\u05DE\u05D5\u05D2", "pic": "\u{1FAB8}", "clue": "\u05E6\u05D1\u05E2\u05D5\u05E0\u05D9 \u05D5\u05D2\u05D3\u05DC \u05D1\u05E9\u05D5\u05E0\u05D9\u05EA \u05D1\u05D9\u05DD", "w": 7, "lvl": 2 }, { "en": "Seaweed", "he": "\u05D0\u05E6\u05D4", "pic": "\u{1F33F}", "clue": "\u05E6\u05DE\u05D7 \u05D9\u05E8\u05D5\u05E7 \u05E9\u05D2\u05D3\u05DC \u05D1\u05D9\u05DD", "w": 7, "lvl": 2 }, { "en": "Above", "he": "\u05DE\u05E2\u05DC", "pic": "\u{1F446}", "clue": "\u05DC\u05DE\u05E2\u05DC\u05D4, \u05D4\u05D4\u05E4\u05DA \u05DE\u05DE\u05EA\u05D7\u05EA", "w": 7, "lvl": 2 }, { "en": "Breathe", "he": "\u05DC\u05E0\u05E9\u05D5\u05DD", "pic": "\u{1F62E}\u200D\u{1F4A8}", "clue": "\u05DC\u05D4\u05DB\u05E0\u05D9\u05E1 \u05D0\u05D5\u05D5\u05D9\u05E8 \u05DC\u05E8\u05D9\u05D0\u05D5\u05EA", "w": 7, "lvl": 2 }, { "en": "Float", "he": "\u05DC\u05E6\u05D5\u05E3", "pic": "\u{1F6DF}", "clue": "\u05DC\u05D4\u05D9\u05E9\u05D0\u05E8 \u05E2\u05DC \u05E4\u05E0\u05D9 \u05D4\u05DE\u05D9\u05DD \u05D1\u05DC\u05D9 \u05DC\u05E9\u05E7\u05D5\u05E2", "w": 7, "lvl": 2 }, { "en": "Dive", "he": "\u05DC\u05E6\u05DC\u05D5\u05DC", "pic": "\u{1F3CA}\u200D\u2640\uFE0F", "clue": "\u05DC\u05E7\u05E4\u05D5\u05E5 \u05D5\u05DC\u05E8\u05D3\u05EA \u05E2\u05DE\u05D5\u05E7 \u05DC\u05EA\u05D5\u05DA \u05D4\u05DE\u05D9\u05DD", "w": 7, "lvl": 2 }, { "en": "Plastic", "he": "\u05E4\u05DC\u05E1\u05D8\u05D9\u05E7", "pic": "\u{1F9F4}", "clue": "\u05D7\u05D5\u05DE\u05E8 \u05E9\u05E2\u05D5\u05E9\u05D9\u05DD \u05DE\u05DE\u05E0\u05D5 \u05D1\u05E7\u05D1\u05D5\u05E7\u05D9\u05DD \u05D5\u05E9\u05E7\u05D9\u05D5\u05EA", "w": 7, "lvl": 2 }, { "en": "Nature", "he": "\u05D8\u05D1\u05E2", "pic": "\u{1F340}", "clue": "\u05E2\u05E6\u05D9\u05DD, \u05D7\u05D9\u05D5\u05EA, \u05D9\u05DD \u05D5\u05D4\u05E8\u05D9\u05DD \u2014 \u05DB\u05DC \u05DE\u05D4 \u05E9\u05DC\u05D0 \u05D1\u05E0\u05D4 \u05D4\u05D0\u05D3\u05DD", "w": 7, "lvl": 2 }, { "en": "Silent", "he": "\u05E9\u05E7\u05D8", "pic": "\u{1F507}", "clue": "\u05D1\u05DC\u05D9 \u05E9\u05D5\u05DD \u05E8\u05E2\u05E9", "w": 7, "lvl": 2 }, { "en": "Tiny", "he": "\u05D6\u05E2\u05D9\u05E8", "pic": "\u{1F41C}", "clue": "\u05E7\u05D8\u05DF \u05DE\u05D0\u05D5\u05D3 \u05DE\u05D0\u05D5\u05D3", "w": 7, "lvl": 2 }, { "en": "Colorful", "he": "\u05E6\u05D1\u05E2\u05D5\u05E0\u05D9", "pic": "\u{1F308}", "clue": "\u05D9\u05E9 \u05D1\u05D5 \u05D4\u05E8\u05D1\u05D4 \u05E6\u05D1\u05E2\u05D9\u05DD", "w": 7, "lvl": 2 }, { "en": "Net", "he": "\u05E8\u05E9\u05EA", "pic": "\u{1F945}", "clue": "\u05D3\u05D9\u05D9\u05D2\u05D9\u05DD \u05EA\u05D5\u05E4\u05E1\u05D9\u05DD \u05D0\u05D9\u05EA\u05D4 \u05D3\u05D2\u05D9\u05DD", "w": 7, "lvl": 2 }, { "en": "Bottom", "he": "\u05EA\u05D7\u05EA\u05D9\u05EA", "pic": "\u{1F53B}", "clue": "\u05D4\u05D7\u05DC\u05E7 \u05D4\u05DB\u05D9 \u05E0\u05DE\u05D5\u05DA \u05E9\u05DC \u05DE\u05E9\u05D4\u05D5", "w": 7, "lvl": 2 }, { "en": "Recycle", "he": "\u05DC\u05DE\u05D7\u05D6\u05E8", "pic": "\u267B\uFE0F", "clue": "\u05DC\u05D4\u05E9\u05EA\u05DE\u05E9 \u05E9\u05D5\u05D1 \u05D1\u05D1\u05E7\u05D1\u05D5\u05E7\u05D9\u05DD \u05D5\u05D1\u05E0\u05D9\u05D9\u05E8 \u05D1\u05DE\u05E7\u05D5\u05DD \u05DC\u05D6\u05E8\u05D5\u05E7", "w": 7, "lvl": 3 }, { "en": "Pollution", "he": "\u05D6\u05D9\u05D4\u05D5\u05DD", "pic": "\u{1F3ED}", "clue": "\u05DC\u05DB\u05DC\u05D5\u05DA \u05D1\u05D0\u05D5\u05D5\u05D9\u05E8, \u05D1\u05DE\u05D9\u05DD \u05D0\u05D5 \u05D1\u05D0\u05D3\u05DE\u05D4", "w": 7, "lvl": 3 }, { "en": "Scientist", "he": "\u05DE\u05D3\u05E2\u05DF", "pic": "\u{1F9D1}\u200D\u{1F52C}", "clue": "\u05D0\u05D3\u05DD \u05E9\u05D7\u05D5\u05E7\u05E8 \u05D5\u05E2\u05D5\u05E9\u05D4 \u05E0\u05D9\u05E1\u05D5\u05D9\u05D9\u05DD", "w": 7, "lvl": 3 }, { "en": "Experiment", "he": "\u05E0\u05D9\u05E1\u05D5\u05D9", "pic": "\u{1F9EA}", "clue": "\u05D1\u05D3\u05D9\u05E7\u05D4 \u05E9\u05E2\u05D5\u05E9\u05D9\u05DD \u05DB\u05D3\u05D9 \u05DC\u05D2\u05DC\u05D5\u05EA \u05DE\u05E9\u05D4\u05D5 \u05D7\u05D3\u05E9", "w": 7, "lvl": 3 }, { "en": "Oxygen", "he": "\u05D7\u05DE\u05E6\u05DF", "pic": "\u{1FAC1}", "clue": "\u05D4\u05D2\u05D6 \u05D1\u05D0\u05D5\u05D5\u05D9\u05E8 \u05E9\u05D0\u05E0\u05D7\u05E0\u05D5 \u05E6\u05E8\u05D9\u05DB\u05D9\u05DD \u05DB\u05D3\u05D9 \u05DC\u05E0\u05E9\u05D5\u05DD", "w": 7, "lvl": 3 }, { "en": "Creature", "he": "\u05D9\u05E6\u05D5\u05E8", "pic": "\u{1F47E}", "clue": "\u05DB\u05DC \u05D7\u05D9\u05D4, \u05D2\u05DD \u05DE\u05D5\u05D6\u05E8\u05D4 \u05D0\u05D5 \u05D3\u05DE\u05D9\u05D5\u05E0\u05D9\u05EA", "w": 7, "lvl": 3 }, { "en": "Glow", "he": "\u05DC\u05D6\u05D4\u05D5\u05E8", "pic": "\u2728", "clue": "\u05DC\u05D4\u05D0\u05D9\u05E8 \u05D1\u05D0\u05D5\u05E8 \u05D7\u05DC\u05E9", "w": 7, "lvl": 3 }, { "en": "Current", "he": "\u05D6\u05E8\u05DD", "pic": "\u{1F300}", "clue": "\u05DE\u05D9\u05DD \u05E9\u05D6\u05D5\u05E8\u05DE\u05D9\u05DD \u05D1\u05DB\u05D5\u05D7 \u05DC\u05DB\u05D9\u05D5\u05D5\u05DF \u05D0\u05D7\u05D3", "w": 7, "lvl": 3 }, { "en": "Wonderful", "he": "\u05E0\u05E4\u05DC\u05D0", "pic": "\u{1F929}", "clue": "\u05D8\u05D5\u05D1 \u05D5\u05D9\u05E4\u05D4 \u05DE\u05D0\u05D5\u05D3", "w": 7, "lvl": 3 }, { "en": "Surface", "he": "\u05E4\u05E0\u05D9 \u05D4\u05E9\u05D8\u05D7", "pic": "\u{1F3C4}", "clue": "\u05D4\u05D7\u05DC\u05E7 \u05D4\u05E2\u05DC\u05D9\u05D5\u05DF \u05E9\u05DC \u05D4\u05DE\u05D9\u05DD, \u05E9\u05DD \u05D0\u05E4\u05E9\u05E8 \u05DC\u05E0\u05E9\u05D5\u05DD", "w": 7, "lvl": 3 }, { "en": "Fire", "he": "\u05D0\u05E9", "pic": "\u{1F525}", "clue": "\u05D7\u05DE\u05D4 \u05D5\u05D1\u05D5\u05E2\u05E8\u05EA, \u05E6\u05D1\u05E2\u05D4 \u05D0\u05D3\u05D5\u05DD \u05D5\u05DB\u05EA\u05D5\u05DD", "w": 8, "lvl": 1 }, { "en": "Mountain", "he": "\u05D4\u05E8", "pic": "\u26F0\uFE0F", "clue": "\u05D2\u05D1\u05D5\u05D4 \u05DE\u05D0\u05D5\u05D3, \u05DE\u05D8\u05E4\u05E1\u05D9\u05DD \u05E2\u05DC\u05D9\u05D5", "w": 8, "lvl": 1 }, { "en": "Smoke", "he": "\u05E2\u05E9\u05DF", "pic": "\u{1F4A8}", "clue": "\u05E2\u05E0\u05DF \u05D0\u05E4\u05D5\u05E8 \u05E9\u05E2\u05D5\u05DC\u05D4 \u05DE\u05D0\u05E9", "w": 8, "lvl": 1 }, { "en": "Hero", "he": "\u05D2\u05D9\u05D1\u05D5\u05E8", "pic": "\u{1F9B8}\u200D\u2642\uFE0F", "clue": "\u05DE\u05D9 \u05E9\u05E2\u05D5\u05E9\u05D4 \u05DE\u05E2\u05E9\u05D4 \u05D0\u05DE\u05D9\u05E5 \u05D5\u05DE\u05E6\u05D9\u05DC \u05D0\u05D7\u05E8\u05D9\u05DD", "w": 8, "lvl": 1 }, { "en": "Dinosaur", "he": "\u05D3\u05D9\u05E0\u05D5\u05D6\u05D0\u05D5\u05E8", "pic": "\u{1F996}", "clue": "\u05D7\u05D9\u05D4 \u05E2\u05E0\u05E7\u05D9\u05EA \u05E9\u05D7\u05D9\u05D4 \u05DC\u05E4\u05E0\u05D9 \u05DE\u05D9\u05DC\u05D9\u05D5\u05E0\u05D9 \u05E9\u05E0\u05D9\u05DD", "w": 8, "lvl": 1 }, { "en": "Ground", "he": "\u05D0\u05D3\u05DE\u05D4", "pic": "\u{1F7EB}", "clue": "\u05DE\u05D4 \u05E9\u05D9\u05E9 \u05DE\u05EA\u05D7\u05EA \u05DC\u05E8\u05D2\u05DC\u05D9\u05D9\u05DD \u05D1\u05D7\u05D5\u05E5", "w": 8, "lvl": 1 }, { "en": "Volcano", "he": "\u05D4\u05E8 \u05D2\u05E2\u05E9", "pic": "\u{1F30B}", "clue": "\u05D4\u05E8 \u05E9\u05D9\u05D5\u05E6\u05D0\u05D9\u05DD \u05DE\u05DE\u05E0\u05D5 \u05D0\u05E9 \u05D5\u05DC\u05D1\u05D4", "w": 8, "lvl": 2 }, { "en": "Lava", "he": "\u05DC\u05D1\u05D4", "pic": "\u2668\uFE0F", "clue": "\u05E1\u05DC\u05E2 \u05E0\u05D5\u05D6\u05DC\u05D9 \u05D5\u05E8\u05D5\u05EA\u05D7 \u05E9\u05D9\u05D5\u05E6\u05D0 \u05DE\u05D4\u05E8 \u05D2\u05E2\u05E9", "w": 8, "lvl": 2 }, { "en": "Ash", "he": "\u05D0\u05E4\u05E8", "pic": "\u26B1\uFE0F", "clue": "\u05D4\u05D0\u05D1\u05E7\u05D4 \u05D4\u05D0\u05E4\u05D5\u05E8\u05D4 \u05E9\u05E0\u05E9\u05D0\u05E8\u05EA \u05D0\u05D7\u05E8\u05D9 \u05E9\u05E8\u05D9\u05E4\u05D4", "w": 8, "lvl": 2 }, { "en": "Burn", "he": "\u05DC\u05E9\u05E8\u05D5\u05E3", "pic": "\u{1F56F}\uFE0F", "clue": "\u05DC\u05D2\u05E8\u05D5\u05DD \u05DC\u05DE\u05E9\u05D4\u05D5 \u05DC\u05D1\u05E2\u05D5\u05E8 \u05D1\u05D0\u05E9", "w": 8, "lvl": 2 }, { "en": "Melt", "he": "\u05DC\u05D4\u05D9\u05DE\u05E1", "pic": "\u{1FAE0}", "clue": "\u05DE\u05D4 \u05E9\u05E7\u05D5\u05E8\u05D4 \u05DC\u05D2\u05DC\u05D9\u05D3\u05D4 \u05D1\u05E9\u05DE\u05E9", "w": 8, "lvl": 2 }, { "en": "Escape", "he": "\u05DC\u05D1\u05E8\u05D5\u05D7", "pic": "\u{1F3C3}\u200D\u2642\uFE0F", "clue": "\u05DC\u05E6\u05D0\u05EA \u05DE\u05D4\u05E8 \u05DE\u05DE\u05E7\u05D5\u05DD \u05DE\u05E1\u05D5\u05DB\u05DF", "w": 8, "lvl": 2 }, { "en": "Power", "he": "\u05DB\u05D5\u05D7", "pic": "\u{1F4AA}", "clue": "\u05DB\u05DE\u05D4 \u05D7\u05D6\u05E7 \u05DE\u05E9\u05D4\u05D5", "w": 8, "lvl": 2 }, { "en": "Energy", "he": "\u05D0\u05E0\u05E8\u05D2\u05D9\u05D4", "pic": "\u{1F50B}", "clue": "\u05DE\u05D4 \u05E9\u05E0\u05D5\u05EA\u05DF \u05DB\u05D5\u05D7 \u05DC\u05D6\u05D5\u05D6 \u05D5\u05DC\u05E2\u05D1\u05D5\u05D3", "w": 8, "lvl": 2 }, { "en": "Warning", "he": "\u05D0\u05D6\u05D4\u05E8\u05D4", "pic": "\u{1F6A8}", "clue": "\u05D4\u05D5\u05D3\u05E2\u05D4 \u05E9\u05DE\u05E9\u05D4\u05D5 \u05DE\u05E1\u05D5\u05DB\u05DF \u05E2\u05D5\u05DE\u05D3 \u05DC\u05E7\u05E8\u05D5\u05EA", "w": 8, "lvl": 2 }, { "en": "Rescue", "he": "\u05DC\u05D4\u05E6\u05D9\u05DC", "pic": "\u{1F692}", "clue": "\u05DC\u05E2\u05D6\u05D5\u05E8 \u05DC\u05DE\u05D9\u05E9\u05D4\u05D5 \u05DC\u05E6\u05D0\u05EA \u05DE\u05E1\u05DB\u05E0\u05D4", "w": 8, "lvl": 2 }, { "en": "Safe", "he": "\u05D1\u05D8\u05D5\u05D7", "pic": "\u{1F9BA}", "clue": "\u05E9\u05D5\u05DD \u05D3\u05D1\u05E8 \u05E8\u05E2 \u05DC\u05D0 \u05D9\u05E7\u05E8\u05D4, \u05D4\u05D4\u05E4\u05DA \u05DE\u05DE\u05E1\u05D5\u05DB\u05DF", "w": 8, "lvl": 2 }, { "en": "Bone", "he": "\u05E2\u05E6\u05DD", "pic": "\u{1F9B4}", "clue": "\u05D7\u05DC\u05E7 \u05E7\u05E9\u05D4 \u05D5\u05DC\u05D1\u05DF \u05D1\u05EA\u05D5\u05DA \u05D4\u05D2\u05D5\u05E3", "w": 8, "lvl": 2 }, { "en": "Weak", "he": "\u05D7\u05DC\u05E9", "pic": "\u{1F940}", "clue": "\u05D4\u05D4\u05E4\u05DA \u05DE\u05D7\u05D6\u05E7", "w": 8, "lvl": 2 }, { "en": "Careful", "he": "\u05D6\u05D4\u05D9\u05E8", "pic": "\u{1F6A7}", "clue": "\u05DE\u05D9 \u05E9\u05E9\u05DD \u05DC\u05D1 \u05DB\u05D3\u05D9 \u05DC\u05D0 \u05DC\u05D4\u05D9\u05E4\u05D2\u05E2", "w": 8, "lvl": 2 }, { "en": "Fear", "he": "\u05E4\u05D7\u05D3", "pic": "\u{1F628}", "clue": "\u05D4\u05D4\u05E8\u05D2\u05E9\u05D4 \u05DB\u05E9\u05DE\u05E9\u05D4\u05D5 \u05DE\u05E4\u05D7\u05D9\u05D3", "w": 8, "lvl": 2 }, { "en": "Calm", "he": "\u05E8\u05D2\u05D5\u05E2", "pic": "\u{1F60C}", "clue": "\u05E9\u05E7\u05D8 \u05D5\u05DC\u05D0 \u05DC\u05D7\u05D5\u05E5", "w": 8, "lvl": 2 }, { "en": "Earthquake", "he": "\u05E8\u05E2\u05D9\u05D3\u05EA \u05D0\u05D3\u05DE\u05D4", "pic": "\u{1F4F3}", "clue": "\u05DB\u05E9\u05D4\u05D0\u05D3\u05DE\u05D4 \u05D6\u05D6\u05D4 \u05D5\u05E8\u05D5\u05E2\u05D3\u05EA", "w": 8, "lvl": 3 }, { "en": "Emergency", "he": "\u05DE\u05E6\u05D1 \u05D7\u05D9\u05E8\u05D5\u05DD", "pic": "\u{1F691}", "clue": "\u05DE\u05E6\u05D1 \u05DE\u05E1\u05D5\u05DB\u05DF \u05E9\u05E6\u05E8\u05D9\u05DA \u05DC\u05E2\u05D6\u05D5\u05E8 \u05D1\u05D5 \u05DE\u05D9\u05D3", "w": 8, "lvl": 3 }, { "en": "Courage", "he": "\u05D0\u05D5\u05DE\u05E5", "pic": "\u{1F396}\uFE0F", "clue": "\u05DB\u05E9\u05DC\u05D0 \u05DE\u05E4\u05D7\u05D3\u05D9\u05DD \u05DC\u05E2\u05E9\u05D5\u05EA \u05DE\u05E9\u05D4\u05D5 \u05E7\u05E9\u05D4", "w": 8, "lvl": 3 }, { "en": "Erupt", "he": "\u05DC\u05D4\u05EA\u05E4\u05E8\u05E5", "pic": "\u{1F4A5}", "clue": "\u05DE\u05D4 \u05E9\u05D4\u05E8 \u05D2\u05E2\u05E9 \u05E2\u05D5\u05E9\u05D4 \u05DB\u05E9\u05DC\u05D1\u05D4 \u05D9\u05D5\u05E6\u05D0\u05EA \u05DE\u05DE\u05E0\u05D5", "w": 8, "lvl": 3 }, { "en": "Crater", "he": "\u05DE\u05DB\u05EA\u05E9", "pic": "\u{1F573}\uFE0F", "clue": "\u05D1\u05D5\u05E8 \u05E2\u05E0\u05E7 \u05D5\u05E2\u05D2\u05D5\u05DC \u05D1\u05D0\u05D3\u05DE\u05D4", "w": 8, "lvl": 3 }, { "en": "Prepare", "he": "\u05DC\u05D4\u05EA\u05DB\u05D5\u05E0\u05DF", "pic": "\u{1F4CB}", "clue": "\u05DC\u05E2\u05E9\u05D5\u05EA \u05D3\u05D1\u05E8\u05D9\u05DD \u05DE\u05E8\u05D0\u05E9 \u05DC\u05E4\u05E0\u05D9 \u05E9\u05DE\u05E9\u05D4\u05D5 \u05E7\u05D5\u05E8\u05D4", "w": 8, "lvl": 3 }, { "en": "Destroy", "he": "\u05DC\u05D4\u05E8\u05D5\u05E1", "pic": "\u{1F3D7}\uFE0F", "clue": "\u05DC\u05E9\u05D1\u05D5\u05E8 \u05DE\u05E9\u05D4\u05D5 \u05E2\u05D3 \u05E9\u05DC\u05D0 \u05E0\u05E9\u05D0\u05E8 \u05DE\u05DE\u05E0\u05D5 \u05DB\u05DC\u05D5\u05DD", "w": 8, "lvl": 3 }, { "en": "Extinct", "he": "\u05E0\u05DB\u05D7\u05D3", "pic": "\u{1F995}", "clue": "\u05DB\u05E9\u05D0\u05E3 \u05D1\u05E2\u05DC \u05D7\u05D9\u05D9\u05DD \u05DE\u05D4\u05E1\u05D5\u05D2 \u05D4\u05D6\u05D4 \u05DC\u05D0 \u05D7\u05D9 \u05D9\u05D5\u05EA\u05E8", "w": 8, "lvl": 3 }, { "en": "Fossil", "he": "\u05DE\u05D0\u05D5\u05D1\u05DF", "pic": "\u{1F41A}", "clue": "\u05E9\u05D0\u05E8\u05D9\u05EA \u05E9\u05DC \u05D7\u05D9\u05D4 \u05E2\u05EA\u05D9\u05E7\u05D4 \u05E9\u05D4\u05E4\u05DB\u05D4 \u05DC\u05D0\u05D1\u05DF", "w": 8, "lvl": 3 }, { "en": "Disaster", "he": "\u05D0\u05E1\u05D5\u05DF", "pic": "\u{1F32A}\uFE0F", "clue": "\u05DE\u05E9\u05D4\u05D5 \u05E8\u05E2 \u05DE\u05D0\u05D5\u05D3 \u05E9\u05E7\u05D5\u05E8\u05D4 \u05DC\u05D4\u05E8\u05D1\u05D4 \u05D0\u05E0\u05E9\u05D9\u05DD", "w": 8, "lvl": 3 }, { "en": "Rock", "he": "\u05E1\u05DC\u05E2", "pic": "\u{1FAA8}", "clue": "\u05D0\u05D1\u05DF \u05D2\u05D3\u05D5\u05DC\u05D4 \u05D5\u05E7\u05E9\u05D4", "w": 8, "lvl": 1 }, { "en": "Hill", "he": "\u05D2\u05D1\u05E2\u05D4", "pic": "\u{1F3DE}\uFE0F", "clue": "\u05D4\u05E8 \u05E7\u05D8\u05DF \u05D5\u05E0\u05DE\u05D5\u05DA", "w": 8, "lvl": 1 }, { "en": "Tail", "he": "\u05D6\u05E0\u05D1", "pic": "\u{1F98E}", "clue": "\u05D4\u05D7\u05DC\u05E7 \u05D1\u05E1\u05D5\u05E3 \u05D4\u05D2\u05D5\u05E3 \u05E9\u05DC \u05D4\u05D7\u05D9\u05D4", "w": 8, "lvl": 1 }];
 
+  // mila-quest/js/settings.js
+  var QTYPES = [
+    // key in settings.types, internal runner mode, Hebrew label (settings + map)
+    { key: "en2he", mode: "en2he", label: "\u05E8\u05D5\u05D0\u05D9\u05DD \u05DE\u05D9\u05DC\u05D4 \u05D1\u05D0\u05E0\u05D2\u05DC\u05D9\u05EA \u05D5\u05D1\u05D5\u05D7\u05E8\u05D9\u05DD \u05EA\u05E8\u05D2\u05D5\u05DD" },
+    { key: "he2en", mode: "tr", label: "\u05E8\u05D5\u05D0\u05D9\u05DD \u05DE\u05D9\u05DC\u05D4 \u05D1\u05E2\u05D1\u05E8\u05D9\u05EA \u05D5\u05D1\u05D5\u05D7\u05E8\u05D9\u05DD \u05D1\u05D0\u05E0\u05D2\u05DC\u05D9\u05EA" },
+    { key: "picture", mode: "picw", label: "\u05EA\u05DE\u05D5\u05E0\u05D4 \u2190 \u05DE\u05D9\u05DC\u05D4 \u05D1\u05D0\u05E0\u05D2\u05DC\u05D9\u05EA" },
+    { key: "missing", mode: "let", label: "\u05D0\u05D5\u05EA \u05D7\u05E1\u05E8\u05D4" },
+    { key: "listen", mode: "rev", label: "\u05E9\u05D5\u05DE\u05E2\u05D9\u05DD \u05D5\u05D1\u05D5\u05D7\u05E8\u05D9\u05DD \u05E4\u05D9\u05E8\u05D5\u05E9 \u05D1\u05E2\u05D1\u05E8\u05D9\u05EA" },
+    { key: "hear", mode: "hear", label: "\u05E9\u05D5\u05DE\u05E2\u05D9\u05DD \u05D1\u05DC\u05D1\u05D3 \u05D5\u05D1\u05D5\u05D7\u05E8\u05D9\u05DD \u05D0\u05EA \u05D4\u05DE\u05D9\u05DC\u05D4 \u05D1\u05D0\u05E0\u05D2\u05DC\u05D9\u05EA" },
+    { key: "build", mode: "build", label: "\u05D0\u05D9\u05D5\u05EA: \u05D0\u05D9\u05E1\u05D5\u05E3 \u05D0\u05D5\u05EA\u05D9\u05D5\u05EA" }
+  ];
+  var MODE_LABEL = {
+    en2he: "\u05EA\u05E8\u05D2\u05D5\u05DD \u05DC\u05E2\u05D1\u05E8\u05D9\u05EA",
+    tr: "\u05EA\u05E8\u05D2\u05D5\u05DD \u05DC\u05D0\u05E0\u05D2\u05DC\u05D9\u05EA",
+    picw: "\u05EA\u05DE\u05D5\u05E0\u05D4 \u05D5\u05DE\u05D9\u05DC\u05D4",
+    let: "\u05D0\u05D5\u05EA \u05D7\u05E1\u05E8\u05D4",
+    rev: "\u05D4\u05D0\u05D6\u05E0\u05D4 \u05D5\u05E4\u05D9\u05E8\u05D5\u05E9",
+    hear: "\u05D4\u05D0\u05D6\u05E0\u05D4 \u05D1\u05DC\u05D1\u05D3",
+    build: "\u05D0\u05D9\u05D5\u05EA \u05D1\u05D0\u05D5\u05EA\u05D9\u05D5\u05EA",
+    mix: "\u05E1\u05D9\u05D1\u05D5\u05D1 \u05DE\u05D4\u05D9\u05E8 \u2013 \u05D4\u05DB\u05D5\u05DC"
+  };
+  var MODE_DESC = {
+    en2he: "\u05E8\u05D5\u05D0\u05D9\u05DD \u05DE\u05D9\u05DC\u05D4 \u05D1\u05D0\u05E0\u05D2\u05DC\u05D9\u05EA \u05D5\u05E8\u05E6\u05D9\u05DD \u05D0\u05DC \u05D4\u05EA\u05E8\u05D2\u05D5\u05DD \u05D1\u05E2\u05D1\u05E8\u05D9\u05EA",
+    tr: "\u05E8\u05D5\u05D0\u05D9\u05DD \u05DE\u05D9\u05DC\u05D4 \u05D1\u05E2\u05D1\u05E8\u05D9\u05EA \u05D5\u05E8\u05E6\u05D9\u05DD \u05D0\u05DC \u05D4\u05DE\u05D9\u05DC\u05D4 \u05D1\u05D0\u05E0\u05D2\u05DC\u05D9\u05EA",
+    picw: "\u05E8\u05D5\u05D0\u05D9\u05DD \u05EA\u05DE\u05D5\u05E0\u05D4 \u05D5\u05E8\u05E6\u05D9\u05DD \u05D0\u05DC \u05D4\u05DE\u05D9\u05DC\u05D4 \u05D1\u05D0\u05E0\u05D2\u05DC\u05D9\u05EA",
+    let: "\u05DE\u05E9\u05DC\u05D9\u05DE\u05D9\u05DD \u05D0\u05EA \u05D4\u05D0\u05D5\u05EA \u05D4\u05D7\u05E1\u05E8\u05D4 \u05D1\u05DE\u05D9\u05DC\u05D4 \u05D1\u05D0\u05E0\u05D2\u05DC\u05D9\u05EA",
+    rev: "\u05E9\u05D5\u05DE\u05E2\u05D9\u05DD \u05DE\u05D9\u05DC\u05D4 \u05D1\u05D0\u05E0\u05D2\u05DC\u05D9\u05EA (\u05D1\u05DC\u05D9 \u05DC\u05E8\u05D0\u05D5\u05EA \u05D0\u05D5\u05EA\u05D4) \u05D5\u05E8\u05E6\u05D9\u05DD \u05D0\u05DC \u05D4\u05E4\u05D9\u05E8\u05D5\u05E9 \u05D1\u05E2\u05D1\u05E8\u05D9\u05EA",
+    hear: "\u05E9\u05D5\u05DE\u05E2\u05D9\u05DD \u05DE\u05D9\u05DC\u05D4 \u05D1\u05D0\u05E0\u05D2\u05DC\u05D9\u05EA \u05D5\u05E8\u05E6\u05D9\u05DD \u05D0\u05DC \u05D0\u05D5\u05EA\u05D4 \u05DE\u05D9\u05DC\u05D4 \u05D1\u05D0\u05E0\u05D2\u05DC\u05D9\u05EA \u2013 \u05D1\u05DC\u05D9 \u05E2\u05D1\u05E8\u05D9\u05EA \u05D5\u05D1\u05DC\u05D9 \u05E8\u05DE\u05D6\u05D9\u05DD \u05DB\u05EA\u05D5\u05D1\u05D9\u05DD",
+    build: "\u05DE\u05D0\u05D9\u05D9\u05EA\u05D9\u05DD \u05D0\u05EA \u05D4\u05DE\u05D9\u05DC\u05D4 \u05D1\u05D0\u05E0\u05D2\u05DC\u05D9\u05EA: \u05D0\u05D5\u05E1\u05E4\u05D9\u05DD \u05D0\u05EA \u05D4\u05D0\u05D5\u05EA\u05D9\u05D5\u05EA \u05DC\u05E4\u05D9 \u05D4\u05E1\u05D3\u05E8",
+    mix: "\u05DB\u05DC \u05E1\u05D5\u05D2\u05D9 \u05D4\u05EA\u05E8\u05D2\u05D9\u05DC\u05D9\u05DD \u05DE\u05EA\u05D7\u05DC\u05E4\u05D9\u05DD, \u05D1\u05DE\u05D4\u05D9\u05E8\u05D5\u05EA \u05D4\u05DB\u05D9 \u05D2\u05D1\u05D5\u05D4\u05D4"
+  };
+  var isListenMode = (m) => m === "rev" || m === "hear";
+  var WORLD_MODE = ["en2he", "tr", "picw", "let", "rev", "hear", "build", "mix"];
+  var FALLBACK = {
+    en2he: ["tr", "picw", "rev"],
+    tr: ["en2he", "picw", "let"],
+    picw: ["tr", "en2he"],
+    let: ["build", "tr", "en2he"],
+    rev: ["hear", "en2he", "tr"],
+    hear: ["rev", "tr", "en2he"],
+    build: ["let", "tr", "en2he"]
+  };
+  var DIFFS = {
+    easy: {
+      label: "\u05E7\u05DC",
+      mul: 0.75,
+      hearts: 5,
+      timeMul: 1.3,
+      timeAdd: 0.6,
+      densMul: 0.6,
+      spaceMul: 1.35,
+      simMul: 0.45,
+      options: 2,
+      hints: true,
+      reveal: true,
+      boss: -1,
+      lvlShift: -0.25,
+      comboCap: 0.12,
+      rate: 0.72,
+      desc: "\u05D0\u05D9\u05D8\u05D9 \u05DE\u05D0\u05D5\u05D3, 5 \u05DC\u05D1\u05D1\u05D5\u05EA, \u05D4\u05E8\u05D1\u05D4 \u05D6\u05DE\u05DF \u05DC\u05E2\u05E0\u05D5\u05EA, \u05E8\u05E7 2 \u05EA\u05E9\u05D5\u05D1\u05D5\u05EA \u05DC\u05D1\u05D7\u05D9\u05E8\u05D4, \u05E4\u05D7\u05D5\u05EA \u05DE\u05DB\u05E9\u05D5\u05DC\u05D9\u05DD \u05D5\u05E8\u05DE\u05D6\u05D9\u05DD \u05DE\u05D4\u05D9\u05E0\u05E9\u05D5\u05E3."
+    },
+    normal: {
+      label: "\u05E8\u05D2\u05D9\u05DC",
+      mul: 1,
+      hearts: 4,
+      timeMul: 1,
+      timeAdd: 0,
+      densMul: 1,
+      spaceMul: 1,
+      simMul: 1,
+      options: 3,
+      hints: true,
+      reveal: false,
+      boss: 0,
+      lvlShift: 0,
+      comboCap: 0.3,
+      rate: 0.82,
+      desc: "\u05DE\u05D4\u05D9\u05E8\u05D5\u05EA \u05E8\u05D2\u05D9\u05DC\u05D4, 4 \u05DC\u05D1\u05D1\u05D5\u05EA, 3 \u05EA\u05E9\u05D5\u05D1\u05D5\u05EA \u05DC\u05D1\u05D7\u05D9\u05E8\u05D4. \u05DB\u05DC \u05E9\u05DC\u05D1 \u05E7\u05E6\u05EA \u05D9\u05D5\u05EA\u05E8 \u05E7\u05E9\u05D4 \u05DE\u05D4\u05E7\u05D5\u05D3\u05DD."
+    },
+    hard: {
+      label: "\u05E7\u05E9\u05D4",
+      mul: 1.3,
+      hearts: 3,
+      timeMul: 0.8,
+      timeAdd: 0,
+      densMul: 1.3,
+      spaceMul: 0.88,
+      simMul: 1.6,
+      options: 3,
+      hints: false,
+      reveal: false,
+      boss: 2,
+      lvlShift: 0.25,
+      comboCap: 0.42,
+      rate: 0.92,
+      desc: "\u05DE\u05D4\u05D9\u05E8 \u05DE\u05D0\u05D5\u05D3, 3 \u05DC\u05D1\u05D1\u05D5\u05EA, \u05E4\u05D7\u05D5\u05EA \u05D6\u05DE\u05DF \u05DC\u05E2\u05E0\u05D5\u05EA, \u05EA\u05E9\u05D5\u05D1\u05D5\u05EA \u05D3\u05D5\u05DE\u05D5\u05EA \u05D5\u05DE\u05D1\u05DC\u05D1\u05DC\u05D5\u05EA, \u05DE\u05D9\u05DC\u05D9\u05DD \u05E7\u05E9\u05D5\u05EA, \u05D9\u05D5\u05EA\u05E8 \u05DE\u05DB\u05E9\u05D5\u05DC\u05D9\u05DD \u05D5\u05D1\u05DC\u05D9 \u05E8\u05DE\u05D6\u05D9\u05DD."
+    }
+  };
+  var SPEEDS = [
+    { v: 0.75, label: "\u05D0\u05D9\u05D8\u05D9 \u05DE\u05D0\u05D5\u05D3" },
+    { v: 0.9, label: "\u05D0\u05D9\u05D8\u05D9" },
+    { v: 1, label: "\u05E8\u05D2\u05D9\u05DC" },
+    { v: 1.15, label: "\u05DE\u05D4\u05D9\u05E8" }
+  ];
+  var GFX_OPTS = [
+    { v: "auto", label: "\u05D0\u05D5\u05D8\u05D5\u05DE\u05D8\u05D9" },
+    { v: "low", label: "\u05E0\u05DE\u05D5\u05DB\u05D4 (\u05E4\u05D9\u05E7\u05E1\u05DC\u05D9\u05DD)" },
+    { v: "medium", label: "\u05D1\u05D9\u05E0\u05D5\u05E0\u05D9\u05EA" },
+    { v: "high", label: "\u05D2\u05D1\u05D5\u05D4\u05D4" }
+  ];
+  var DEFAULT_SETTINGS = () => ({
+    difficulty: "normal",
+    types: { en2he: true, he2en: true, picture: true, missing: true, listen: true, hear: true, build: true },
+    speed: 1,
+    gfx: "auto",
+    sfx: 0.8,
+    voice: 1,
+    hints: true,
+    showAnswer: true
+  });
+  function normSettings(s) {
+    const d = DEFAULT_SETTINGS();
+    const o = Object.assign(d, s || {});
+    o.types = Object.assign(DEFAULT_SETTINGS().types, s && s.types || {});
+    if (!DIFFS[o.difficulty]) o.difficulty = "normal";
+    if (!SPEEDS.some((x) => x.v === o.speed)) o.speed = 1;
+    if (!GFX_OPTS.some((x) => x.v === o.gfx)) o.gfx = "auto";
+    o.sfx = Math.max(0, Math.min(1, +o.sfx || 0));
+    o.voice = Math.max(0, Math.min(1, o.voice == null ? 1 : +o.voice));
+    if (!QTYPES.some((q) => o.types[q.key])) o.types.en2he = true;
+    return o;
+  }
+  function enabledModes(set) {
+    return QTYPES.filter((q) => set.types[q.key]).map((q) => q.mode);
+  }
+  function worldMode(wid, set) {
+    const m = WORLD_MODE[Math.max(0, Math.min(WORLD_MODE.length - 1, (wid || 1) - 1))];
+    if (m === "mix") return "mix";
+    const en = enabledModes(set);
+    if (en.includes(m)) return m;
+    const alt = (FALLBACK[m] || []).find((x) => en.includes(x));
+    return alt || en[((wid || 1) - 1) % en.length] || "en2he";
+  }
+  function stageModes(wid, st, boss, set) {
+    const m = worldMode(wid, set);
+    if (m === "mix") {
+      const en = enabledModes(set);
+      return en.length ? en : ["en2he"];
+    }
+    return [m];
+  }
+  var clamp2 = (v, a, b) => Math.max(a, Math.min(b, v));
+  var r2 = (v) => +v.toFixed(2);
+  var STAGE_TYPES = [
+    ["wall", "low"],
+    ["wall", "hole", "low"],
+    ["wall", "hole", "beam", "low"],
+    ["wall", "hole", "beam", "roll", "low"],
+    ["wall", "hole", "beam", "roll", "low"],
+    ["wall", "hole", "beam", "roll"],
+    ["wall", "hole", "beam", "roll"]
+  ];
+  var LVL_MIX = [
+    [1, 0, 0],
+    [0.75, 0.25, 0],
+    [0.5, 0.38, 0.12],
+    [0.35, 0.4, 0.25],
+    [0.25, 0.4, 0.35],
+    [0.15, 0.4, 0.45],
+    [0.1, 0.35, 0.55],
+    [0.05, 0.3, 0.65]
+  ];
+  function difficultyFor(wid, st, boss, set) {
+    const k = clamp2((wid || 1) - 1, 0, 9);
+    const dk = set.difficulty in DIFFS ? set.difficulty : "normal";
+    const D = DIFFS[dk];
+    const easy = dk === "easy", hard = dk === "hard";
+    const i = boss ? 6 : clamp2(st || 0, 0, 5);
+    const p = boss ? 5.6 : i;
+    const m = D.mul;
+    const speed = r2((6.2 + 0.5 * k + 0.22 * p) * m);
+    const answerTime = r2(Math.max(hard ? 2 : 2.4, (5.2 - 0.3 * k - 0.12 * p) * D.timeMul + D.timeAdd));
+    const lead = r2(clamp2(answerTime * speed, 14, 70));
+    const density = r2(clamp2((0.28 + 0.07 * k + 0.05 * p) * D.densMul, 0.1, hard ? 0.97 : 0.9));
+    const spacing = r2(Math.max(8, 12.5 - 0.5 * k - 0.25 * p) * D.spaceMul);
+    const doubleBlock = easy ? 0 : r2(clamp2(0.05 + 0.06 * k + 0.02 * p + (hard ? 0.15 : 0), 0, 0.6));
+    const similarity = r2(clamp2((0.1 + 0.11 * k + 0.04 * p) * D.simMul, 0, 0.98));
+    const bossHP = Math.max(3, 4 + Math.floor(k * 0.6) + D.boss);
+    const options = D.options;
+    let mix = LVL_MIX[Math.min(k, LVL_MIX.length - 1)].slice();
+    const shift = D.lvlShift + 0.04 * p;
+    if (k === 0 && easy) mix = [1, 0, 0];
+    else {
+      const move = clamp2(shift, -mix[1] - mix[2], mix[0]);
+      if (move >= 0) {
+        mix[0] -= move;
+        mix[1] += move * 0.6;
+        mix[2] += move * 0.4;
+      } else {
+        const tot = mix[1] + mix[2] || 1;
+        mix[0] -= move;
+        mix[1] += move * mix[1] / tot;
+        mix[2] += move * mix[2] / tot;
+      }
+    }
+    mix = mix.map((x) => r2(Math.max(0, x)));
+    const picRiddle = easy || p <= 2;
+    const letMissing = !easy && p >= (hard ? 3 : 4) ? 2 : 1;
+    const letAny = p >= 2 || hard;
+    const spellModel = easy || !hard && p <= 1;
+    const letterSpeed = r2(clamp2(0.74 + 0.03 * k + 0.015 * p + (hard ? 0.06 : 0) - (easy ? 0.06 : 0), 0.66, 0.96));
+    const letterGap = +clamp2((16 - 0.6 * k - 0.3 * p) / m + (easy ? 2 : 0), 9, 19).toFixed(1);
+    const letterFirst = 18 + (easy ? 4 : 0);
+    const letterClear = +clamp2(8 - 0.4 * k - 0.15 * p, 4.5, 9).toFixed(1);
+    const letterObs = easy || k <= 1 ? 0 : r2(clamp2((0.06 * (k - 1) + 0.04 * p) * (hard ? 1.3 : 1), 0, 0.5));
+    const letterReach = r2(clamp2(1.35 - 0.05 * k - 0.02 * p + (easy ? 0.2 : 0) - (hard ? 0.1 : 0), 0.85, 1.55));
+    const letterSim = r2(similarity * 0.7);
+    const letterForgive = easy || !hard && p <= 1;
+    return {
+      level: dk,
+      speed,
+      answerTime,
+      lead,
+      density,
+      spacing,
+      doubleBlock,
+      similarity,
+      bossHP,
+      hearts: D.hearts,
+      options,
+      hints: D.hints,
+      reveal: D.reveal,
+      comboCap: D.comboCap,
+      rate: D.rate,
+      lvlMix: mix,
+      types: STAGE_TYPES[i].slice(),
+      picRiddle,
+      letMissing,
+      letAny,
+      spellModel,
+      letterSpeed,
+      letterGap,
+      letterFirst,
+      letterClear,
+      letterObs,
+      letterReach,
+      letterSim,
+      letterForgive
+    };
+  }
+
   // mila-quest/js/config.js
   var KEY = "milaQuestV2";
   var NEED_CLEAN = 3;
@@ -33348,16 +33599,7 @@
   ];
   var NSTAGES = 7;
   var BOSS_ST = 6;
-  var ST = [
-    [["\u05EA\u05E8\u05D2\u05D5\u05DD \u05DE\u05D9\u05DC\u05D9\u05DD", "tr"], ["\u05D4\u05D0\u05D6\u05E0\u05D4 \u05D5\u05E4\u05D9\u05E8\u05D5\u05E9", "rev"], ["\u05D0\u05D9\u05E1\u05D5\u05E3 \u05D0\u05D5\u05EA\u05D9\u05D5\u05EA", "build"], ["\u05D0\u05D5\u05EA \u05D7\u05E1\u05E8\u05D4", "let"], ["\u05EA\u05DE\u05D5\u05E0\u05D4 \u05D5\u05D7\u05D9\u05D3\u05D4", "picw"], ["\u05E1\u05D9\u05D1\u05D5\u05D1 \u05DE\u05D4\u05D9\u05E8", "mix"], ["\u05D0\u05EA\u05D2\u05E8 \u05D4\u05D1\u05D5\u05E1", "boss"]],
-    [["\u05EA\u05E8\u05D2\u05D5\u05DD \u05DE\u05D9\u05DC\u05D9\u05DD", "tr"], ["\u05D4\u05D0\u05D6\u05E0\u05D4 \u05D5\u05E4\u05D9\u05E8\u05D5\u05E9", "rev"], ["\u05D0\u05D5\u05EA \u05D7\u05E1\u05E8\u05D4", "let"], ["\u05D0\u05D9\u05E1\u05D5\u05E3 \u05D0\u05D5\u05EA\u05D9\u05D5\u05EA", "build"], ["\u05EA\u05DE\u05D5\u05E0\u05D4 \u05D5\u05D7\u05D9\u05D3\u05D4", "picw"], ["\u05E1\u05D9\u05D1\u05D5\u05D1 \u05DE\u05D4\u05D9\u05E8", "mix"], ["\u05D0\u05EA\u05D2\u05E8 \u05D4\u05D1\u05D5\u05E1", "boss"]],
-    [["\u05EA\u05E8\u05D2\u05D5\u05DD \u05DE\u05D9\u05DC\u05D9\u05DD", "tr"], ["\u05D4\u05D0\u05D6\u05E0\u05D4 \u05D5\u05E4\u05D9\u05E8\u05D5\u05E9", "rev"], ["\u05D0\u05D5\u05EA \u05D7\u05E1\u05E8\u05D4", "let"], ["\u05D0\u05D9\u05E1\u05D5\u05E3 \u05D0\u05D5\u05EA\u05D9\u05D5\u05EA", "build"], ["\u05EA\u05DE\u05D5\u05E0\u05D4 \u05D5\u05D7\u05D9\u05D3\u05D4", "picw"], ["\u05E1\u05D9\u05D1\u05D5\u05D1 \u05DE\u05D4\u05D9\u05E8", "mix"], ["\u05D0\u05EA\u05D2\u05E8 \u05D4\u05D1\u05D5\u05E1", "boss"]],
-    [["\u05EA\u05E8\u05D2\u05D5\u05DD \u05DE\u05D9\u05DC\u05D9\u05DD", "tr"], ["\u05D4\u05D0\u05D6\u05E0\u05D4 \u05D5\u05E4\u05D9\u05E8\u05D5\u05E9", "rev"], ["\u05D0\u05D9\u05E1\u05D5\u05E3 \u05D0\u05D5\u05EA\u05D9\u05D5\u05EA", "build"], ["\u05D0\u05D5\u05EA \u05D7\u05E1\u05E8\u05D4", "let"], ["\u05EA\u05DE\u05D5\u05E0\u05D4 \u05D5\u05D7\u05D9\u05D3\u05D4", "picw"], ["\u05E1\u05D9\u05D1\u05D5\u05D1 \u05DE\u05D4\u05D9\u05E8", "mix"], ["\u05D0\u05EA\u05D2\u05E8 \u05D4\u05D1\u05D5\u05E1", "boss"]],
-    [["\u05EA\u05E8\u05D2\u05D5\u05DD \u05DE\u05D9\u05DC\u05D9\u05DD", "tr"], ["\u05D4\u05D0\u05D6\u05E0\u05D4 \u05D5\u05E4\u05D9\u05E8\u05D5\u05E9", "rev"], ["\u05D0\u05D5\u05EA \u05D7\u05E1\u05E8\u05D4", "let"], ["\u05D0\u05D9\u05E1\u05D5\u05E3 \u05D0\u05D5\u05EA\u05D9\u05D5\u05EA", "build"], ["\u05EA\u05DE\u05D5\u05E0\u05D4 \u05D5\u05D7\u05D9\u05D3\u05D4", "picw"], ["\u05E1\u05D9\u05D1\u05D5\u05D1 \u05DE\u05D4\u05D9\u05E8", "mix"], ["\u05D0\u05EA\u05D2\u05E8 \u05D4\u05D1\u05D5\u05E1", "boss"]],
-    [["\u05EA\u05E8\u05D2\u05D5\u05DD \u05DE\u05D9\u05DC\u05D9\u05DD", "tr"], ["\u05D4\u05D0\u05D6\u05E0\u05D4 \u05D5\u05E4\u05D9\u05E8\u05D5\u05E9", "rev"], ["\u05D0\u05D9\u05E1\u05D5\u05E3 \u05D0\u05D5\u05EA\u05D9\u05D5\u05EA", "build"], ["\u05D0\u05D5\u05EA \u05D7\u05E1\u05E8\u05D4", "let"], ["\u05EA\u05DE\u05D5\u05E0\u05D4 \u05D5\u05D7\u05D9\u05D3\u05D4", "picw"], ["\u05E1\u05D9\u05D1\u05D5\u05D1 \u05DE\u05D4\u05D9\u05E8", "mix"], ["\u05D0\u05EA\u05D2\u05E8 \u05D4\u05D1\u05D5\u05E1", "boss"]],
-    [["\u05EA\u05E8\u05D2\u05D5\u05DD \u05DE\u05D9\u05DC\u05D9\u05DD", "tr"], ["\u05D4\u05D0\u05D6\u05E0\u05D4 \u05D5\u05E4\u05D9\u05E8\u05D5\u05E9", "rev"], ["\u05D0\u05D5\u05EA \u05D7\u05E1\u05E8\u05D4", "let"], ["\u05D0\u05D9\u05E1\u05D5\u05E3 \u05D0\u05D5\u05EA\u05D9\u05D5\u05EA", "build"], ["\u05EA\u05DE\u05D5\u05E0\u05D4 \u05D5\u05D7\u05D9\u05D3\u05D4", "picw"], ["\u05E1\u05D9\u05D1\u05D5\u05D1 \u05DE\u05D4\u05D9\u05E8", "mix"], ["\u05D0\u05EA\u05D2\u05E8 \u05D4\u05D1\u05D5\u05E1", "boss"]],
-    [["\u05EA\u05E8\u05D2\u05D5\u05DD \u05DE\u05D9\u05DC\u05D9\u05DD", "tr"], ["\u05D4\u05D0\u05D6\u05E0\u05D4 \u05D5\u05E4\u05D9\u05E8\u05D5\u05E9", "rev"], ["\u05D0\u05D9\u05E1\u05D5\u05E3 \u05D0\u05D5\u05EA\u05D9\u05D5\u05EA", "build"], ["\u05D0\u05D5\u05EA \u05D7\u05E1\u05E8\u05D4", "let"], ["\u05EA\u05DE\u05D5\u05E0\u05D4 \u05D5\u05D7\u05D9\u05D3\u05D4", "picw"], ["\u05E1\u05D9\u05D1\u05D5\u05D1 \u05DE\u05D4\u05D9\u05E8", "mix"], ["\u05D0\u05EA\u05D2\u05E8 \u05D4\u05D1\u05D5\u05E1", "boss"]]
-  ];
+  var ST = WORLD_MODE.map((m) => [0, 1, 2, 3, 4, 5].map(() => [MODE_LABEL[m], m]).concat([["\u05D0\u05EA\u05D2\u05E8 \u05D4\u05D1\u05D5\u05E1", "boss"]]));
   var WORLDS = [
     {
       id: 1,
@@ -33519,14 +33761,14 @@
     { id: "library", name: "\u05E1\u05E4\u05E8\u05E0\u05D9\u05DD", desc: "\u05D1\u05D9\u05E7\u05E8\u05EA\u05DD \u05D1\u05E1\u05E4\u05E8\u05D9\u05D9\u05EA \u05D4\u05DE\u05D9\u05DC\u05D9\u05DD \u05D4\u05D0\u05D1\u05D5\u05D3\u05D5\u05EA" }
   ];
   var INTRO = [
-    "\u05EA\u05E8\u05D2\u05DE\u05D5 \u05DE\u05D9\u05DC\u05D4 \u05DE\u05E2\u05D1\u05E8\u05D9\u05EA \u05DC\u05D0\u05E0\u05D2\u05DC\u05D9\u05EA \u05D5\u05E8\u05E6\u05D5 \u05D0\u05DC \u05D4\u05E9\u05DC\u05D8 \u05D4\u05E0\u05DB\u05D5\u05DF. \u05E7\u05E4\u05E6\u05D5 \u05DE\u05E2\u05DC \u05D1\u05D5\u05E8\u05D5\u05EA \u05D5\u05DE\u05DB\u05E9\u05D5\u05DC\u05D9\u05DD!",
-    "\u05EA\u05E8\u05D2\u05DE\u05D5 \u05E2\u05DC \u05D4\u05E1\u05D9\u05E4\u05D5\u05DF \u05D5\u05E8\u05E6\u05D5 \u05D1\u05D9\u05DF \u05D4\u05E9\u05E2\u05E8\u05D9\u05DD. \u05D6\u05D4\u05E8\u05D5 \u05DE\u05E7\u05D9\u05E8\u05D5\u05EA \u05D5\u05D7\u05D1\u05D9\u05D5\u05EA \u05DE\u05EA\u05D2\u05DC\u05D2\u05DC\u05D5\u05EA!",
-    "\u05EA\u05E8\u05D2\u05DE\u05D5 \u05E2\u05DC \u05D2\u05D2\u05D5\u05EA \u05D4\u05E2\u05D9\u05E8 \u05D4\u05E7\u05E1\u05D5\u05DE\u05D4. \u05D4\u05DE\u05E1\u05DC\u05D5\u05DC \u05DE\u05EA\u05E2\u05E7\u05DC \u05D5\u05D4\u05EA\u05D0\u05D5\u05E8\u05D4 \u05DE\u05E9\u05EA\u05E0\u05D4!",
-    "\u05EA\u05E8\u05D2\u05DE\u05D5 \u05D1\u05D9\u05DF \u05D4\u05DB\u05D5\u05DB\u05D1\u05D9\u05DD. \u05D4\u05EA\u05D7\u05DE\u05E7\u05D5 \u05DE\u05DE\u05D8\u05D0\u05D5\u05E8\u05D9\u05DD \u05D5\u05DE\u05E7\u05D9\u05E8\u05D5\u05EA \u05D1\u05D0\u05D5\u05E8 \u05D4\u05D7\u05DC\u05DC!",
-    "\u05EA\u05E8\u05D2\u05DE\u05D5 \u05E2\u05DC \u05D3\u05E8\u05DA \u05D4\u05E7\u05E8\u05D7 \u05D4\u05D7\u05DC\u05E7\u05D4. \u05DE\u05DC\u05DB\u05EA \u05D4\u05E7\u05E8\u05D7 \u05DE\u05D7\u05DB\u05D4 \u05D1\u05E1\u05D5\u05E3 \u05D4\u05D3\u05E8\u05DA!",
-    "\u05E8\u05D5\u05E6\u05D5 \u05D1\u05D9\u05DF \u05D4\u05E4\u05D9\u05E8\u05DE\u05D9\u05D3\u05D5\u05EA \u05D5\u05D4\u05D3\u05D9\u05D5\u05E0\u05D5\u05EA. \u05D4\u05D9\u05D6\u05D4\u05E8\u05D5 \u05DE\u05D7\u05D5\u05DC \u05D8\u05D5\u05D1\u05E2\u05E0\u05D9 \u05D5\u05DE\u05D2\u05DC\u05D2\u05DC\u05D9 \u05E7\u05D5\u05E6\u05D9\u05DD!",
-    "\u05E6\u05DC\u05DC\u05D5 \u05DC\u05DE\u05E2\u05DE\u05E7\u05D9 \u05D4\u05D9\u05DD! \u05E8\u05D5\u05E6\u05D5 \u05D1\u05D9\u05DF \u05D4\u05D0\u05DC\u05DE\u05D5\u05D2\u05D9\u05DD \u05D5\u05D4\u05EA\u05D7\u05DE\u05E7\u05D5 \u05DE\u05D3\u05D2\u05D9 \u05D0\u05D1\u05D5\u05BE\u05E0\u05E4\u05D7\u05D0.",
-    "\u05D4\u05E2\u05D5\u05DC\u05DD \u05D4\u05DB\u05D9 \u05E7\u05E9\u05D4: \u05E0\u05D4\u05E8\u05D5\u05EA \u05DC\u05D1\u05D4, \u05D0\u05D1\u05E0\u05D9 \u05D0\u05E9 \u05D5\u05D3\u05D9\u05E0\u05D5\u05D6\u05D0\u05D5\u05E8\u05D9\u05DD. \u05D1\u05D4\u05E6\u05DC\u05D7\u05D4, \u05D2\u05D9\u05D1\u05D5\u05E8\u05D9\u05DD!"
+    "\u05E2\u05D5\u05DC\u05DD \u05D4\u05EA\u05E8\u05D2\u05D5\u05DD \u05DC\u05E2\u05D1\u05E8\u05D9\u05EA: \u05E8\u05D5\u05D0\u05D9\u05DD \u05DE\u05D9\u05DC\u05D4 \u05D1\u05D0\u05E0\u05D2\u05DC\u05D9\u05EA \u05D5\u05E8\u05E6\u05D9\u05DD \u05D0\u05DC \u05D4\u05E9\u05DC\u05D8 \u05E2\u05DD \u05D4\u05EA\u05E8\u05D2\u05D5\u05DD \u05D4\u05E0\u05DB\u05D5\u05DF. \u05E7\u05E4\u05E6\u05D5 \u05DE\u05E2\u05DC \u05D1\u05D5\u05E8\u05D5\u05EA \u05D5\u05DE\u05DB\u05E9\u05D5\u05DC\u05D9\u05DD!",
+    "\u05E2\u05D5\u05DC\u05DD \u05D4\u05EA\u05E8\u05D2\u05D5\u05DD \u05DC\u05D0\u05E0\u05D2\u05DC\u05D9\u05EA: \u05E8\u05D5\u05D0\u05D9\u05DD \u05DE\u05D9\u05DC\u05D4 \u05D1\u05E2\u05D1\u05E8\u05D9\u05EA \u05D5\u05E8\u05E6\u05D9\u05DD \u05D0\u05DC \u05D4\u05DE\u05D9\u05DC\u05D4 \u05D4\u05E0\u05DB\u05D5\u05E0\u05D4 \u05D1\u05D0\u05E0\u05D2\u05DC\u05D9\u05EA. \u05D6\u05D4\u05E8\u05D5 \u05DE\u05D7\u05D1\u05D9\u05D5\u05EA \u05DE\u05EA\u05D2\u05DC\u05D2\u05DC\u05D5\u05EA!",
+    "\u05E2\u05D5\u05DC\u05DD \u05D4\u05EA\u05DE\u05D5\u05E0\u05D5\u05EA: \u05E8\u05D5\u05D0\u05D9\u05DD \u05EA\u05DE\u05D5\u05E0\u05D4 \u05D5\u05E8\u05E6\u05D9\u05DD \u05D0\u05DC \u05D4\u05DE\u05D9\u05DC\u05D4 \u05D1\u05D0\u05E0\u05D2\u05DC\u05D9\u05EA. \u05D1\u05E9\u05DC\u05D1\u05D9\u05DD \u05D4\u05DE\u05EA\u05E7\u05D3\u05DE\u05D9\u05DD \u05D0\u05D9\u05DF \u05D7\u05D9\u05D3\u05D4 \u2013 \u05E8\u05E7 \u05EA\u05DE\u05D5\u05E0\u05D4!",
+    "\u05E2\u05D5\u05DC\u05DD \u05D4\u05D0\u05D5\u05EA \u05D4\u05D7\u05E1\u05E8\u05D4: \u05D4\u05E9\u05DC\u05D9\u05DE\u05D5 \u05D0\u05EA \u05D4\u05D0\u05D5\u05EA \u05E9\u05D7\u05E1\u05E8\u05D4 \u05D1\u05DE\u05D9\u05DC\u05D4. \u05D1\u05D4\u05DE\u05E9\u05DA \u05D9\u05D7\u05E1\u05E8\u05D5 \u05E9\u05EA\u05D9 \u05D0\u05D5\u05EA\u05D9\u05D5\u05EA!",
+    "\u05E2\u05D5\u05DC\u05DD \u05D4\u05D4\u05D0\u05D6\u05E0\u05D4: \u05E9\u05D5\u05DE\u05E2\u05D9\u05DD \u05DE\u05D9\u05DC\u05D4 \u05D1\u05D0\u05E0\u05D2\u05DC\u05D9\u05EA \u2013 \u05D1\u05DC\u05D9 \u05DC\u05E8\u05D0\u05D5\u05EA \u05D0\u05D5\u05EA\u05D4 \u2013 \u05D5\u05E8\u05E6\u05D9\u05DD \u05D0\u05DC \u05D4\u05E4\u05D9\u05E8\u05D5\u05E9 \u05D1\u05E2\u05D1\u05E8\u05D9\u05EA. \u{1F50A} \u05D0\u05E4\u05E9\u05E8 \u05DC\u05E9\u05DE\u05D5\u05E2 \u05E9\u05D5\u05D1.",
+    "\u05E2\u05D5\u05DC\u05DD \u05D4\u05E9\u05DE\u05D9\u05E2\u05D4 \u05D1\u05DC\u05D1\u05D3: \u05E9\u05D5\u05DE\u05E2\u05D9\u05DD \u05DE\u05D9\u05DC\u05D4 \u05D1\u05D0\u05E0\u05D2\u05DC\u05D9\u05EA \u05D5\u05E8\u05E6\u05D9\u05DD \u05D0\u05DC \u05D0\u05D5\u05EA\u05D4 \u05DE\u05D9\u05DC\u05D4 \u05D1\u05D0\u05E0\u05D2\u05DC\u05D9\u05EA. \u05D0\u05D9\u05DF \u05E2\u05D1\u05E8\u05D9\u05EA \u05D5\u05D0\u05D9\u05DF \u05E8\u05DE\u05D6\u05D9\u05DD \u05DB\u05EA\u05D5\u05D1\u05D9\u05DD!",
+    "\u05E2\u05D5\u05DC\u05DD \u05D4\u05D0\u05D9\u05D5\u05EA: \u05D0\u05D5\u05E1\u05E4\u05D9\u05DD \u05D0\u05EA \u05D4\u05D0\u05D5\u05EA\u05D9\u05D5\u05EA \u05E9\u05DC \u05D4\u05DE\u05D9\u05DC\u05D4 \u05D1\u05D0\u05E0\u05D2\u05DC\u05D9\u05EA \u05DC\u05E4\u05D9 \u05D4\u05E1\u05D3\u05E8.",
+    "\u05D4\u05E2\u05D5\u05DC\u05DD \u05D4\u05D0\u05D7\u05E8\u05D5\u05DF: \u05DB\u05DC \u05E1\u05D5\u05D2\u05D9 \u05D4\u05EA\u05E8\u05D2\u05D9\u05DC\u05D9\u05DD \u05DE\u05EA\u05D7\u05DC\u05E4\u05D9\u05DD, \u05D4\u05DB\u05D9 \u05DE\u05D4\u05E8 \u05D5\u05D4\u05DB\u05D9 \u05E7\u05E9\u05D4. \u05D1\u05D4\u05E6\u05DC\u05D7\u05D4, \u05D2\u05D9\u05D1\u05D5\u05E8\u05D9\u05DD!"
   ];
 
   // mila-quest/js/gfx.js
@@ -37905,152 +38147,6 @@
     }));
   }
 
-  // mila-quest/js/settings.js
-  var QTYPES = [
-    // key in settings.types, internal runner mode, Hebrew label (settings + stage tiles)
-    { key: "he2en", mode: "tr", label: "\u05EA\u05E8\u05D2\u05D5\u05DD \u05DE\u05E2\u05D1\u05E8\u05D9\u05EA \u05DC\u05D0\u05E0\u05D2\u05DC\u05D9\u05EA" },
-    { key: "en2he", mode: "en2he", label: "\u05EA\u05E8\u05D2\u05D5\u05DD \u05DE\u05D0\u05E0\u05D2\u05DC\u05D9\u05EA \u05DC\u05E2\u05D1\u05E8\u05D9\u05EA" },
-    { key: "listen", mode: "rev", label: "\u05D4\u05D0\u05D6\u05E0\u05D4 \u05D5\u05E4\u05D9\u05E8\u05D5\u05E9" },
-    { key: "build", mode: "build", label: "\u05D0\u05D9\u05E1\u05D5\u05E3 \u05D0\u05D5\u05EA\u05D9\u05D5\u05EA" },
-    { key: "missing", mode: "let", label: "\u05D0\u05D5\u05EA \u05D7\u05E1\u05E8\u05D4" },
-    { key: "picture", mode: "picw", label: "\u05EA\u05DE\u05D5\u05E0\u05D4 \u05D5\u05D7\u05D9\u05D3\u05D4" }
-  ];
-  var MODE_LABEL = { tr: "\u05EA\u05E8\u05D2\u05D5\u05DD \u05DC\u05D0\u05E0\u05D2\u05DC\u05D9\u05EA", en2he: "\u05EA\u05E8\u05D2\u05D5\u05DD \u05DC\u05E2\u05D1\u05E8\u05D9\u05EA", rev: "\u05D4\u05D0\u05D6\u05E0\u05D4 \u05D5\u05E4\u05D9\u05E8\u05D5\u05E9", build: "\u05D0\u05D9\u05E1\u05D5\u05E3 \u05D0\u05D5\u05EA\u05D9\u05D5\u05EA", let: "\u05D0\u05D5\u05EA \u05D7\u05E1\u05E8\u05D4", picw: "\u05EA\u05DE\u05D5\u05E0\u05D4 \u05D5\u05D7\u05D9\u05D3\u05D4", mix: "\u05E1\u05D9\u05D1\u05D5\u05D1 \u05DE\u05D4\u05D9\u05E8" };
-  var DIFFS = {
-    easy: { label: "\u05E7\u05DC", mul: 0.85, hearts: 4, lead: 6, boss: -1, lvlShift: -0.15 },
-    normal: { label: "\u05E8\u05D2\u05D9\u05DC", mul: 1, hearts: 3, lead: 0, boss: 0, lvlShift: 0 },
-    hard: { label: "\u05E7\u05E9\u05D4", mul: 1.12, hearts: 3, lead: -3, boss: 1, lvlShift: 0.15 }
-  };
-  var SPEEDS = [
-    { v: 0.75, label: "\u05D0\u05D9\u05D8\u05D9 \u05DE\u05D0\u05D5\u05D3" },
-    { v: 0.9, label: "\u05D0\u05D9\u05D8\u05D9" },
-    { v: 1, label: "\u05E8\u05D2\u05D9\u05DC" },
-    { v: 1.15, label: "\u05DE\u05D4\u05D9\u05E8" }
-  ];
-  var GFX_OPTS = [
-    { v: "auto", label: "\u05D0\u05D5\u05D8\u05D5\u05DE\u05D8\u05D9" },
-    { v: "low", label: "\u05E0\u05DE\u05D5\u05DB\u05D4 (\u05E4\u05D9\u05E7\u05E1\u05DC\u05D9\u05DD)" },
-    { v: "medium", label: "\u05D1\u05D9\u05E0\u05D5\u05E0\u05D9\u05EA" },
-    { v: "high", label: "\u05D2\u05D1\u05D5\u05D4\u05D4" }
-  ];
-  var DEFAULT_SETTINGS = () => ({
-    difficulty: "normal",
-    types: { he2en: true, en2he: true, listen: true, build: true, missing: true, picture: true },
-    speed: 1,
-    gfx: "auto",
-    sfx: 0.8,
-    voice: 1,
-    hints: true,
-    showAnswer: true
-  });
-  function normSettings(s) {
-    const d = DEFAULT_SETTINGS();
-    const o = Object.assign(d, s || {});
-    o.types = Object.assign(DEFAULT_SETTINGS().types, s && s.types || {});
-    if (!DIFFS[o.difficulty]) o.difficulty = "normal";
-    if (!SPEEDS.some((x) => x.v === o.speed)) o.speed = 1;
-    if (!GFX_OPTS.some((x) => x.v === o.gfx)) o.gfx = "auto";
-    o.sfx = Math.max(0, Math.min(1, +o.sfx || 0));
-    o.voice = Math.max(0, Math.min(1, o.voice == null ? 1 : +o.voice));
-    if (!QTYPES.some((q) => o.types[q.key])) o.types.he2en = true;
-    return o;
-  }
-  function enabledModes(set) {
-    return QTYPES.filter((q) => set.types[q.key]).map((q) => q.mode);
-  }
-  function stageModes(stageMode, st, boss, set) {
-    const en = enabledModes(set);
-    if (boss || stageMode === "mix") return en.length ? en : ["tr"];
-    if (stageMode === "tr") {
-      const tr = en.filter((m) => m === "tr" || m === "en2he");
-      if (tr.length) return tr;
-    } else if (en.includes(stageMode)) return [stageMode];
-    const alt = en[st % en.length];
-    return [alt || "tr"];
-  }
-  var clamp2 = (v, a, b) => Math.max(a, Math.min(b, v));
-  var STAGE_BASE = [
-    { spd: 0, dens: 0.3, types: ["wall", "low"] },
-    { spd: 0.25, dens: 0.42, types: ["wall", "hole", "low"] },
-    { spd: 0.5, dens: 0.52, types: ["wall", "hole", "beam", "low"] },
-    { spd: 0.75, dens: 0.62, types: ["wall", "hole", "beam", "roll"] },
-    { spd: 0.6, dens: 0.58, types: ["wall", "hole", "beam", "low"] },
-    { spd: 1, dens: 0.66, types: ["wall", "hole", "beam", "roll"] },
-    { spd: 0.55, dens: 0.6, types: ["wall", "hole", "beam", "roll"] }
-  ];
-  var BOSS_I = 6;
-  var LVL_MIX = [
-    [1, 0, 0],
-    [0.75, 0.25, 0],
-    [0.45, 0.4, 0.15],
-    [0.3, 0.4, 0.3],
-    [0.2, 0.35, 0.45],
-    [0.15, 0.35, 0.5],
-    [0.1, 0.35, 0.55],
-    [0.05, 0.3, 0.65]
-  ];
-  function difficultyFor(wid, st, boss, set) {
-    const k = clamp2((wid || 1) - 1, 0, 9);
-    const D = DIFFS[set.difficulty] || DIFFS.normal;
-    const i = boss ? BOSS_I : clamp2(st, 0, 5);
-    const sb = STAGE_BASE[i];
-    const m = D.mul;
-    const kk = Math.min(k, 4), ke = Math.max(0, k - 4);
-    const speed = +((6.6 + 0.6 * kk + 0.35 * ke + sb.spd) * m).toFixed(2);
-    const lead = Math.max(16, 26 - 1.5 * kk - 1 * ke + D.lead - (i === 5 ? 1.5 : 0));
-    const density = +clamp2(sb.dens * (0.7 + 0.12 * kk + 0.06 * ke) * m, 0.12, 0.95).toFixed(2);
-    const spacing = +(Math.max(8.5, 12 - 0.6 * kk - 0.35 * ke) / m).toFixed(2);
-    const doubleBlock = +clamp2(0.06 + 0.07 * k, 0, 0.5).toFixed(2);
-    const similarity = +clamp2((0.1 + 0.2 * k) * m + (i >= 3 ? 0.08 : 0), 0, 0.95).toFixed(2);
-    const bossHP = Math.max(3, 4 + kk + Math.ceil(ke / 2) + D.boss);
-    let mix = LVL_MIX[Math.min(k, LVL_MIX.length - 1)].slice();
-    const shift = D.lvlShift + 0.03 * i;
-    if (k === 0 && D.lvlShift <= 0) mix = [1, 0, 0];
-    else if (k > 0 || shift > 0) {
-      const move = clamp2(shift, -mix[1] - mix[2], mix[0]);
-      if (move >= 0) {
-        mix[0] -= move;
-        mix[1] += move * 0.6;
-        mix[2] += move * 0.4;
-      } else {
-        const tot = mix[1] + mix[2] || 1;
-        mix[0] -= move;
-        mix[1] += move * mix[1] / tot;
-        mix[2] += move * mix[2] / tot;
-      }
-    }
-    mix = mix.map((x) => +Math.max(0, x).toFixed(2));
-    const easy = set.difficulty === "easy", hard = set.difficulty === "hard";
-    const letterSpeed = +clamp2(0.78 + 0.03 * k + (hard ? 0.04 : 0) - (easy ? 0.04 : 0), 0.72, 0.92).toFixed(2);
-    const letterGap = +clamp2((15 - 0.6 * k) / m + (easy ? 2 : 0), 11, 18).toFixed(1);
-    const letterFirst = 18 + (easy ? 4 : 0);
-    const letterClear = +clamp2(8 - 0.5 * k, 5, 9).toFixed(1);
-    const letterObs = k <= 1 || easy ? 0 : +clamp2(0.12 * (k - 1) * m, 0, 0.45).toFixed(2);
-    const letterReach = +clamp2(1.3 - 0.06 * k + (easy ? 0.2 : 0), 0.9, 1.5).toFixed(2);
-    const letterSim = +(similarity * 0.6).toFixed(2);
-    const letterForgive = easy || !hard && k <= 1 || k === 0;
-    return {
-      speed,
-      lead,
-      density,
-      spacing,
-      doubleBlock,
-      similarity,
-      bossHP,
-      hearts: D.hearts,
-      lvlMix: mix,
-      types: sb.types.slice(),
-      letterSpeed,
-      letterGap,
-      letterFirst,
-      letterClear,
-      letterObs,
-      letterReach,
-      letterSim,
-      letterForgive
-    };
-  }
-
   // mila-quest/js/game.js
   var GPU_INFO = "";
   function hasWebGL() {
@@ -38141,26 +38237,40 @@
     },
     jump: () => tone(620, 0.07, "square", 0.03)
   };
-  function say(w) {
-    const vol = S.settings ? S.settings.voice : 1;
-    if (muted || vol <= 0 || !window.speechSynthesis) return;
+  function say(w, rate, force) {
+    let vol = S.settings ? S.settings.voice : 1;
+    if (force) vol = Math.max(vol, 0.7);
+    else if (muted || vol <= 0) return;
+    if (!window.speechSynthesis) return;
     try {
       const u = new SpeechSynthesisUtterance(w);
       u.lang = "en-US";
-      u.rate = 0.82;
+      u.rate = rate || 0.82;
       u.volume = vol;
       speechSynthesis.cancel();
       speechSynthesis.speak(u);
     } catch (e) {
     }
   }
+  function sayCurrent(slow, force) {
+    if (!run || !run.cur) return;
+    const D = run.layout && run.layout.diff;
+    const r = D && D.rate || 0.82;
+    say(run.cur.en, slow ? Math.max(0.55, r - 0.22) : r, force);
+  }
   $("mute").textContent = muted ? "\u{1F507}" : "\u{1F50A}";
-  $("mute").onclick = () => {
+  function toggleMute() {
     muted = !muted;
     S.muted = muted;
     save();
     $("mute").textContent = muted ? "\u{1F507}" : "\u{1F50A}";
-  };
+    if ($("btn-hud-mute")) $("btn-hud-mute").textContent = muted ? "\u{1F507}" : "\u{1F50A}";
+  }
+  $("mute").onclick = toggleMute;
+  if ($("btn-hud-mute")) {
+    $("btn-hud-mute").textContent = muted ? "\u{1F507}" : "\u{1F50A}";
+    $("btn-hud-mute").onclick = toggleMute;
+  }
   var starSum = () => Object.values(S.prog).reduce((a, b) => a + b, 0);
   var stDone = (w, t) => !!S.prog[w + "-" + t];
   var bossDone = (wid) => !!S.prog[wid + "-" + BOSS_ST];
@@ -38218,6 +38328,7 @@
     hideAll();
     $(id).classList.remove("hidden");
     syncDevButton(id);
+    document.body.dataset.ui = id;
   }
   function showModal(html) {
     $("modal-box").innerHTML = html;
@@ -38242,17 +38353,27 @@
   function stageLabel(i, k) {
     const t = ST[i][k];
     if (t[1] === "boss") return t[0];
-    const ms = stageModes(runnerModeOf(t[1]), k, false, S.settings);
-    if (t[1] === "tr" && ms.length === 1 && (ms[0] === "en2he" || ms[0] === "tr")) return MODE_LABEL[ms[0]];
-    if (ms.length === 1 && ms[0] !== runnerModeOf(t[1])) return MODE_LABEL[ms[0]] || t[0];
-    return t[0];
+    return MODE_LABEL[worldMode(i + 1, S.settings)] || t[0];
+  }
+  function stageTwist(i, k) {
+    const m = worldMode(i + 1, S.settings);
+    const D = difficultyFor(i + 1, k, k === BOSS_ST, S.settings);
+    let t = "";
+    if (m === "picw") t = D.picRiddle ? "\u05EA\u05DE\u05D5\u05E0\u05D4 + \u05D7\u05D9\u05D3\u05D4" : "\u05EA\u05DE\u05D5\u05E0\u05D4 \u05D1\u05DC\u05D1\u05D3";
+    else if (m === "let") t = D.letMissing >= 2 ? "\u05E9\u05EA\u05D9 \u05D0\u05D5\u05EA\u05D9\u05D5\u05EA" : "\u05D0\u05D5\u05EA \u05D0\u05D7\u05EA";
+    else if (m === "build") t = D.spellModel ? "\u05E2\u05DD \u05D3\u05D5\u05D2\u05DE\u05D4" : "\u05D1\u05DC\u05D9 \u05D3\u05D5\u05D2\u05DE\u05D4";
+    const fire = "\u26A1".repeat(Math.min(5, 1 + Math.floor((i * 6 + Math.min(k, 6)) / 10)));
+    return `<div class="t-twist">${t ? esc(t) + " \xB7 " : ""}${fire}</div>`;
+  }
+  function worldTypeLabel(i) {
+    return MODE_LABEL[worldMode(i + 1, S.settings)] || "";
   }
   function renderWorldChips() {
     const box = $("world-chips");
     if (!box) return;
     box.innerHTML = WORLDS.map((w, i) => {
       const done = ST[i].filter((_, k) => stDone(w.id, k)).length;
-      return `<button class="wchip${i === selectedWorld ? " sel" : ""}${wOpen(i) ? "" : " lock"}" data-w="${i}">${w.icon} ${esc(w.name)} ${wOpen(i) ? done + "/" + NSTAGES : "\u{1F512}"}</button>`;
+      return `<button class="wchip${i === selectedWorld ? " sel" : ""}${wOpen(i) ? "" : " lock"}" data-w="${i}">${w.icon} ${esc(w.name)} <span class="wtype">${esc(worldTypeLabel(i))}</span> ${wOpen(i) ? done + "/" + NSTAGES : "\u{1F512}"}</button>`;
     }).join("");
     box.onclick = (e) => {
       const b = e.target.closest("[data-w]");
@@ -38272,11 +38393,13 @@
   function renderStages() {
     const i = selectedWorld;
     const w = WORLDS[i];
+    const wt = $("world-type");
+    if (wt) wt.innerHTML = `${w.icon} <b>${esc(w.name)}</b> \xB7 ${esc(worldTypeLabel(i))}: ${esc(MODE_DESC[worldMode(i + 1, S.settings)] || "")}`;
     $("stage-bar").innerHTML = ST[i].map((t, k) => {
       const op = sOpen(i, k);
       const n = S.prog[w.id + "-" + k] || 0;
       return `<button class="tile${k === BOSS_ST ? " boss" : ""}" data-st="${k}" ${op ? "" : "disabled"}>
-      <small>${k === BOSS_ST ? "\u2694\uFE0F \u05D1\u05D5\u05E1" : "\u05E9\u05DC\u05D1 " + (k + 1)}</small><div class="t-mode">${stageLabel(i, k)}</div>
+      <small>${k === BOSS_ST ? "\u2694\uFE0F \u05D1\u05D5\u05E1" : "\u05E9\u05DC\u05D1 " + (k + 1)}</small><div class="t-mode">${stageLabel(i, k)}</div>${stageTwist(i, k)}
       <div class="t-scene">${esc(stageSceneName(w.id, k))}</div>
       <div>${op ? n ? "\u2B50".repeat(n) : "\u25B6" : "\u{1F512}"}</div>
     </button>`;
@@ -38461,11 +38584,33 @@
   runLights.key = playerKey;
   lightsReady = true;
   applyLightTier();
-  addEventListener("resize", () => {
-    camera.aspect = innerWidth / innerHeight;
+  var BASE_FOV = 52;
+  var viewW = 0;
+  var viewH = 0;
+  function fitView(force) {
+    const w = Math.max(1, innerWidth), h = Math.max(1, innerHeight);
+    if (!force && w === viewW && h === viewH) return false;
+    viewW = w;
+    viewH = h;
+    const a = w / h;
+    camera.aspect = a;
+    const minA = 1.25;
+    camera.fov = a >= minA ? BASE_FOV : Math.min(80, 2 * Math.atan(Math.tan(BASE_FOV * Math.PI / 360) * minA / a) * 180 / Math.PI);
     camera.updateProjectionMatrix();
+    document.documentElement.classList.toggle("portrait", a < 0.9);
+    document.documentElement.classList.toggle("short", h <= 520);
     applyQuality();
-  });
+    return true;
+  }
+  var refit = () => {
+    fitView();
+    setTimeout(fitView, 120);
+    setTimeout(fitView, 450);
+  };
+  addEventListener("resize", refit);
+  addEventListener("orientationchange", refit);
+  if (window.visualViewport) visualViewport.addEventListener("resize", refit);
+  fitView(true);
   function normAsset(u) {
     try {
       u = decodeURI(u);
@@ -39615,6 +39760,7 @@
       sign2.position.set(xs[i], 2.32, 0.2);
       sign2.name = "laneSign";
       sign2.userData.lane = i;
+      if (opt === CLOSED && sign2.children[0] && sign2.children[0].material) sign2.children[0].material.color.setHex(9079434);
       g.add(sign2);
     });
     if (!run || run.i % 2 === 0) {
@@ -39636,11 +39782,6 @@
     });
     obstacles.forEach((o) => disposeDeep(o.mesh));
     gates.length = coins.length = obstacles.length = letters.length = 0;
-  }
-  function runnerModeOf(mode) {
-    if (mode === "match") return "tr";
-    if (mode === "memory" || mode === "pic") return "rev";
-    return mode;
   }
   function laneXs() {
     const span = run && run.layout && run.layout.narrow ? 1.7 : 2;
@@ -39773,6 +39914,7 @@
       const el = $("lane-opt-" + i);
       if (!el) return;
       el.textContent = o;
+      el.classList.toggle("closed", o === CLOSED);
       const n = String(o).length;
       el.style.fontSize = n >= 12 ? "18px" : n >= 10 ? "22px" : n >= 8 ? "26px" : n >= 6 ? "30px" : "";
     });
@@ -39807,6 +39949,24 @@
     return c;
   })();
   var picOK = (w) => !!(w && w.pic && PIC_COUNT[w.pic] === 1);
+  var CLOSED = "\u2716";
+  function laneOptions(answer, wrong, nOpts) {
+    const list = shuffle([answer, ...wrong.slice(0, Math.max(1, nOpts - 1))]);
+    while (list.length < 3) list.splice(Math.floor(Math.random() * (list.length + 1)), 0, CLOSED);
+    return list.slice(0, 3);
+  }
+  function pairDistractors(pair, k, sim) {
+    const out = /* @__PURE__ */ new Set();
+    let guard = 0;
+    while (out.size < k && guard++ < 60) {
+      const which = guard % 3;
+      const a = which === 1 ? pair[0] : letterDistractors(pair[0], 1, sim)[0];
+      const b = which === 2 ? pair[1] : letterDistractors(pair[1], 1, sim)[0];
+      const c = a + b;
+      if (c !== pair) out.add(c);
+    }
+    return [...out];
+  }
   function setupQuestion() {
     if (!run || run.i >= run.queue.length) return;
     clearLetters();
@@ -39819,26 +39979,32 @@
     if (isSpellMode(mode) && !spellOK(w)) mode = modes.find((m) => !isSpellMode(m)) || "en2he";
     if (mode === "picw" && !picOK(w)) mode = modes.find((m) => m !== "picw" && !isSpellMode(m)) || "tr";
     run.activeMode = mode;
-    const sim = run.layout && run.layout.diff && run.layout.diff.similarity || 0;
+    const D = run.layout && run.layout.diff || {};
+    const sim = D.similarity || 0;
+    const nOpts = D.options || 3;
+    $("prompt").classList.toggle("listen", isListenMode(mode));
     if (mode === "build") {
       setLaneOpts(null);
       setPrompt("\u05D0\u05E1\u05E4\u05D5 \u05D0\u05EA \u05D4\u05D0\u05D5\u05EA\u05D9\u05D5\u05EA \u05DC\u05E4\u05D9 \u05D4\u05E1\u05D3\u05E8", w.he, w.pic);
       spawnLetterWord(w);
       return;
     }
-    let opts, ans, sub, q, emoji = "";
+    let opts, sub, q, emoji = "", answer, extraT = 0;
     if (mode === "let") {
       const E = w.en.toUpperCase();
-      const k = E.length <= 3 ? 1 : 1 + Math.floor(Math.random() * (E.length - 2));
-      const c = E[k];
-      opts = shuffle([c, ...letterDistractors(c, 2, sim)]);
-      ans = opts.indexOf(c);
-      sub = "\u05D0\u05D9\u05D6\u05D5 \u05D0\u05D5\u05EA \u05D7\u05E1\u05E8\u05D4?";
-      q = `<span class="en">${esc(E.slice(0, k))}_${esc(E.slice(k + 1))}</span>`;
-      emoji = w.pic;
+      const two = (D.letMissing || 1) >= 2 && E.length >= 5;
+      const span = two ? 2 : 1;
+      const lo = D.letAny ? 0 : 1, hi = D.letAny ? E.length - span : E.length - span - 1;
+      const kk = E.length <= 3 ? 1 : lo + Math.floor(Math.random() * Math.max(1, hi - lo + 1));
+      answer = E.slice(kk, kk + span);
+      opts = laneOptions(answer, two ? pairDistractors(answer, 2, sim) : letterDistractors(answer, 2, sim), nOpts);
+      sub = two ? "\u05D0\u05D9\u05DC\u05D5 \u05E9\u05EA\u05D9 \u05D0\u05D5\u05EA\u05D9\u05D5\u05EA \u05D7\u05E1\u05E8\u05D5\u05EA?" : "\u05D0\u05D9\u05D6\u05D5 \u05D0\u05D5\u05EA \u05D7\u05E1\u05E8\u05D4?";
+      q = `<span class="en">${esc(E.slice(0, kk))}${two ? "__" : "_"}${esc(E.slice(kk + span))}</span>`;
+      emoji = D.picRiddle ? w.pic : "";
+      if (!D.picRiddle) q += `<div class="riddle">${esc(w.he)}</div>`;
     } else if (mode === "en2he") {
-      opts = shuffle([w.he, ...distractors(w, "he", 2, sim)]);
-      ans = opts.indexOf(w.he);
+      answer = w.he;
+      opts = laneOptions(answer, distractors(w, "he", 2, sim), nOpts);
       sub = "\u05DE\u05D4 \u05D4\u05E4\u05D9\u05E8\u05D5\u05E9 \u05D1\u05E2\u05D1\u05E8\u05D9\u05EA? \u05E8\u05E6\u05D5 \u05D0\u05DC \u05D4\u05E9\u05E2\u05E8";
       q = `<span class="en">${esc(w.en)}</span>`;
     } else if (mode === "picw") {
@@ -39850,28 +40016,41 @@
         const x = WORDS[Math.floor(Math.random() * WORDS.length)];
         if (x.pic !== w.pic && x.en !== w.en && !ds.includes(x.en)) ds.push(x.en);
       }
-      opts = shuffle([w.en, ...ds]);
-      ans = opts.indexOf(w.en);
-      sub = "\u05EA\u05DE\u05D5\u05E0\u05D4 \u05D5\u05D7\u05D9\u05D3\u05D4 \u2014 \u05E8\u05E6\u05D5 \u05D0\u05DC \u05D4\u05DE\u05D9\u05DC\u05D4 \u05D1\u05D0\u05E0\u05D2\u05DC\u05D9\u05EA";
-      q = `<span class="pic-big">${w.pic}</span><div class="riddle">${esc(w.clue || "\u05DE\u05D4 \u05E8\u05D5\u05D0\u05D9\u05DD \u05D1\u05EA\u05DE\u05D5\u05E0\u05D4?")}</div>`;
-    } else if (mode === "rev") {
-      opts = shuffle([w.he, ...distractors(w, "he", 2, sim)]);
-      ans = opts.indexOf(w.he);
-      sub = "\u05D4\u05E7\u05E9\u05D9\u05D1\u05D5 \u05DC\u05DE\u05D9\u05DC\u05D4 \u05D1\u05D0\u05E0\u05D2\u05DC\u05D9\u05EA \u2014 \u05E8\u05E6\u05D5 \u05D0\u05DC \u05D4\u05E4\u05D9\u05E8\u05D5\u05E9 \u05D1\u05E2\u05D1\u05E8\u05D9\u05EA";
-      q = `<span class="en">${esc(w.en)}</span>`;
-      say(w.en);
+      answer = w.en;
+      opts = laneOptions(answer, ds, nOpts);
+      sub = D.picRiddle ? "\u05DE\u05D4 \u05D1\u05EA\u05DE\u05D5\u05E0\u05D4? \u05E8\u05E6\u05D5 \u05D0\u05DC \u05D4\u05DE\u05D9\u05DC\u05D4 \u05D1\u05D0\u05E0\u05D2\u05DC\u05D9\u05EA" : "\u05DE\u05D4 \u05D1\u05EA\u05DE\u05D5\u05E0\u05D4? (\u05D1\u05DC\u05D9 \u05D7\u05D9\u05D3\u05D4!) \u05E8\u05E6\u05D5 \u05D0\u05DC \u05D4\u05DE\u05D9\u05DC\u05D4 \u05D1\u05D0\u05E0\u05D2\u05DC\u05D9\u05EA";
+      q = `<span class="pic-big">${w.pic}</span>${D.picRiddle ? `<div class="riddle">${esc(w.clue || "\u05DE\u05D4 \u05E8\u05D5\u05D0\u05D9\u05DD \u05D1\u05EA\u05DE\u05D5\u05E0\u05D4?")}</div>` : ""}`;
+      extraT = D.picRiddle ? 0.4 : 0.2;
+    } else if (mode === "rev" || mode === "hear") {
+      const field = mode === "rev" ? "he" : "en";
+      answer = w[field];
+      opts = laneOptions(answer, distractors(w, field, 2, sim), nOpts);
+      sub = mode === "rev" ? "\u{1F3A7} \u05D4\u05E7\u05E9\u05D9\u05D1\u05D5 \u05DC\u05DE\u05D9\u05DC\u05D4 \u05D1\u05D0\u05E0\u05D2\u05DC\u05D9\u05EA \u2013 \u05DE\u05D4 \u05D4\u05E4\u05D9\u05E8\u05D5\u05E9 \u05D1\u05E2\u05D1\u05E8\u05D9\u05EA?" : "\u{1F3A7} \u05D4\u05E7\u05E9\u05D9\u05D1\u05D5 \u2013 \u05D0\u05D9\u05D6\u05D5 \u05DE\u05D9\u05DC\u05D4 \u05D1\u05D0\u05E0\u05D2\u05DC\u05D9\u05EA \u05E9\u05DE\u05E2\u05EA\u05DD?";
+      q = `<span class="listen-ico" aria-hidden="true">\u{1F3A7}</span><button type="button" class="btn p replay-btn" id="btn-replay">\u{1F50A} \u05E9\u05DE\u05E2\u05D5 \u05E9\u05D5\u05D1 <small>(R)</small></button>` + (muted ? `<div class="riddle">\u{1F507} \u05D4\u05E6\u05DC\u05D9\u05DC \u05DB\u05D1\u05D5\u05D9 \u2013 \u05DC\u05D7\u05E6\u05D5 \u05E2\u05DC \xAB\u05E9\u05DE\u05E2\u05D5 \u05E9\u05D5\u05D1\xBB \u05DB\u05D3\u05D9 \u05DC\u05E9\u05DE\u05D5\u05E2</div>` : "");
+      extraT = 0.8;
+      run.listenAt = performance.now();
+      setTimeout(() => {
+        if (run && run.cur === w && !paused) sayCurrent(false);
+      }, 120);
     } else {
-      opts = shuffle([w.en, ...distractors(w, "en", 2, sim)]);
-      ans = opts.indexOf(w.en);
+      answer = w.en;
+      opts = laneOptions(answer, distractors(w, "en", 2, sim), nOpts);
       sub = "\u05D0\u05D9\u05DA \u05D0\u05D5\u05DE\u05E8\u05D9\u05DD \u05D1\u05D0\u05E0\u05D2\u05DC\u05D9\u05EA? \u05E8\u05E6\u05D5 \u05D0\u05DC \u05D4\u05E9\u05E2\u05E8";
       q = esc(w.he);
     }
+    const ans = opts.indexOf(answer);
     run.opts = opts;
     run.ans = ans;
     setLaneOpts(opts);
     setPrompt(sub, q, emoji);
-    const lead = run.layout && run.layout.diff && run.layout.diff.lead || 20;
-    const s = player.s + (gates.length ? lead : Math.max(12, lead * 0.6));
+    const rb = $("btn-replay");
+    if (rb) rb.onclick = (e) => {
+      e.stopPropagation();
+      sayCurrent(false, true);
+    };
+    const baseSpeed = (run.layout && run.layout.speed || 8) * (S.settings.speed || 1);
+    const lead = D.answerTime ? Math.max(14, (D.answerTime + extraT) * baseSpeed) : D.lead || 20;
+    const s = player.s + (gates.length ? lead : Math.max(12, lead * 0.75));
     const group = buildGate(opts);
     placeOnCourse(group, s, null, true);
     runScene.add(group);
@@ -39929,7 +40108,7 @@
     const sp = run.spell;
     const row = letters.filter((l) => l.index === sp.idx && !l.taken).sort((a, b) => a.lane - b.lane);
     setLaneOpts(row.length === 3 ? row.map((l) => l.ch) : null);
-    const reveal = S.settings.difficulty === "easy" || run.world === 1;
+    const reveal = !!(run.layout && run.layout.diff && run.layout.diff.spellModel);
     const slots = sp.rest.split("").map((c, i) => i < sp.idx ? `<b class="sp-ok">${c}</b>` : i === sp.idx ? `<b class="sp-next">${reveal ? c : "?"}</b>` : `<span class="sp-rest">${reveal ? c : "_"}</span>`).join("");
     $("prompt-sub").textContent = "\u05D0\u05E1\u05E4\u05D5 \u05D0\u05EA \u05D4\u05D0\u05D5\u05EA\u05D9\u05D5\u05EA \u05DC\u05E4\u05D9 \u05D4\u05E1\u05D3\u05E8";
     $("prompt-q").innerHTML = `<span class="deco-emoji">${run.cur.pic || ""}</span>${esc(run.cur.he)}<div class="spell-line en">${slots}</div>`;
@@ -40039,6 +40218,7 @@
     const L2 = run && run.layout || stageProfile(run ? run.st : 0, run && run.boss, run && run.world);
     if (Math.random() > L2.density) return;
     if (!letterObstacleOK(s)) return;
+    if (gates.some((g) => !g.resolved && s > g.s - 7 && s < g.s + 2.5)) return;
     const type = L2.types[Math.floor(Math.random() * L2.types.length)];
     const dbl = L2.diff ? L2.diff.doubleBlock : 0.28;
     const blocked = type === "beam" ? [0, 1, 2] : shuffle([0, 1, 2]).slice(0, Math.random() < dbl && L2.density > 0.35 ? 2 : 1);
@@ -40087,7 +40267,7 @@
     burst(bp.clone().add(new Vector3(0.4, 0.3, 0)));
     popEl("prompt");
     popEl("hud-combo");
-    say(w.en);
+    if (!isListenMode(run.activeMode)) say(w.en);
     nextAfterResolve();
   }
   function onWrong() {
@@ -40101,7 +40281,11 @@
     shakeT = 0.28;
     playAnim(player, "fall", 0.08, true);
     run.stumbleT = 0.7;
-    if (S.settings.showAnswer) {
+    const D = run.layout && run.layout.diff || {};
+    if (isListenMode(run.activeMode) && !(D.reveal && S.settings.showAnswer)) {
+      setPrompt("\u05DC\u05D0 \u05D4\u05E4\u05E2\u05DD \u2013 \u05D4\u05E7\u05E9\u05D9\u05D1\u05D5 \u05E9\u05D5\u05D1", `<span class="listen-ico">\u{1F3A7}</span><div class="riddle">\u05D4\u05DE\u05D9\u05DC\u05D4 \u05EA\u05D7\u05D6\u05D5\u05E8 \u05E9\u05D5\u05D1 \u05D1\u05D4\u05DE\u05E9\u05DA</div>`);
+      say(w.en, D.rate);
+    } else if (S.settings.showAnswer) {
       setPrompt("\u05DB\u05DE\u05E2\u05D8! \u05D4\u05EA\u05E9\u05D5\u05D1\u05D4 \u05D4\u05D9\u05D0", `<span class="en">${esc(w.en)}</span> \u2014 ${esc(w.he)}`, w.pic);
       say(w.en);
     } else {
@@ -40243,7 +40427,11 @@
     bossActor = null;
     const stageMode = lost ? "tr" : ST[wid - 1][st][1];
     const boss = stageMode === "boss";
-    const modes = stageModes(runnerModeOf(boss ? "tr" : stageMode), st, boss, S.settings);
+    let modes = stageModes(wid, st, boss, S.settings);
+    if (lost) {
+      const tr = [S.settings.types.en2he ? "en2he" : null, S.settings.types.he2en ? "tr" : null].filter(Boolean);
+      modes = tr.length ? tr : modes;
+    }
     const mode = modes[0];
     const layout = stageProfile(st, boss, wid);
     const D = layout.diff;
@@ -40261,9 +40449,9 @@
       const sp = spellable(queue);
       if (sp.length >= 4) queue = sp;
     }
-    if (boss) queue = pickWords(wid, BOSS_ST, false, Math.max(10, D.bossHP + 2), D.lvlMix);
+    if (boss) queue = pickWords(wid, BOSS_ST, false, Math.max(10, D.bossHP + 2), D.lvlMix, allSpell ? spellOK : modes.length === 1 && modes[0] === "picw" ? picOK : null);
     else if (!lost && modes.length === 1 && modes[0] === "picw") queue = pickWords(wid, st, false, 8, D.lvlMix, picOK);
-    else if (!lost && stageMode === "mix") queue = pickWords(wid, st, false, 10, D.lvlMix);
+    else if (!lost && modes.length > 2) queue = pickWords(wid, st, false, 10, D.lvlMix);
     run = {
       world: wid,
       st,
@@ -40294,7 +40482,7 @@
     };
     fpsMon.runStart = performance.now();
     const spellLen = queue.reduce((a, w) => a + w.en.replace(/[^A-Za-z]/g, "").length, 0);
-    const needLen = modes.includes("build") ? (D.letterFirst + 10) * queue.length + spellLen * D.letterGap * 1.25 + 200 : queue.length * D.lead * (boss ? 3.4 : 2.2) + 260;
+    const needLen = modes.includes("build") ? (D.letterFirst + 10) * queue.length + spellLen * D.letterGap * 1.25 + 200 : queue.length * (D.lead + 0.8 * D.speed) * (boss ? 3.4 : 2.2) + 260;
     run.course = buildCourse({
       curve: run.layout.curve,
       hillAmp: run.layout.hillAmp,
@@ -40390,13 +40578,31 @@
     const title = lost ? "\u{1F4DA} \u05E1\u05E4\u05E8\u05D9\u05D9\u05EA \u05D4\u05DE\u05D9\u05DC\u05D9\u05DD \u05D4\u05D0\u05D1\u05D5\u05D3\u05D5\u05EA" : boss ? "\u2694\uFE0F " + BOSSES[wid - 1].name : stageLabel(wid - 1, st);
     const scene = lost ? "" : `<p class="scene-name">${esc(stageSceneName(wid, st))}</p>`;
     showUI("hud");
-    $("btn-hint").classList.toggle("hidden", !S.settings.hints);
-    showModal(`<h2>${title}</h2>${scene}<p>${boss ? "\u05D4\u05D1\u05D5\u05E1 \u05E8\u05E5 \u05DE\u05D0\u05D7\u05D5\u05E8\u05D9\u05DB\u05DD! \u05E2\u05E0\u05D5 \u05E0\u05DB\u05D5\u05DF \u05DB\u05D3\u05D9 \u05DC\u05D4\u05D7\u05DC\u05D9\u05E9 \u05D0\u05D5\u05EA\u05D5!" : st === 0 && !lost ? INTRO[wid - 1] : "\u05E7\u05D3\u05D9\u05DE\u05D4, \u05D0\u05EA\u05DD \u05D9\u05DB\u05D5\u05DC\u05D9\u05DD!"}</p>
-    <button class="btn g" id="mgo">\u05D9\u05D5\u05E6\u05D0\u05D9\u05DD \u05DC\u05D3\u05E8\u05DA \u25B6</button>`);
+    $("btn-hint").classList.toggle("hidden", !(S.settings.hints && D.hints));
+    const how = lost ? "" : `<p class="mode-how">${esc(MODE_DESC[worldMode(wid, S.settings)] || "")}</p>`;
+    const lvl = `<p class="lvl-line">\u05E8\u05DE\u05EA \u05E7\u05D5\u05E9\u05D9: <b>${esc(DIFFS[D.level].label)}</b> \xB7 \u2764\uFE0F ${D.hearts} \xB7 ${D.options === 2 ? "2 \u05EA\u05E9\u05D5\u05D1\u05D5\u05EA" : "3 \u05EA\u05E9\u05D5\u05D1\u05D5\u05EA"}${boss ? "" : " \xB7 \u05E9\u05DC\u05D1 " + (st + 1) + " \u05DE\u05EA\u05D5\u05DA 6"}</p>`;
+    showModal(`<h2>${title}</h2>${scene}${how}<p>${boss ? "\u05D4\u05D1\u05D5\u05E1 \u05E8\u05E5 \u05DE\u05D0\u05D7\u05D5\u05E8\u05D9\u05DB\u05DD! \u05E2\u05E0\u05D5 \u05E0\u05DB\u05D5\u05DF \u05DB\u05D3\u05D9 \u05DC\u05D4\u05D7\u05DC\u05D9\u05E9 \u05D0\u05D5\u05EA\u05D5!" : st === 0 && !lost ? INTRO[wid - 1] : "\u05DB\u05DC \u05E9\u05DC\u05D1 \u05E7\u05E9\u05D4 \u05D9\u05D5\u05EA\u05E8 \u05DE\u05D4\u05E7\u05D5\u05D3\u05DD. \u05E7\u05D3\u05D9\u05DE\u05D4, \u05D0\u05EA\u05DD \u05D9\u05DB\u05D5\u05DC\u05D9\u05DD!"}</p>${lvl}
+    <button class="btn g" id="mgo">\u05D9\u05D5\u05E6\u05D0\u05D9\u05DD \u05DC\u05D3\u05E8\u05DA \u25B6</button>${opt && opt.quick ? `<p class="mgo-count" id="mgo-count"></p>` : ""}`);
+    if (opt && opt.quick) {
+      let left = isListenMode(run.activeMode) ? 6 : 4;
+      const tickDown = () => {
+        const c = $("mgo-count"), b = $("mgo");
+        if (!c || !b || appMode !== "run") return;
+        if (left <= 0) {
+          b.click();
+          return;
+        }
+        c.textContent = `\u05DE\u05EA\u05D7\u05D9\u05DC\u05D9\u05DD \u05DC\u05D1\u05D3 \u05D1\u05E2\u05D5\u05D3 ${left}\u2026`;
+        left--;
+        setTimeout(tickDown, 1e3);
+      };
+      tickDown();
+    }
     $("mgo").onclick = () => {
       hideModal();
       paused = false;
       playAnim(player, "sprint");
+      if (run && isListenMode(run.activeMode)) sayCurrent(false);
       const touchBoss = () => {
         if (bossActor && bossActor.model) bossActor.model.traverse((o) => {
           if (o.isMesh) [].concat(o.material || []).forEach((m) => {
@@ -40489,6 +40695,9 @@
     } else if (e.key === "ArrowDown") {
       e.preventDefault();
       slide();
+    } else if ((e.code === "KeyR" || e.key === "r" || e.key === "R" || e.key === "\u05E8") && appMode === "run" && run && isListenMode(run.activeMode)) {
+      e.preventDefault();
+      sayCurrent(false, true);
     } else if ((e.key === "Escape" || e.key === "p" || e.key === "P") && appMode === "run" && run && $("s-settings").classList.contains("hidden")) {
       e.preventDefault();
       if (!$("modal").classList.contains("hidden") && $("pause-box")) {
@@ -40546,6 +40755,7 @@
     }
   }
   function tick(now2) {
+    if (innerWidth !== viewW || innerHeight !== viewH) fitView();
     requestAnimationFrame(tick);
     const raw = (now2 - last) / 1e3 || 0;
     const dt = Math.min(0.05, raw);
@@ -40650,7 +40860,8 @@
     const world = WORLDS[run.world - 1];
     let base = (run.layout && run.layout.speed || 8.2) * (S.settings.speed || 1);
     if (run.activeMode === "build" && run.layout && run.layout.diff) base *= run.layout.diff.letterSpeed || 1;
-    let speed = base * (1 + Math.min(run.activeMode === "build" ? 0.15 : 0.42, run.combo * 0.028));
+    const cap = run.layout && run.layout.diff && run.layout.diff.comboCap != null ? run.layout.diff.comboCap : 0.42;
+    let speed = base * (1 + Math.min(run.activeMode === "build" ? Math.min(0.15, cap) : cap, run.combo * 0.028));
     if (run.stumbleT > 0) {
       run.stumbleT -= dt;
       speed *= 0.4;
@@ -40715,7 +40926,7 @@
       run.nextCoinS += 5 + Math.random() * 4;
     }
     if (player.s > run.nextObsS) {
-      spawnObstacle(player.s + 20);
+      spawnObstacle(player.s + Math.max(20, base * 1.9));
       run.nextObsS += (run.layout && run.layout.diff && run.layout.diff.spacing || 10.5) + Math.random() * 4;
     }
     for (const c of coins) {
@@ -40852,15 +41063,23 @@
   }
   function openHint() {
     if (!run || !run.cur) return;
+    if (run.layout && run.layout.diff && run.layout.diff.hints === false) return;
     grantAch("hint");
     paused = true;
     helpCard(Math.max(run.hint, 1) || 1);
   }
   function helpCard(l) {
     const w = run.cur, e = w.en.toUpperCase();
+    const D = run.layout && run.layout.diff || {};
+    const listen = isListenMode(run.activeMode);
+    const maxL = listen ? D.reveal && run.wrongHere ? 3 : 1 : 3;
+    l = Math.min(l, maxL);
     run.hint = Math.max(run.hint, l);
     let body;
-    if (l === 1) body = `<div style="font-size:64px">${w.pic}</div><p>${esc(w.clue)}</p>`;
+    if (listen && l === 1) {
+      body = `<div style="font-size:64px">\u{1F3A7}</div><p>\u05D4\u05E7\u05E9\u05D9\u05D1\u05D5 \u05E9\u05D5\u05D1 \u2013 \u05D4\u05E4\u05E2\u05DD \u05DC\u05D0\u05D8 \u05D9\u05D5\u05EA\u05E8.</p><button class="btn s" id="hsay">\u{1F50A} \u05E9\u05DE\u05E2\u05D5 \u05E9\u05D5\u05D1 \u05DC\u05D0\u05D8</button>`;
+      sayCurrent(true, true);
+    } else if (l === 1) body = `<div style="font-size:64px">${w.pic}</div><p>${esc(w.clue)}</p>`;
     else if (l === 2) {
       const sp = e.split("").map((c, i) => i === 0 || i === e.length - 1 ? c : i % 2 ? "_" : c).join(" ");
       body = `<p>${e.replace(/ /g, "").length} \u05D0\u05D5\u05EA\u05D9\u05D5\u05EA. \u05D4\u05D0\u05D5\u05EA \u05D4\u05E8\u05D0\u05E9\u05D5\u05E0\u05D4: <b class="en">${esc(e[0])}</b></p><div class="en" style="font-size:36px;font-weight:800">${esc(sp)}</div>`;
@@ -40872,7 +41091,7 @@
     showModal(`<h2>\u{1F989} \u05D4\u05D9\u05E0\u05E9\u05D5\u05E3 \u05D4\u05D7\u05DB\u05DD (\u05E8\u05DE\u05D6 ${l}/3)</h2>${body}
     <div class="row" style="margin-top:10px">
       <button class="btn g" id="hback">\u05D7\u05D5\u05D6\u05E8\u05D9\u05DD \u05DC\u05E8\u05D9\u05E6\u05D4</button>
-      ${l < 3 ? `<button class="btn s" id="hmore">\u05E2\u05D5\u05D3 \u05E8\u05DE\u05D6</button>` : ""}
+      ${l < maxL ? `<button class="btn s" id="hmore">\u05E2\u05D5\u05D3 \u05E8\u05DE\u05D6</button>` : ""}
     </div>`);
     $("hback").onclick = () => {
       hideModal();
@@ -40881,7 +41100,7 @@
     const more = $("hmore");
     if (more) more.onclick = () => helpCard(l + 1);
     const hs = $("hsay");
-    if (hs) hs.onclick = () => say(w.en);
+    if (hs) hs.onclick = () => listen && l === 1 ? sayCurrent(true, true) : say(w.en, 0, true);
   }
   function goMapMode() {
     paused = true;
@@ -40906,6 +41125,29 @@
     showUI("s-title");
     highlightHero();
     focusTitleCam();
+    refreshPlayNext();
+  }
+  function nextStage() {
+    for (let i = 0; i < WORLDS.length; i++) {
+      if (!wOpen(i)) break;
+      for (let k = 0; k < NSTAGES; k++) if (sOpen(i, k) && !stDone(WORLDS[i].id, k)) return { wid: WORLDS[i].id, st: k };
+    }
+    let last2 = 0;
+    for (let i = 0; i < WORLDS.length; i++) if (wOpen(i)) last2 = i;
+    return { wid: WORLDS[last2].id, st: BOSS_ST };
+  }
+  function refreshPlayNext() {
+    const el = $("play-next");
+    if (!el) return;
+    const n = nextStage(), w = WORLDS[n.wid - 1];
+    const fresh = !Object.keys(S.prog || {}).length;
+    el.textContent = (fresh ? "\u05DE\u05EA\u05D7\u05D9\u05DC\u05D9\u05DD: " : "\u05DE\u05DE\u05E9\u05D9\u05DB\u05D9\u05DD: ") + `${w.icon} ${w.name} \xB7 ${n.st === BOSS_ST ? "\u05D1\u05D5\u05E1" : "\u05E9\u05DC\u05D1 " + (n.st + 1)} \xB7 ${worldTypeLabel(n.wid - 1)}`;
+  }
+  function playNow() {
+    sfx.click();
+    const n = nextStage();
+    selectedWorld = n.wid - 1;
+    startLevel(n.wid, n.st, false, { quick: true });
   }
   function drawHeroBtns() {
     $("hero-btns").innerHTML = HEROES.map((h, i) => `<button class="hero-btn ${S.hero === i ? "sel" : ""}" data-h="${i}">${esc(h.name)}</button>`).join("");
@@ -40920,6 +41162,11 @@
     sfx.click();
   };
   $("btn-start").onclick = () => goMapMode();
+  $("btn-play").onclick = () => playNow();
+  $("btn-title-settings").onclick = () => {
+    sfx.click();
+    openSettings();
+  };
   $("btn-help").onclick = () => {
     showUI("s-help");
     appMode = "title";
@@ -41118,27 +41365,38 @@
   }
   function renderSettings(msg) {
     const st = S.settings;
+    const ex = (t) => `<p class="set-explain">${t}</p>`;
     const autoNow = st.gfx === "auto" ? `\u05DB\u05E8\u05D2\u05E2 \u05E0\u05D1\u05D7\u05E8\u05D4: <b>${TIER_HE[tier()]}</b>${autoReason ? " \xB7 " + esc(autoReason) : ""}` : "";
     $("set-body").innerHTML = `
     <div class="set-sec"><h3>\u{1F3AF} \u05E8\u05DE\u05EA \u05E7\u05D5\u05E9\u05D9</h3>
+      ${ex("\u05DB\u05DE\u05D4 \u05D4\u05DE\u05E9\u05D7\u05E7 \u05E7\u05E9\u05D4: \u05DE\u05D4\u05D9\u05E8\u05D5\u05EA \u05D4\u05E8\u05D9\u05E6\u05D4, \u05DE\u05E1\u05E4\u05E8 \u05D4\u05DC\u05D1\u05D1\u05D5\u05EA, \u05DB\u05DE\u05D4 \u05D6\u05DE\u05DF \u05D9\u05E9 \u05DC\u05E2\u05E0\u05D5\u05EA \u05D5\u05DB\u05DE\u05D4 \u05EA\u05E9\u05D5\u05D1\u05D5\u05EA \u05D9\u05E9 \u05DC\u05D1\u05D7\u05D9\u05E8\u05D4.")}
       ${segRow("difficulty", Object.keys(DIFFS).map((k) => ({ v: k, label: DIFFS[k].label })), st.difficulty)}
-      <p class="set-note">\u05E7\u05DC: \u05D0\u05D9\u05D8\u05D9 \u05D9\u05D5\u05EA\u05E8, 4 \u05DC\u05D1\u05D1\u05D5\u05EA \u05D5\u05D9\u05D5\u05EA\u05E8 \u05D6\u05DE\u05DF \u05DC\u05E2\u05E0\u05D5\u05EA \xB7 \u05E7\u05E9\u05D4: \u05DE\u05D4\u05D9\u05E8 \u05D9\u05D5\u05EA\u05E8, \u05DE\u05D9\u05DC\u05D9\u05DD \u05D5\u05EA\u05E9\u05D5\u05D1\u05D5\u05EA \u05DE\u05D1\u05DC\u05D1\u05DC\u05D5\u05EA \u05D9\u05D5\u05EA\u05E8 \u05D5\u05D1\u05D5\u05E1 \u05D7\u05D6\u05E7 \u05D9\u05D5\u05EA\u05E8. \u05D1\u05DB\u05DC \u05E8\u05DE\u05D4 \u05D4\u05E2\u05D5\u05DC\u05DE\u05D5\u05EA \u05D4\u05DE\u05EA\u05E7\u05D3\u05DE\u05D9\u05DD \u05E7\u05E9\u05D9\u05DD \u05D9\u05D5\u05EA\u05E8.</p></div>
-    <div class="set-sec"><h3>\u2753 \u05E1\u05D5\u05D2\u05D9 \u05E9\u05D0\u05DC\u05D5\u05EA</h3>
+      <ul class="diff-desc">${Object.keys(DIFFS).map((k) => `<li class="${k === st.difficulty ? "on" : ""}"><b>${esc(DIFFS[k].label)}:</b> ${esc(DIFFS[k].desc)}</li>`).join("")}</ul>
+      <p class="set-note">\u05D1\u05DB\u05DC \u05E8\u05DE\u05D4: \u05DB\u05DC \u05E9\u05DC\u05D1 \u05E7\u05E9\u05D4 \u05D9\u05D5\u05EA\u05E8 \u05DE\u05D4\u05E7\u05D5\u05D3\u05DD, \u05D5\u05DB\u05DC \u05E2\u05D5\u05DC\u05DD \u05E7\u05E9\u05D4 \u05D9\u05D5\u05EA\u05E8 \u05DE\u05D4\u05E2\u05D5\u05DC\u05DD \u05E9\u05DC\u05E4\u05E0\u05D9\u05D5.</p></div>
+    <div class="set-sec"><h3>\u2753 \u05E1\u05D5\u05D2\u05D9 \u05EA\u05E8\u05D2\u05D9\u05DC\u05D9\u05DD</h3>
+      ${ex("\u05D0\u05D9\u05DC\u05D5 \u05EA\u05E8\u05D2\u05D9\u05DC\u05D9\u05DD \u05D9\u05D5\u05E4\u05D9\u05E2\u05D5 \u05D1\u05DE\u05E9\u05D7\u05E7. \u05DE\u05E1\u05DE\u05E0\u05D9\u05DD \u2714 \u05D0\u05EA \u05DE\u05D4 \u05E9\u05E8\u05D5\u05E6\u05D9\u05DD \u05DC\u05EA\u05E8\u05D2\u05DC, \u05D5\u05DE\u05D5\u05E8\u05D9\u05D3\u05D9\u05DD \u05D0\u05EA \u05D4\u05E1\u05D9\u05DE\u05D5\u05DF \u05DE\u05DE\u05D4 \u05E9\u05DC\u05D0.")}
       <div class="set-checks">${QTYPES.map((q) => `<label class="set-check"><input type="checkbox" data-type="${q.key}" ${st.types[q.key] ? "checked" : ""}> ${esc(q.label)}</label>`).join("")}</div>
-      <p class="set-note" id="set-types-msg">${msg ? esc(msg) : "\u05E9\u05DC\u05D1\u05D9\u05DD \u05E9\u05D4\u05E1\u05D5\u05D2 \u05E9\u05DC\u05D4\u05DD \u05DB\u05D1\u05D5\u05D9 \u05D9\u05E7\u05D1\u05DC\u05D5 \u05E1\u05D5\u05D2 \u05E9\u05D0\u05DC\u05D4 \u05D0\u05D7\u05E8 \u05DE\u05D4\u05E8\u05E9\u05D9\u05DE\u05D4."}</p></div>
-    <div class="set-sec"><h3>\u{1F3C3} \u05DE\u05D4\u05D9\u05E8\u05D5\u05EA \u05D4\u05DE\u05E9\u05D7\u05E7</h3>${segRow("speed", SPEEDS, st.speed)}</div>
-    <div class="set-sec"><h3>\u{1F5A5}\uFE0F \u05D0\u05D9\u05DB\u05D5\u05EA \u05D2\u05E8\u05E4\u05D9\u05E7\u05D4</h3>${segRow("gfx", GFX_OPTS, st.gfx)}
+      <p class="set-note" id="set-types-msg">${msg ? esc(msg) : "\u05DC\u05DB\u05DC \u05E2\u05D5\u05DC\u05DD \u05D9\u05E9 \u05E1\u05D5\u05D2 \u05EA\u05E8\u05D2\u05D9\u05DC \u05DE\u05E9\u05DC\u05D5. \u05E2\u05D5\u05DC\u05DD \u05E9\u05D4\u05E1\u05D5\u05D2 \u05E9\u05DC\u05D5 \u05DB\u05D1\u05D5\u05D9 \u05D9\u05E7\u05D1\u05DC \u05E1\u05D5\u05D2 \u05D3\u05D5\u05DE\u05D4 \u05D0\u05D7\u05E8."}</p></div>
+    <div class="set-sec"><h3>\u{1F3C3} \u05DE\u05D4\u05D9\u05E8\u05D5\u05EA \u05D4\u05DE\u05E9\u05D7\u05E7</h3>
+      ${ex("\u05DB\u05DE\u05D4 \u05DE\u05D4\u05E8 \u05D4\u05D3\u05DE\u05D5\u05EA \u05E8\u05E6\u05D4, \u05D1\u05DC\u05D9 \u05E7\u05E9\u05E8 \u05DC\u05E8\u05DE\u05EA \u05D4\u05E7\u05D5\u05E9\u05D9. \xAB\u05D0\u05D9\u05D8\u05D9\xBB \u05E0\u05D5\u05EA\u05DF \u05D9\u05D5\u05EA\u05E8 \u05D6\u05DE\u05DF \u05DC\u05E7\u05E8\u05D5\u05D0 \u05D5\u05DC\u05D7\u05E9\u05D5\u05D1.")}
+      ${segRow("speed", SPEEDS, st.speed)}</div>
+    <div class="set-sec"><h3>\u{1F5A5}\uFE0F \u05D0\u05D9\u05DB\u05D5\u05EA \u05D2\u05E8\u05E4\u05D9\u05E7\u05D4</h3>
+      ${ex("\u05DB\u05DE\u05D4 \u05D9\u05E4\u05D4 \u05D4\u05EA\u05DE\u05D5\u05E0\u05D4. \u05D0\u05DD \u05D4\u05DE\u05E9\u05D7\u05E7 \u05D0\u05D9\u05D8\u05D9 \u05D0\u05D5 \u05E0\u05EA\u05E7\u05E2 \u2013 \u05D1\u05D7\u05E8\u05D5 \xAB\u05E0\u05DE\u05D5\u05DB\u05D4\xBB. \xAB\u05D0\u05D5\u05D8\u05D5\u05DE\u05D8\u05D9\xBB \u05D1\u05D5\u05D7\u05E8 \u05DC\u05D1\u05D3 \u05DC\u05E4\u05D9 \u05D4\u05DE\u05D7\u05E9\u05D1.")}
+      ${segRow("gfx", GFX_OPTS, st.gfx)}
       <p class="set-note">\u05E0\u05DE\u05D5\u05DB\u05D4: \u05EA\u05DE\u05D5\u05E0\u05D4 \u05DE\u05E4\u05D5\u05E7\u05E1\u05DC\u05EA \u05D1\u05E8\u05D6\u05D5\u05DC\u05D5\u05E6\u05D9\u05D4 \u05E0\u05DE\u05D5\u05DB\u05D4, \u05D4\u05DB\u05D9 \u05DE\u05D4\u05D9\u05E8\u05D4 \u05DC\u05DE\u05D7\u05E9\u05D1\u05D9\u05DD \u05D9\u05E9\u05E0\u05D9\u05DD. ${autoNow}</p></div>
     <div class="set-sec"><h3>\u{1F50A} \u05E6\u05DC\u05D9\u05DC\u05D9\u05DD</h3>
-      <label class="set-range">\u05D0\u05E4\u05E7\u05D8\u05D9\u05DD <input type="range" min="0" max="100" step="10" data-range="sfx" value="${Math.round(st.sfx * 100)}"><span>${Math.round(st.sfx * 100)}%</span></label>
-      <label class="set-range">\u05D4\u05E7\u05E8\u05D0\u05D4 \u05D1\u05D0\u05E0\u05D2\u05DC\u05D9\u05EA <input type="range" min="0" max="100" step="10" data-range="voice" value="${Math.round(st.voice * 100)}"><span>${Math.round(st.voice * 100)}%</span></label>
-      <button type="button" class="btn s" id="set-test-voice">\u{1F50A} \u05D1\u05D3\u05D9\u05E7\u05EA \u05D4\u05E7\u05E8\u05D0\u05D4</button></div>
+      <div class="set-item">${ex("\u05E2\u05D5\u05E6\u05DE\u05EA \u05D0\u05E4\u05E7\u05D8\u05D9 \u05D4\u05E6\u05DC\u05D9\u05DC: \u05DE\u05D8\u05D1\u05E2\u05D5\u05EA, \u05E7\u05E4\u05D9\u05E6\u05D5\u05EA, \u05EA\u05E9\u05D5\u05D1\u05D4 \u05E0\u05DB\u05D5\u05E0\u05D4 \u05D0\u05D5 \u05E9\u05D2\u05D5\u05D9\u05D4.")}
+      <label class="set-range">\u05D0\u05E4\u05E7\u05D8\u05D9\u05DD <input type="range" min="0" max="100" step="10" data-range="sfx" value="${Math.round(st.sfx * 100)}"><span>${Math.round(st.sfx * 100)}%</span></label></div>
+      <div class="set-item">${ex("\u05E2\u05D5\u05E6\u05DE\u05EA \u05D4\u05E7\u05D5\u05DC \u05E9\u05DE\u05E7\u05E8\u05D9\u05D0 \u05D0\u05EA \u05D4\u05DE\u05D9\u05DC\u05D9\u05DD \u05D1\u05D0\u05E0\u05D2\u05DC\u05D9\u05EA. \u05D1\u05E2\u05D5\u05DC\u05DE\u05D5\u05EA \u05D4\u05D4\u05D0\u05D6\u05E0\u05D4 \u05D7\u05D9\u05D9\u05D1\u05D9\u05DD \u05DC\u05E9\u05DE\u05D5\u05E2 \u05D0\u05D5\u05EA\u05D5!")}
+      <label class="set-range">\u05D4\u05E7\u05E8\u05D0\u05D4 \u05D1\u05D0\u05E0\u05D2\u05DC\u05D9\u05EA <input type="range" min="0" max="100" step="10" data-range="voice" value="${Math.round(st.voice * 100)}"><span>${Math.round(st.voice * 100)}%</span></label></div>
+      <div class="set-item">${ex("\u05DC\u05D5\u05D7\u05E6\u05D9\u05DD \u05DB\u05D3\u05D9 \u05DC\u05D1\u05D3\u05D5\u05E7 \u05E9\u05D4\u05E8\u05DE\u05E7\u05D5\u05DC\u05D9\u05DD \u05E2\u05D5\u05D1\u05D3\u05D9\u05DD \u05D5\u05E9\u05D5\u05DE\u05E2\u05D9\u05DD \u05D0\u05EA \u05D4\u05D4\u05E7\u05E8\u05D0\u05D4.")}
+      <button type="button" class="btn s" id="set-test-voice">\u{1F50A} \u05D1\u05D3\u05D9\u05E7\u05EA \u05D4\u05E7\u05E8\u05D0\u05D4</button></div></div>
     <div class="set-sec"><h3>\u{1F989} \u05E2\u05D6\u05E8\u05D4</h3>
-      <div class="set-checks">
-        <label class="set-check"><input type="checkbox" data-flag="hints" ${st.hints ? "checked" : ""}> \u05DB\u05E4\u05EA\u05D5\u05E8 \u05E8\u05DE\u05D6\u05D9\u05DD (\u05D4\u05D9\u05E0\u05E9\u05D5\u05E3)</label>
-        <label class="set-check"><input type="checkbox" data-flag="showAnswer" ${st.showAnswer ? "checked" : ""}> \u05D4\u05E6\u05D2\u05EA \u05D4\u05EA\u05E9\u05D5\u05D1\u05D4 \u05D4\u05E0\u05DB\u05D5\u05E0\u05D4 \u05D0\u05D7\u05E8\u05D9 \u05D8\u05E2\u05D5\u05EA</label>
-      </div></div>
-    <p class="set-note">${appMode === "run" ? "\u05E9\u05D9\u05E0\u05D5\u05D9 \u05D1\u05E8\u05DE\u05EA \u05D4\u05E7\u05D5\u05E9\u05D9 \u05D5\u05D1\u05E1\u05D5\u05D2\u05D9 \u05D4\u05E9\u05D0\u05DC\u05D5\u05EA \u05D9\u05D9\u05DB\u05E0\u05E1 \u05DC\u05EA\u05D5\u05E7\u05E3 \u05DE\u05D4\u05E9\u05DC\u05D1 \u05D4\u05D1\u05D0. \u05DE\u05D4\u05D9\u05E8\u05D5\u05EA, \u05D2\u05E8\u05E4\u05D9\u05E7\u05D4 \u05D5\u05E6\u05DC\u05D9\u05DC\u05D9\u05DD \u05DE\u05E9\u05EA\u05E0\u05D9\u05DD \u05DE\u05D9\u05D3." : "\u05D4\u05D4\u05D2\u05D3\u05E8\u05D5\u05EA \u05E0\u05E9\u05DE\u05E8\u05D5\u05EA \u05D1\u05DE\u05D7\u05E9\u05D1 \u05D4\u05D6\u05D4."}</p>`;
+      <div class="set-item">${ex("\u05DE\u05E6\u05D9\u05D2 \u05D0\u05EA \u05DB\u05E4\u05EA\u05D5\u05E8 \u05D4\u05D9\u05E0\u05E9\u05D5\u05E3 \u05D1\u05D6\u05DE\u05DF \u05D4\u05E8\u05D9\u05E6\u05D4 \u2013 \u05D0\u05E4\u05E9\u05E8 \u05DC\u05D1\u05E7\u05E9 \u05E8\u05DE\u05D6 \u05DB\u05E9\u05EA\u05E7\u05D5\u05E2\u05D9\u05DD. (\u05D1\u05E8\u05DE\u05D4 \xAB\u05E7\u05E9\u05D4\xBB \u05D0\u05D9\u05DF \u05E8\u05DE\u05D6\u05D9\u05DD.)")}
+        <label class="set-check"><input type="checkbox" data-flag="hints" ${st.hints ? "checked" : ""}> \u05DB\u05E4\u05EA\u05D5\u05E8 \u05E8\u05DE\u05D6\u05D9\u05DD (\u05D4\u05D9\u05E0\u05E9\u05D5\u05E3)</label></div>
+      <div class="set-item">${ex("\u05D0\u05D7\u05E8\u05D9 \u05D8\u05E2\u05D5\u05EA \u05DE\u05D5\u05E4\u05D9\u05E2\u05D4 \u05D4\u05EA\u05E9\u05D5\u05D1\u05D4 \u05D4\u05E0\u05DB\u05D5\u05E0\u05D4, \u05DB\u05D3\u05D9 \u05DC\u05DC\u05DE\u05D5\u05D3 \u05DE\u05DE\u05E0\u05D4. (\u05D1\u05E2\u05D5\u05DC\u05DE\u05D5\u05EA \u05D4\u05D4\u05D0\u05D6\u05E0\u05D4 \u2013 \u05E8\u05E7 \u05D1\u05E8\u05DE\u05D4 \xAB\u05E7\u05DC\xBB.)")}
+        <label class="set-check"><input type="checkbox" data-flag="showAnswer" ${st.showAnswer ? "checked" : ""}> \u05D4\u05E6\u05D2\u05EA \u05D4\u05EA\u05E9\u05D5\u05D1\u05D4 \u05D4\u05E0\u05DB\u05D5\u05E0\u05D4 \u05D0\u05D7\u05E8\u05D9 \u05D8\u05E2\u05D5\u05EA</label></div></div>
+    <p class="set-note">${appMode === "run" ? "\u05E9\u05D9\u05E0\u05D5\u05D9 \u05D1\u05E8\u05DE\u05EA \u05D4\u05E7\u05D5\u05E9\u05D9 \u05D5\u05D1\u05E1\u05D5\u05D2\u05D9 \u05D4\u05EA\u05E8\u05D2\u05D9\u05DC\u05D9\u05DD \u05D9\u05D9\u05DB\u05E0\u05E1 \u05DC\u05EA\u05D5\u05E7\u05E3 \u05DE\u05D4\u05E9\u05DC\u05D1 \u05D4\u05D1\u05D0. \u05DE\u05D4\u05D9\u05E8\u05D5\u05EA, \u05D2\u05E8\u05E4\u05D9\u05E7\u05D4 \u05D5\u05E6\u05DC\u05D9\u05DC\u05D9\u05DD \u05DE\u05E9\u05EA\u05E0\u05D9\u05DD \u05DE\u05D9\u05D3." : "\u05D4\u05D4\u05D2\u05D3\u05E8\u05D5\u05EA \u05E0\u05E9\u05DE\u05E8\u05D5\u05EA \u05D1\u05DE\u05D7\u05E9\u05D1 \u05D4\u05D6\u05D4."}</p>`;
   }
   function applySettingChange(kind) {
     S.settings = normSettings(S.settings);
@@ -41156,8 +41414,9 @@
     if (kind === "types" || kind === "difficulty") {
       if (appMode === "map") renderStages();
       fillDevGrid();
+      refreshPlayNext();
     }
-    if (kind === "flag" && appMode === "run") $("btn-hint").classList.toggle("hidden", !S.settings.hints);
+    if (kind === "flag" && appMode === "run") $("btn-hint").classList.toggle("hidden", !(S.settings.hints && !(run && run.layout && run.layout.diff && run.layout.diff.hints === false)));
   }
   function openSettings(back) {
     settingsBack = back || null;
@@ -41167,9 +41426,11 @@
     }
     renderSettings();
     $("s-settings").classList.remove("hidden");
+    document.body.classList.add("set-open");
   }
   function closeSettings() {
     $("s-settings").classList.add("hidden");
+    document.body.classList.remove("set-open");
     const b = settingsBack;
     settingsBack = null;
     if (b === "pause") openPause();
@@ -41297,6 +41558,7 @@
     camera.lookAt(lookGoal);
     appMode = "title";
     showUI("s-title");
+    refreshPlayNext();
     requestAnimationFrame(tick);
   })();
   function checkLaneAlignment() {
@@ -41420,6 +41682,8 @@
     openDevPanel,
     checkLaneAlignment,
     getMode: () => appMode,
+    worldMode: (w) => worldMode(w, S.settings),
+    stageModes: (w, st, b) => stageModes(w, st, b, S.settings),
     getRun: () => run,
     getPlayer: () => player,
     getGates: () => gates,

@@ -14,7 +14,7 @@
   --owl:#6a46d6;--owl-d:#3a228a;--paper:#fffdf8;
 }
 *{box-sizing:border-box}
-html,body{height:100%;margin:0;overflow:hidden;font-family:Rubik,"Noto Sans Hebrew",Arial,sans-serif;color:var(--ink);background:#071018}
+html,body{height:100%;height:100dvh;margin:0;overflow:hidden;font-family:Rubik,"Noto Sans Hebrew",Arial,sans-serif;color:var(--ink);background:#071018}
 #c{position:fixed;inset:0;display:block;width:100%;height:100%}
 button{font:inherit;cursor:pointer}
 .en{direction:ltr;unicode-bidi:isolate;font-family:Fredoka,Rubik,sans-serif}
@@ -49,7 +49,7 @@ button{font:inherit;cursor:pointer}
 .map-chrome{position:absolute;inset:0;padding:12px;display:flex;flex-direction:column}
 .map-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap}
 .map-side{position:absolute;top:86px;right:14px;bottom:215px;overflow-y:auto;width:min(280px,32vw);display:flex;flex-direction:column;gap:8px}
-@media (max-width:800px){.map-side{position:static;width:100%;max-height:34vh;overflow:auto;margin-top:8px}}
+@media (max-width:800px) and (min-height:521px){.map-side{position:static;width:100%;max-height:34vh;overflow:auto;margin-top:8px}}
 .side-card{padding:10px 12px}
 .side-card h3{margin:0 0 6px;font-size:16px}
 .side-card p{margin:0 0 8px;font-size:13px;line-height:1.4}
@@ -120,6 +120,98 @@ table{width:100%;border-collapse:collapse;font-size:15px} th,td{padding:5px 6px;
 .spell-line .sp-next{color:#140818;background:#ffe34a;border:3px solid #140818;border-radius:10px;padding:0 6px;margin:0 4px}
 .spell-line .sp-rest{color:#14081855}
 .turn-cue{position:absolute;bottom:20%;left:50%;transform:translateX(-50%);background:#ffe34af5;color:#140818;border:5px solid #140818;border-radius:999px;padding:10px 24px;font-weight:800;font-size:clamp(20px,3vw,34px);box-shadow:0 8px 0 #140818,0 0 26px #ffc83dbb;z-index:6;pointer-events:none;font-family:Fredoka,Rubik,sans-serif}
+
+/* v9 */
+.play-btn{font-size:clamp(34px,6vw,58px);padding:16px 64px;margin-top:14px;box-shadow:0 9px 0 var(--leaf-d),0 0 40px #2fb86a99;animation:playPulse 1.6s ease-in-out infinite}
+@keyframes playPulse{50%{transform:scale(1.05)}}
+.play-next{font-size:clamp(16px,2.2vw,21px);font-weight:700;margin:10px 0 2px}
+.title-sec{margin-top:8px}.title-sec .btn.s{font-size:17px;padding:9px 16px}
+.world-type{align-self:center;padding:6px 16px;font-size:clamp(15px,2vw,19px);font-weight:700;color:#140818;background:rgba(255,253,246,.9);border-radius:16px;text-align:center;max-width:94vw}
+.world-chips .wchip .wtype{font-weight:600;font-size:12px;color:#5a3a1a}
+.stage-bar .tile .t-twist{font-size:12px;font-weight:700;color:#7a3a10}
+.prompt.listen .q{display:flex;align-items:center;justify-content:center;gap:16px;flex-wrap:wrap}
+.listen-ico{font-size:clamp(40px,6vw,60px);line-height:1}
+.replay-btn{font-size:clamp(22px,3.2vw,32px);padding:8px 26px}
+.replay-btn small{font-size:.55em;opacity:.8}
+.lane-opt.closed{background:#bdbdbd;color:#555;box-shadow:0 6px 0 #555}
+.mode-how{font-size:clamp(18px,2.4vw,22px);font-weight:800;color:#5b3fb5}
+.lvl-line{font-size:16px;font-weight:700;opacity:.85}
+.diff-desc{margin:8px 0 2px;padding:0 20px 0 0;font-size:clamp(16px,2vw,19px);line-height:1.45}
+.diff-desc li{opacity:.7;margin:2px 0}.diff-desc li.on{opacity:1;font-weight:700}
+.set-explain{font-size:clamp(16px,2vw,19px);font-weight:600;line-height:1.4;margin:0 0 8px;color:#3a2a10}
+.set-item{margin:6px 0 10px}
+.mgo-count{font-size:15px;opacity:.8}
+
+/* v9: phones / tablets in portrait AND landscape, safe areas, short screens */
+#mute{top:max(10px,env(safe-area-inset-top));left:max(10px,env(safe-area-inset-left))}
+#btn-settings{top:max(10px,env(safe-area-inset-top));left:calc(max(10px,env(safe-area-inset-left)) + 54px)}
+#hud{padding:max(10px,env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left))}
+.map-chrome{padding:max(12px,env(safe-area-inset-top)) max(12px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left))}
+body[data-ui="hud"] #mute,body[data-ui="hud"] #btn-settings,body.set-open #mute,body.set-open #btn-settings{display:none}
+#modal .box{max-height:calc(100dvh - 24px);overflow:auto}
+.set-box{max-height:calc(100dvh - 16px)}
+#s-end .glass{max-height:calc(100dvh - 90px);overflow:auto}
+.center{padding:max(18px,env(safe-area-inset-top)) max(18px,env(safe-area-inset-right)) max(18px,env(safe-area-inset-bottom)) max(18px,env(safe-area-inset-left))}
+#s-title{justify-content:center;overflow:auto}
+html.portrait .prompt{min-width:0;width:100%}
+html.portrait .lane-opts{gap:8px}
+html.portrait .lane-opt{font-size:clamp(18px,5.6vw,30px);padding:6px 6px;border-width:4px}
+html.portrait .map-top .world-title{font-size:22px}
+/* short screens (phones in landscape: 844x390, 932x430, 667x375 …) */
+html.short .sign{padding:2px 24px 6px;border-width:4px}
+html.short .sign h1{font-size:clamp(26px,5vh,40px)}
+html.short #s-title .sub,html.short #s-title > .note:not(.play-next){display:none}
+html.short #s-title .glass{padding:6px 12px !important;margin-top:4px !important}
+html.short #s-title .glass h2{font-size:17px;margin:0 0 4px !important}
+html.short .hero-btn{padding:4px 12px;min-width:84px;border-width:3px}
+html.short .play-btn{font-size:clamp(26px,8vh,40px);padding:8px 44px;margin-top:8px}
+html.short .play-next{margin:6px 0 0;font-size:15px}
+html.short .title-sec{margin-top:4px}
+html.short .title-sec .btn.s{font-size:14px;padding:6px 12px}
+html.short .btn.s{font-size:13px;padding:6px 10px}
+html.short #hud .hud-top>.row{flex-wrap:nowrap;align-items:flex-start}
+html.short .prompt{min-width:0;flex:1 1 auto;padding:4px 12px;border-radius:18px}
+html.short .prompt small{font-size:13px}
+html.short .prompt .q{font-size:clamp(20px,6vh,30px)}
+html.short .pic-big{font-size:1.3em}
+html.short .riddle{font-size:15px}
+html.short .listen-ico{font-size:30px}
+html.short .replay-btn{font-size:18px;padding:5px 16px}
+html.short .pill{padding:3px 9px;font-size:13px;border-width:2px}
+html.short #hud .hud-top .row .row{flex-wrap:wrap;gap:4px;max-width:30vw}
+html.short .lane-opts{margin-top:4px;gap:14px}
+html.short .lane-opt{font-size:clamp(17px,5.5vh,28px);padding:3px 8px;border-width:3px;border-radius:14px;box-shadow:0 4px 0 #140818}
+html.short .turn-cue{font-size:18px;padding:6px 16px;bottom:24%}
+html.short .map-top .world-title{font-size:22px}
+html.short .map-side{position:static;width:auto;flex-direction:row;flex-wrap:wrap;gap:6px;overflow:visible;margin-top:4px;justify-content:flex-start}
+html.short .map-side .side-card{padding:0;background:none;border:0;box-shadow:none;backdrop-filter:none}
+html.short .map-side .side-card h3,html.short .map-side .side-card p,html.short .map-side .side-card .bar{display:none}
+html.short .world-type{font-size:13px;padding:3px 10px}
+html.short .world-chips{flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;scrollbar-width:thin}
+html.short .world-chips .wchip{font-size:12px;padding:3px 8px;border-width:2px}
+html.short .stage-bar .tile{min-width:84px;padding:4px 6px;font-size:13px;border-width:2px}
+html.short .stage-bar .tile small{font-size:12px}
+html.short .stage-bar .tile .t-scene{display:none}
+html.short #modal{padding:8px}
+html.short #modal .box{padding:10px 14px}
+html.short #modal h2{font-size:22px;margin:4px 0}
+html.short #modal p{margin:4px 0}
+html.short .mode-how{font-size:17px}
+html.short .set-box{padding:6px 12px 10px;max-height:calc(100dvh - 8px)}
+html.short #s-settings{padding:4px}
+html.short .set-head h2{font-size:24px}
+html.short .set-sec{margin:6px 0;padding:6px 10px}
+html.short .set-sec h3{font-size:19px;margin:0 0 4px}
+html.short .seg-b{padding:6px 14px;font-size:17px;min-width:90px}
+html.short .set-check{font-size:16px;padding:5px 10px}
+html.short #s-end h2{font-size:22px;margin:4px 0}
+.map-top{padding-left:calc(env(safe-area-inset-left) + 186px)}
+html.portrait .map-top{padding-left:0;padding-top:50px}
+html.portrait .map-side{position:static;width:auto;max-height:none;flex-direction:row;flex-wrap:wrap;gap:6px;overflow:visible;margin-top:6px;justify-content:center}
+html.portrait .map-side .side-card{padding:0;background:none;border:0;box-shadow:none;backdrop-filter:none}
+html.portrait .map-side .side-card h3,html.portrait .map-side .side-card p,html.portrait .map-side .side-card .bar{display:none}
+html.portrait .world-chips{flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start}
+html.portrait .world-type{font-size:14px}
 </style>
 </head>
 <body>
@@ -144,9 +236,12 @@ table{width:100%;border-collapse:collapse;font-size:15px} th,td{padding:5px 6px;
       <div class="row" id="hero-btns"></div>
     </div>
     <p class="note">משחק אוצר מילים באנגלית לכיתות ד׳–ה׳ · <span id="wordcount"></span> מילים</p>
-    <div class="row" style="margin-top:10px">
-      <button class="btn g" id="btn-start">יוצאים להרפתקה!</button>
-      <button class="btn s" id="btn-help">איך משחקים?</button>
+    <button class="btn g play-btn" id="btn-play">▶ שחקו!</button>
+    <p class="note play-next" id="play-next"></p>
+    <div class="row title-sec">
+      <button class="btn s" id="btn-start">🗺️ בחירת עולם ושלב</button>
+      <button class="btn s" id="btn-title-settings">⚙️ הגדרות</button>
+      <button class="btn s" id="btn-help">❓ איך משחקים?</button>
     </div>
   </section>
 
@@ -155,10 +250,10 @@ table{width:100%;border-collapse:collapse;font-size:15px} th,td{padding:5px 6px;
       <h2 style="text-align:center">איך משחקים?</h2>
       <p>רצים במסלול תלת-ממדי כמו בהרפתקה. מולכם שלושה שלטים נפרדים — לכל שלט מילה. בחרו את הנתיב הנכון עם החצים או בהחלקה על המסך.</p>
       <p>כל עולם נעול במנעול. כשמנצחים את הבוס מקבלים מפתח זהב שפותח את האי הבא.</p>
-      <p>8 עולמות, ובכל עולם 7 שלבים — 6 שלבים ובוס. כל שלב נראה אחרת: נוף, חפצים, מזג אוויר ושעה ביום. העולמות המאוחרים מהירים וקשים יותר.</p>
-      <p>שלב 5 — «תמונה וחידה»: רואים ציור וחידה בעברית ורצים אל המילה באנגלית. שלב 6 — «סיבוב מהיר»: חזרה על כל סוגי השאלות במהירות גבוהה.</p>
+      <p>8 עולמות, ובכל עולם 7 שלבים — 6 שלבים ובוס. כל שלב קשה יותר מהקודם, וכל עולם קשה יותר מהעולם שלפניו.</p>
+      <p>לכל עולם סוג תרגיל משלו: 1 תרגום לעברית · 2 תרגום לאנגלית · 3 תמונה ומילה · 4 אות חסרה · 5 האזנה ופירוש · 6 האזנה בלבד · 7 איות באותיות · 8 סיבוב מהיר של הכול.</p>
       <p>⬆ / רווח — קפיצה מעל בורות ומכשולים נמוכים &nbsp; ←→ — מעבר נתיב, ובפנייה חדה של 90° חייבים להחליק לכיוון הפנייה &nbsp; ⬇ — החלקה מתחת לקורה</p>
-      <p>בשלב 2 בכל עולם מקשיבים למילה באנגלית ורצים אל הפירוש בעברית.</p>
+      <p>בעולמות ההאזנה המילה לא כתובה על המסך – רק שומעים אותה. לחצו 🔊 «שמעו שוב» או על המקש R כדי לשמוע שוב.</p>
       <p>🦉 תקועים? לחצו ״צריכים עזרה?״ — שלושה רמזים בלי עונש.</p>
       <p>🔊 המילה באנגלית מושמעת בקול. לבבות מתמלאים מחדש בכל שלב. איכות גרפית חסכונית זמינה למחשבים חלשים.</p>
     </div>
@@ -187,6 +282,7 @@ table{width:100%;border-collapse:collapse;font-size:15px} th,td{padding:5px 6px;
       <div class="glass side-card"><h3>📚 ספריית המילים האבודות</h3><p>תרגול נוסף למילים שברחו בדרך.</p><button class="btn s" id="btn-library">כניסה לספרייה</button></div>
     </aside>
     <div class="map-bottom">
+      <div class="world-type glass" id="world-type"></div>
       <div class="world-chips" id="world-chips"></div>
       <div class="stage-bar" id="stage-bar"></div>
     </div>
@@ -195,7 +291,7 @@ table{width:100%;border-collapse:collapse;font-size:15px} th,td{padding:5px 6px;
   <section id="hud" class="hidden">
     <div class="hud-top" style="flex-direction:column;align-items:stretch">
       <div class="row" style="justify-content:space-between;width:100%">
-        <div class="row"><button class="btn s" id="btn-pause" aria-label="הפסקה">⏸️</button><button class="btn s" id="btn-hud-map">🗺️ מפה</button></div>
+        <div class="row"><button class="btn s" id="btn-pause" aria-label="הפסקה">⏸️</button><button class="btn s" id="btn-hud-map">🗺️ מפה</button><button class="btn s" id="btn-hud-mute" aria-label="צליל">🔊</button></div>
         <div class="prompt" id="prompt"><small id="prompt-sub"></small><div class="emoji" id="prompt-emoji"></div><div class="q" id="prompt-q"></div></div>
         <div class="row">
           <span class="pill" id="hud-hearts">❤️❤️❤️</span>
@@ -259,7 +355,10 @@ table{width:100%;border-collapse:collapse;font-size:15px} th,td{padding:5px 6px;
   var chain = Promise.resolve();
   // DEMO ONLY: js/dev-flag.js sets window.MQ_DEV = true.
   // Production: omit that file (this load fails silently) and the DEVELOPER button will not appear.
-  chain = chain.then(function () { return loadScript("./js/dev-flag.js").catch(function () {}); });
+  // v9: only the demo folder (or a local file) even tries to load it, so the official game never shows it.
+  if (/\/demo\//.test(location.pathname) || location.protocol === "file:") {
+    chain = chain.then(function () { return loadScript("./js/dev-flag.js").catch(function () {}); });
+  }
   if (location.protocol === "file:") chain = chain.then(function () { return loadScript("./js/embed.js"); });
   chain.then(function () { return loadScript("./js/game.bundle.js"); })
     .catch(function (e) { console.error(e); });
