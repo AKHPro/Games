@@ -192,7 +192,7 @@ function syncDevButton(id) {
   const menu = isDev() && (id === "s-title" || id === "s-map" || id === "s-help" || id === "s-jr" || id === "s-nb");
   btn.classList.toggle("hidden", !menu);
 }
-function showUI(id) { hideAll(); $(id).classList.remove("hidden"); syncDevButton(id); document.body.dataset.ui = id; closeAccountMenu(); }
+function showUI(id) { hideAll(); $(id).classList.remove("hidden"); syncDevButton(id); document.body.dataset.ui = id; closeAccountMenu(); if (id === "hud") requestAnimationFrame(() => refitLaneOpts()); }
 function showModal(html) {
   $("modal-box").innerHTML = html;
   $("modal").classList.remove("hidden");
@@ -1855,9 +1855,48 @@ function setLaneOpts(opts) {
     el.textContent = o;
     el.classList.toggle("closed", o === CLOSED);
     const n = String(o).length;
-    el.classList.toggle("long", n >= 16);
-    el.style.fontSize = n >= 28 ? "14px" : n >= 22 ? "16px" : n >= 16 ? "18px" : n >= 12 ? "18px" : n >= 10 ? "22px" : n >= 8 ? "26px" : n >= 6 ? "30px" : "";
+    el.classList.toggle("long", n >= 16 && /\s/.test(String(o).trim()));
+    fitLaneOpt(el);
   });
+  requestAnimationFrame(() => refitLaneOpts());
+}
+// v11.3: answers are never cut. Each gate button shrinks its own font until the text fits;
+// one word stays on one line, a phrase may wrap to 2 lines. Re-fit on resize / rotation / font load.
+function fitLaneOpt(el) {
+  if (!el || !el.offsetParent && getComputedStyle(el).position !== "fixed" && !el.getClientRects().length) return;
+  const txt = String(el.textContent || "").trim();
+  const multi = /\s/.test(txt);
+  el.style.fontSize = "";
+  el.style.whiteSpace = multi ? "normal" : "nowrap";
+  el.style.textOverflow = "clip";
+  el.style.overflowWrap = "normal";
+  el.style.lineHeight = multi ? "1.12" : "";
+  let size = parseFloat(getComputedStyle(el).fontSize) || 24;
+  const MIN = 9;
+  const fits = () => {
+    if (el.scrollWidth > el.clientWidth + 1) return false;
+    if (!multi) return true;
+    const r = document.createRange();
+    r.selectNodeContents(el);
+    const h = r.getBoundingClientRect().height;
+    const lh = parseFloat(getComputedStyle(el).lineHeight) || size * 1.12;
+    return h <= lh * 2 + 2;
+  };
+  let guard = 0;
+  while (!fits() && size > MIN && guard++ < 80) {
+    size = Math.max(MIN, size - (size > 26 ? 2 : 1));
+    el.style.fontSize = size + "px";
+  }
+}
+function refitLaneOpts() {
+  const row = $("lane-opts");
+  if (!row || row.classList.contains("hidden")) return;
+  for (let i = 0; i < 3; i++) fitLaneOpt($("lane-opt-" + i));
+}
+if (typeof window !== "undefined") {
+  window.addEventListener("resize", () => requestAnimationFrame(refitLaneOpts));
+  window.addEventListener("orientationchange", () => setTimeout(refitLaneOpts, 250));
+  try { if (document.fonts && document.fonts.ready) document.fonts.ready.then(refitLaneOpts); } catch (e) {}
 }
 function setPrompt(sub, q, emoji) {
   $("prompt-sub").textContent = sub || "";
@@ -2044,7 +2083,12 @@ function spawnLetterWord(w, fromIdx = 0) {
   // clear obstacles that were already spawned inside the letter zone
   for (const o of obstacles) {
     if (o.hit) continue;
-    if (o.s > run.spell.zone[0] && o.s < run.spell.zone[1] && !letterObstacleOK(o.s)) { o.hit = true; disposeDeep(o.mesh); }
+    if (o.s > run.spell.zone[0] && o.s < run.spell.zone[1] && !letterObstacleOK(o.s)) {
+      // v11.3: animals already on the track stay visible and keep walking; inside the letter zone
+      // they become harmless (no heart lost), so the letter rows stay fair
+      if (o.type === "animal") { o.calm = true; continue; }
+      o.hit = true; disposeDeep(o.mesh);
+    }
   }
 }
 /* letter stage HUD: the 3 letters of the next row in big HTML (same as gate answers) and the word
@@ -2495,17 +2539,30 @@ function showEndScreen(ok, st, title, nx) {
     <div style="font-size:48px">${"⭐".repeat(st)}${"☆".repeat(3 - st)}</div>
     <p>ניקוד: <b>${run.score}</b> <span class="score-mul">×${scoreMul()} (${esc((DIFFS[(run.layout && run.layout.diff && run.layout.diff.level)] || DIFFS.normal).label)})</span> · ${coinHtml("+" + run.coins)} · נכון בניסיון ראשון: ${run.firstTry}/${run.queue.length}</p>
     ${ok && run.boss && run.bossHP <= 0 && run.world < WORLDS.length ? "<p>🔑 קיבלתם מפתח זהב! העולם הבא נפתח.</p>" : ""}
-  </div>
-  <div class="row" style="margin-top:12px">${nx}
-    <button class="btn" id="again">שוב</button>
-    <button class="btn" id="to-map">למפה</button>
+    <div class="row end-actions">${nx}
+      <button class="btn" id="again">שוב</button>
+      <button class="btn" id="to-map">למפה</button>
+    </div>
   </div>`;
-  $("to-map").onclick = () => goMapMode();
-  $("again").onclick = () => startLevel(run.world, run.st, run.lost);
+  // v11.3: a stage opened with the DEVELOPER jump may still be locked for this profile, so
+  // "שוב" / "next" keep the jump's lock bypass (owner only, re-checked in startLevel).
+  // If a stage still can't start, go to the map instead of doing nothing.
+  const r = run, opt = { bypassLock: !!r.dev };
+  let busy = false;
+  const go = (wid, st, lost) => {
+    if (busy) return;
+    busy = true;
+    Promise.resolve(startLevel(wid, st, lost, opt)).then((res) => {
+      busy = false;
+      if (res === false) goMapMode();
+    }).catch((e) => { busy = false; console.error(e); goMapMode(); });
+  };
+  $("to-map").onclick = () => { if (!busy) goMapMode(); };
+  $("again").onclick = () => go(r.world, r.st, r.lost);
   const nxb = $("nx");
   if (nxb) nxb.onclick = () => {
-    if (run.st < BOSS_ST) startLevel(run.world, run.st + 1);
-    else startLevel(run.world + 1, 0);
+    if (r.st < BOSS_ST) go(r.world, r.st + 1);
+    else go(r.world + 1, 0);
   };
 }
 function recordRunSession() {
@@ -2629,7 +2686,7 @@ async function startLevel(wid, st, lost, opt) {
   else if (!lost && modes.length > 2) queue = pickWords(wid, st, false, 10, D.lvlMix);
 
   run = {
-    world: wid, st, lost, mode, qmode: mode, modes, boss, queue, i: 0, score: 0, coins: 0,
+    world: wid, st, lost, dev: !!bypass, mode, qmode: mode, modes, boss, queue, i: 0, score: 0, coins: 0,
     hint: 0, wrong: 0, firstTry: 0, hearts: D.hearts, maxHearts: D.hearts, combo: 0, stumbleT: 0, iFrames: 0,
     bossHP: boss ? D.bossHP : 0, bossMax: boss ? D.bossHP : 0, nextCoinS: 8, nextObsS: 18, glanceT: 0, forceGlance: false,
     layout, playSec: 0, recorded: false
@@ -3050,6 +3107,7 @@ function updateRunner(dt) {
     if (o.spin) o.mesh.rotation.x += dt * o.spin;
     if ((o.s != null ? o.s : 0) < player.s - 4) { o.hit = true; disposeDeep(o.mesh); continue; }
     if (o.type === "animal") animateAnimal(o, dt);
+    if (o.calm) continue;
     if (Math.abs((o.s || 0) - player.s) < 0.7 && o.lane === playerLaneNow()) {
       if ((o.type === "low" || o.type === "hole" || o.type === "roll" || o.type === "animal") && player.y > 0.28) continue;
       if (o.type === "wall" && player.y > 1.3) continue;
@@ -3991,6 +4049,7 @@ window.MQ = {
   worldMode: (w) => worldMode(w, S.settings),
   stageModes: (w, st, b) => stageModes(w, st, b, S.settings),
   getRun: () => run,
+  setLaneOpts: (o) => setLaneOpts(o),
   getPlayer: () => player,
   getGates: () => gates,
   getBoss: () => bossActor,
