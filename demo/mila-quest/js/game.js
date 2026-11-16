@@ -2,6 +2,7 @@ import * as THREE from "../assets/lib/three.module.js";
 import { GLTFLoader } from "../assets/lib/jsm/loaders/GLTFLoader.js";
 import * as SkeletonUtils from "../assets/lib/jsm/utils/SkeletonUtils.js";
 import { WORDS } from "./data.js";
+import { wordsForAge, speakText, spellTarget, questionOverride, validateAgeBanks } from "./age.js";
 import { KEY, NEED_CLEAN, PTS, HEROES, BOSSES, ST, WORLDS, ACH, INTRO, NSTAGES, BOSS_ST } from "./config.js";
 import { buildCourse, pathAt, pathFrame, worldOnPath, makeStoneTexture, makeDirtTexture, makeGrassTexture, makeValleyTexture, makeSmoothTree, makeMountains, makeMist, makeRibbonGeometry, makeSkirtGeometry, populateValley, scatterGroundDetails, plantCourseFlags, updateFlagWave, makeIsraelFlag } from "./worldkit.js";
 import { themeOf, THEME_LOOK, THEME_MOUNTAINS, buildThemeCourse, buildThemeAmbience, makeThemeDecor, makeThemedHazard, fxTime } from "./themes.js";
@@ -9,7 +10,7 @@ import { GFX, setGfxLevel, N } from "./gfx.js";
 import { mergeStatic } from "./merge.js";
 import { NEW_THEMES, buildWorld2Course, buildWorld2Ambience, world2Decor, world2Hazard } from "./worlds2.js";
 import { PROPS, stagePlan, stageSceneName, stageLook, stageDecorSpec, buildStageScatter, buildStageAtmos } from "./stages.js";
-import { normSettings, difficultyFor, stageModes, worldMode, isListenMode, MODE_LABEL, MODE_DESC, QTYPES, DIFFS, GFX_OPTS, DEFAULT_SETTINGS } from "./settings.js";
+import { normSettings, difficultyFor, stageModes, worldMode, isListenMode, MODE_LABEL, MODE_DESC, QTYPES, DIFFS, GFX_OPTS, DEFAULT_SETTINGS, AGES, normAge } from "./settings.js";
 
 let GPU_INFO = "";
 function hasWebGL() {
@@ -55,6 +56,9 @@ S.stagesV = 2;
 S.settings = normSettings(S.settings);
 
 const GAME_ID = "mila-quest";
+const activeWords = () => wordsForAge(S.settings && S.settings.age, WORDS);
+const refreshWordcount = () => { const n = activeWords().length; const el = $("wordcount"); if (el) el.textContent = n; };
+
 const progressFields = (s) => ({
   stagesV: 2,
   prog: s.prog || {},
@@ -65,7 +69,8 @@ const progressFields = (s) => ({
   known: s.known || {},
   best: s.best || 0,
   runs: s.runs || 0,
-  ach: Array.isArray(s.ach) ? s.ach.slice() : []
+  ach: Array.isArray(s.ach) ? s.ach.slice() : [],
+  age: (s.settings && s.settings.age) || "de"
 });
 const keepDevice = (s) => ({
   muted: !!s.muted,
@@ -79,9 +84,11 @@ function applyProgressData(p) {
   const dev = keepDevice(S);
   S = Object.assign(def(), dev, p || {});
   S.settings = normSettings(dev.settings);
+  S.settings.age = normAge(p && p.age);
   S.free = dev.free;
   S.muted = dev.muted;
   S.stagesV = 2;
+  refreshWordcount();
 }
 function loadActiveProgress() {
   if (!window.Englishia || !Englishia.getName()) return;
@@ -133,7 +140,7 @@ function sayCurrent(slow, force) {
   if (!run || !run.cur) return;
   const D = run.layout && run.layout.diff;
   const r = (D && D.rate) || .82;
-  say(run.cur.en, slow ? Math.max(0.55, r - 0.22) : r, force);
+  say(run.speakText || speakText(run.cur), slow ? Math.max(0.55, r - 0.22) : r, force);
 }
 $("mute").textContent = muted ? "🔇" : "🔊";
 function toggleMute() { muted = !muted; S.muted = muted; save(); $("mute").textContent = muted ? "🔇" : "🔊"; if ($("btn-hud-mute")) $("btn-hud-mute").textContent = muted ? "🔇" : "🔊"; }
@@ -147,8 +154,8 @@ const bossDone = (wid) => !!S.prog[wid + "-" + BOSS_ST];
 const keysOwned = () => WORLDS.filter((w) => bossDone(w.id)).map((w) => w.id);
 const wOpen = (i) => S.free || i === 0 || bossDone(WORLDS[i - 1].id);
 const sOpen = (i, t) => wOpen(i) && (S.free || t === 0 || stDone(WORLDS[i].id, t - 1) || stDone(WORLDS[i].id, t));
-const nbs = () => WORDS.map((w) => ({ w, n: S.notebook[w.en] })).filter((x) => x.n);
-const learnedCount = () => WORDS.filter((w) => (S.notebook[w.en] && S.notebook[w.en].learned) || S.known[w.en]).length;
+const nbs = () => activeWords().map((w) => ({ w, n: S.notebook[w.en] })).filter((x) => x.n);
+const learnedCount = () => activeWords().filter((w) => (S.notebook[w.en] && S.notebook[w.en].learned) || S.known[w.en]).length;
 const worldsDone = () => WORLDS.filter((w) => ST[w.id - 1].every((_, t) => stDone(w.id, t))).length;
 function grantAch(id) { if (!S.ach.includes(id)) { S.ach.push(id); save(); } }
 
@@ -212,10 +219,10 @@ function refreshMapStats() {
   $("map-stars").textContent = S.stars;
   const ln = learnedCount();
   $("stat-learned").textContent = ln;
-  $("stat-total").textContent = WORDS.length;
+  $("stat-total").textContent = activeWords().length;
   $("stat-practice").textContent = nbs().filter((x) => !x.n.learned).length;
   $("stat-worlds").textContent = worldsDone();
-  $("stat-bar").style.width = (ln / WORDS.length * 100).toFixed(1) + "%";
+  $("stat-bar").style.width = (ln / activeWords().length * 100).toFixed(1) + "%";
   const mk = $("map-keys");
   if (mk) mk.textContent = keysOwned().length;
 }
@@ -1748,7 +1755,7 @@ function pickWords(wid, st, lost, n = 8, mix = [1, 0, 0], filter = null) {
     const hard = shuffle(nbs().filter((x) => !x.n.learned).map((x) => x.w));
     return hard.slice(0, Math.min(10, Math.max(hard.length, 0)));
   }
-  let arr = WORDS.filter((w) => w.w === wid);
+  let arr = activeWords().filter((w) => w.w === wid);
   if (filter) { const f = arr.filter(filter); if (f.length >= n) arr = f; }
   // v8: words are drawn by level (1 basic / 2 intermediate / 3 advanced) using the world's mix;
   // not-yet-known words first inside each level.
@@ -1781,22 +1788,30 @@ function simScore(a, b, field) {
 }
 /* v8: distractors become more similar to the answer (same first letter, length, endings)
    as similarity grows with world / stage / difficulty. Never repeats the answer text. */
-function distractors(word, field, k, sim = 0) {
-  const ans = word[field];
+function itemField(word, field) {
+  if (!word) return "";
+  if (field === "en") return word.sentence || word.en || "";
+  if (field === "he") return word.he || "";
+  if (field === "ans") return word.ans || "";
+  if (field === "ansHe") return word.ansHe || "";
+  return word[field] || "";
+}
+function distractors(word, field, k, sim = 0, answerOverride) {
+  const ans = answerOverride != null ? answerOverride : itemField(word, field);
   const used = new Set([ans]);
-  const pool = WORDS.filter((x) => x.en !== word.en && x[field] !== ans);
+  const pool = activeWords().filter((x) => x.en !== word.en && itemField(x, field) && itemField(x, field) !== ans);
   const same = pool.filter((x) => x.w === word.w);
   const out = [];
   for (let j = 0; j < k; j++) {
     let cand = null;
-    const free = same.filter((x) => !used.has(x[field]));
+    const free = same.filter((x) => !used.has(itemField(x, field)));
     if (free.length && Math.random() < sim) {
-      cand = free.map((x) => [simScore(ans, x[field], field) + Math.random() * 1.2, x]).sort((p, q) => q[0] - p[0])[0][1];
+      cand = free.map((x) => [simScore(ans, itemField(x, field), field) + Math.random() * 1.2, x]).sort((p, q) => q[0] - p[0])[0][1];
     }
-    if (!cand) cand = shuffle(free)[0] || shuffle(pool.filter((x) => !used.has(x[field])))[0];
+    if (!cand) cand = shuffle(free)[0] || shuffle(pool.filter((x) => !used.has(itemField(x, field))))[0];
     if (!cand) break;
-    used.add(cand[field]);
-    out.push(cand[field]);
+    used.add(itemField(cand, field));
+    out.push(itemField(cand, field));
   }
   return out;
 }
@@ -1814,7 +1829,7 @@ function letterDistractors(c, k, sim = 0) {
   return [...out];
 }
 const isSpellMode = (m) => m === "build" || m === "let";
-const spellOK = (w) => /^[A-Za-z]{3,10}$/.test(w.en);
+const spellOK = (w) => /^[A-Za-z]{3,14}$/.test(spellTarget(w));
 function spellable(list) {
   return list.filter((w) => /^[A-Za-z]+$/.test(w.en) && w.en.length >= 3 && w.en.length <= 10);
 }
@@ -1840,7 +1855,8 @@ function setLaneOpts(opts) {
     el.textContent = o;
     el.classList.toggle("closed", o === CLOSED);
     const n = String(o).length;
-    el.style.fontSize = n >= 12 ? "18px" : n >= 10 ? "22px" : n >= 8 ? "26px" : n >= 6 ? "30px" : "";
+    el.classList.toggle("long", n >= 16);
+    el.style.fontSize = n >= 28 ? "14px" : n >= 22 ? "16px" : n >= 16 ? "18px" : n >= 12 ? "18px" : n >= 10 ? "22px" : n >= 8 ? "26px" : n >= 6 ? "30px" : "";
   });
 }
 function setPrompt(sub, q, emoji) {
@@ -1866,8 +1882,8 @@ function clearLetters() {
   letters.forEach((L) => { if (L.mesh && L.mesh.parent) runScene.remove(L.mesh); });
   letters.length = 0;
 }
-const PIC_COUNT = (() => { const c = {}; WORDS.forEach((w) => { if (w.pic) c[w.pic] = (c[w.pic] || 0) + 1; }); return c; })();
-const picOK = (w) => !!(w && w.pic && PIC_COUNT[w.pic] === 1);
+const picCountMap = () => { const c = {}; activeWords().forEach((w) => { if (w.pic) c[w.pic] = (c[w.pic] || 0) + 1; }); return c; };
+const picOK = (w) => !!(w && w.pic && picCountMap()[w.pic] === 1);
 const CLOSED = "✖";                       // v9 easy: the third lane is closed (only 2 answers)
 function laneOptions(answer, wrong, nOpts) {
   const list = shuffle([answer, ...wrong.slice(0, Math.max(1, nOpts - 1))]);
@@ -1900,6 +1916,7 @@ function setupQuestion() {
   const sim = D.similarity || 0;
   const nOpts = D.options || 3;
   $("prompt").classList.toggle("listen", isListenMode(mode));
+  run.speakText = speakText(w);
   if (mode === "build") {
     setLaneOpts(null);
     setPrompt("אספו את האותיות לפי הסדר", w.he, w.pic);
@@ -1907,7 +1924,27 @@ function setupQuestion() {
     return;
   }
   let opts, sub, q, emoji = "", answer, extraT = 0;
-  if (mode === "let") {
+  const over = questionOverride(mode, w);
+  if (over) {
+    answer = over.answer;
+    let wrong = (over.wrong && over.wrong.length) ? over.wrong.slice() : [];
+    const field = (answer === w.he || answer === w.ansHe) ? "he" : "en";
+    if (wrong.length < 2) wrong = wrong.concat(distractors(w, field, 2, sim, answer));
+    wrong = wrong.filter((x, i, a) => x && x !== answer && a.indexOf(x) === i);
+    opts = laneOptions(answer, wrong, nOpts);
+    sub = over.sub;
+    q = over.q || "";
+    emoji = over.emoji || "";
+    extraT = over.extraT || 0;
+    if (over.speak) run.speakText = over.speak;
+    if (over.listen) {
+      q = `<span class="listen-ico" aria-hidden="true">🎧</span><button type="button" class="btn p replay-btn" id="btn-replay">🔊 שמעו שוב <small>(R)</small></button>`
+        + (muted ? `<div class="riddle">🔇 הצליל כבוי – לחצו על «שמעו שוב» כדי לשמוע</div>` : "")
+        + (over.q || "");
+      run.listenAt = performance.now();
+      setTimeout(() => { if (run && run.cur === w && !paused) sayCurrent(false); }, 120);
+    }
+  } else if (mode === "let") {
     const E = w.en.toUpperCase();
     const two = (D.letMissing || 1) >= 2 && E.length >= 5;
     const span = two ? 2 : 1;
@@ -1926,8 +1963,9 @@ function setupQuestion() {
     q = `<span class="en">${esc(w.en)}</span>`;
   } else if (mode === "picw") {
     // picture -> pick the English word (distractors never share the picture); late stages: no riddle text
-    const ds = distractors(w, "en", 5, sim).filter((d) => { const x = WORDS.find((y) => y.en === d); return !x || x.pic !== w.pic; }).slice(0, 2);
-    while (ds.length < 2) { const x = WORDS[Math.floor(Math.random() * WORDS.length)]; if (x.pic !== w.pic && x.en !== w.en && !ds.includes(x.en)) ds.push(x.en); }
+    const bank = activeWords();
+    const ds = distractors(w, "en", 5, sim).filter((d) => { const x = bank.find((y) => (y.sentence || y.en) === d || y.en === d); return !x || x.pic !== w.pic; }).slice(0, 2);
+    while (ds.length < 2) { const x = bank[Math.floor(Math.random() * bank.length)]; const val = (x && (x.en)) || ""; if (x && x.pic !== w.pic && x.en !== w.en && val && !ds.includes(val)) ds.push(val); if (ds.length < 2 && bank.length < 3) break; }
     answer = w.en;
     opts = laneOptions(answer, ds, nOpts);
     sub = D.picRiddle ? "מה בתמונה? רצו אל המילה באנגלית" : "מה בתמונה? (בלי חידה!) רצו אל המילה באנגלית";
@@ -1977,7 +2015,7 @@ function letterRowS(s) {
   return s;
 }
 function spawnLetterWord(w, fromIdx = 0) {
-  const E = w.en.toUpperCase().replace(/[^A-Z]/g, "");
+  const E = (spellTarget(w) || w.en || "").toUpperCase().replace(/[^A-Z]/g, "");
   if (!fromIdx) run.spell = { rest: E, idx: 0, rows: [] };
   const D = run.layout && run.layout.diff;
   const gap = (D && D.letterGap) || 15;
@@ -2122,13 +2160,15 @@ function buildAnimal(kind) {
   g.name = "animal-" + kind;
   const segs = isHigh() ? 8 : 5;
   const M = (c, em) => new THREE.MeshStandardMaterial({ color: c, roughness: 0.58, metalness: 0.06, flatShading: true, emissive: em || 0x000000, emissiveIntensity: em ? 0.16 : 0 });
-  const add = (geom, mat, x, y, z, rx, ry, rz) => {
+  const add = (geom, mat, x, y, z, rx, ry, rz, part) => {
     const m = new THREE.Mesh(geom, mat);
     m.position.set(x || 0, y || 0, z || 0);
     if (rx) m.rotation.x = rx;
     if (ry) m.rotation.y = ry;
     if (rz) m.rotation.z = rz;
     if (isHigh()) m.castShadow = true;
+    if (part) m.userData.part = part;
+    m.userData.base = { x: m.position.x, y: m.position.y, z: m.position.z, rx: m.rotation.x, ry: m.rotation.y, rz: m.rotation.z };
     g.add(m);
     return m;
   };
@@ -2137,65 +2177,65 @@ function buildAnimal(kind) {
   const cyl = (t, b, h) => new THREE.CylinderGeometry(t, b, h, segs);
   if (kind === "snake") {
     const m = M(0x2f9a4c, 0x145020); const eye = M(0x1a1a1a);
-    add(sph(0.16), m, 0.42, 0.2, 0);
+    add(sph(0.16), m, 0.42, 0.2, 0, 0, 0, 0, "head");
     add(sph(0.14), m, 0.12, 0.16, 0);
     add(sph(0.12), m, -0.16, 0.14, 0);
-    add(sph(0.09), m, -0.4, 0.12, 0);
+    add(sph(0.09), m, -0.4, 0.12, 0, 0, 0, 0, "tail");
     add(sph(0.035), eye, 0.5, 0.26, 0.08); add(sph(0.035), eye, 0.5, 0.26, -0.08);
   } else if (kind === "monkey") {
     const fur = M(0x8a4a22), face = M(0xe8c090), eye = M(0x1a1a1a);
     add(sph(0.28), fur, 0, 0.38, 0);
-    add(sph(0.18), face, 0, 0.68, 0.08);
+    add(sph(0.18), face, 0, 0.68, 0.08, 0, 0, 0, "head");
     add(sph(0.035), eye, 0.07, 0.74, 0.2); add(sph(0.035), eye, -0.07, 0.74, 0.2);
-    add(cyl(0.05, 0.05, 0.32), fur, 0.28, 0.42, 0, 0, 0, 0.7);
-    add(cyl(0.05, 0.05, 0.32), fur, -0.28, 0.42, 0, 0, 0, -0.7);
-    add(cyl(0.06, 0.06, 0.22), fur, 0.12, 0.16, 0);
-    add(cyl(0.06, 0.06, 0.22), fur, -0.12, 0.16, 0);
+    add(cyl(0.05, 0.05, 0.32), fur, 0.28, 0.42, 0, 0, 0, 0.7, "armR");
+    add(cyl(0.05, 0.05, 0.32), fur, -0.28, 0.42, 0, 0, 0, -0.7, "armL");
+    add(cyl(0.06, 0.06, 0.22), fur, 0.12, 0.16, 0, 0, 0, 0, "legR");
+    add(cyl(0.06, 0.06, 0.22), fur, -0.12, 0.16, 0, 0, 0, 0, "legL");
   } else if (kind === "crab") {
     const sh = M(0xd4482a), claw = M(0xc43818);
     add(sph(0.22), sh, 0, 0.2, 0);
     g.children[0].scale.set(1.35, 0.55, 1);
-    add(box(0.16, 0.08, 0.12), claw, 0.32, 0.22, 0.12);
-    add(box(0.16, 0.08, 0.12), claw, -0.32, 0.22, 0.12);
-    add(cyl(0.025, 0.025, 0.16), sh, 0.16, 0.08, 0.1);
-    add(cyl(0.025, 0.025, 0.16), sh, -0.16, 0.08, 0.1);
+    add(box(0.16, 0.08, 0.12), claw, 0.32, 0.22, 0.12, 0, 0, 0, "clawR");
+    add(box(0.16, 0.08, 0.12), claw, -0.32, 0.22, 0.12, 0, 0, 0, "clawL");
+    add(cyl(0.025, 0.025, 0.16), sh, 0.16, 0.08, 0.1, 0, 0, 0, "legR");
+    add(cyl(0.025, 0.025, 0.16), sh, -0.16, 0.08, 0.1, 0, 0, 0, "legL");
     add(sph(0.04), M(0x1a1a1a), 0.1, 0.28, 0.16);
     add(sph(0.04), M(0x1a1a1a), -0.1, 0.28, 0.16);
   } else if (kind === "seagull") {
     const w = M(0xf4f4f0), beak = M(0xffb02a), eye = M(0x1a1a1a);
     add(sph(0.16), w, 0, 0.42, 0);
-    add(sph(0.11), w, 0, 0.55, 0.1);
-    add(box(0.62, 0.04, 0.16), w, 0, 0.46, 0);
+    add(sph(0.11), w, 0, 0.55, 0.1, 0, 0, 0, "head");
+    add(box(0.62, 0.04, 0.16), w, 0, 0.46, 0, 0, 0, 0, "wing");
     add(cyl(0.02, 0.04, 0.14), beak, 0, 0.52, 0.22, Math.PI / 2);
     add(sph(0.03), eye, 0.05, 0.58, 0.16);
   } else if (kind === "bat") {
     const d = M(0x3a2a55, 0x1a1030), eye = M(0xffe080, 0xffaa33);
-    add(sph(0.14), d, 0, 0.5, 0);
-    add(box(0.72, 0.06, 0.22), d, 0, 0.5, 0);
+    add(sph(0.14), d, 0, 0.5, 0, 0, 0, 0, "head");
+    add(box(0.72, 0.06, 0.22), d, 0, 0.5, 0, 0, 0, 0, "wing");
     add(sph(0.04), eye, 0.06, 0.54, 0.1); add(sph(0.04), eye, -0.06, 0.54, 0.1);
     add(box(0.08, 0.12, 0.04), d, 0.08, 0.64, 0);
     add(box(0.08, 0.12, 0.04), d, -0.08, 0.64, 0);
   } else if (kind === "cat") {
     const fur = M(0xc4843a), eye = M(0x222222);
     add(sph(0.2), fur, 0, 0.28, 0);
-    add(sph(0.14), fur, 0.22, 0.38, 0.06);
+    add(sph(0.14), fur, 0.22, 0.38, 0.06, 0, 0, 0, "head");
     add(box(0.08, 0.12, 0.04), fur, 0.18, 0.52, 0.04);
     add(box(0.08, 0.12, 0.04), fur, 0.28, 0.52, 0.04);
-    add(cyl(0.03, 0.03, 0.28), fur, -0.22, 0.34, 0, 0, 0, 0.8);
+    add(cyl(0.03, 0.03, 0.28), fur, -0.22, 0.34, 0, 0, 0, 0.8, "tail");
     add(sph(0.03), eye, 0.28, 0.42, 0.16); add(sph(0.03), eye, 0.16, 0.42, 0.16);
-    add(cyl(0.045, 0.045, 0.16), fur, 0.08, 0.12, 0.06);
-    add(cyl(0.045, 0.045, 0.16), fur, -0.08, 0.12, 0.06);
+    add(cyl(0.045, 0.045, 0.16), fur, 0.08, 0.12, 0.06, 0, 0, 0, "legR");
+    add(cyl(0.045, 0.045, 0.16), fur, -0.08, 0.12, 0.06, 0, 0, 0, "legL");
   } else if (kind === "alien") {
     const sk = M(0x6adf4a, 0x2a8a20), eye = M(0x111111);
     add(sph(0.22), sk, 0, 0.34, 0);
     g.children[0].scale.set(1, 1.25, 0.9);
-    add(sph(0.16), sk, 0, 0.62, 0);
+    add(sph(0.16), sk, 0, 0.62, 0, 0, 0, 0, "head");
     add(sph(0.08), eye, 0.06, 0.66, 0.12); add(sph(0.08), eye, -0.06, 0.66, 0.12);
-    add(cyl(0.03, 0.03, 0.2), sk, 0.16, 0.14, 0);
-    add(cyl(0.03, 0.03, 0.2), sk, -0.16, 0.14, 0);
+    add(cyl(0.03, 0.03, 0.2), sk, 0.16, 0.14, 0, 0, 0, 0, "legR");
+    add(cyl(0.03, 0.03, 0.2), sk, -0.16, 0.14, 0, 0, 0, 0, "legL");
   } else if (kind === "blob") {
     const sk = M(0x7a5cff, 0x3a20aa);
-    add(sph(0.32), sk, 0, 0.32, 0);
+    add(sph(0.32), sk, 0, 0.32, 0, 0, 0, 0, "head");
     g.children[0].scale.set(1.15, 0.85, 1.15);
     add(sph(0.07), M(0x111111), 0.1, 0.4, 0.22); add(sph(0.07), M(0x111111), -0.1, 0.4, 0.22);
   } else if (kind === "penguin") {
@@ -2203,71 +2243,127 @@ function buildAnimal(kind) {
     add(sph(0.2), blk, 0, 0.36, 0);
     g.children[0].scale.set(0.9, 1.25, 0.85);
     add(sph(0.12), wh, 0, 0.34, 0.1);
-    add(sph(0.12), blk, 0, 0.62, 0);
+    add(sph(0.12), blk, 0, 0.62, 0, 0, 0, 0, "head");
     add(cyl(0.025, 0.04, 0.1), beak, 0, 0.58, 0.14, Math.PI / 2);
-    add(box(0.16, 0.04, 0.1), beak, 0.07, 0.08, 0.06);
-    add(box(0.16, 0.04, 0.1), beak, -0.07, 0.08, 0.06);
+    add(box(0.16, 0.04, 0.1), beak, 0.07, 0.08, 0.06, 0, 0, 0, "legR");
+    add(box(0.16, 0.04, 0.1), beak, -0.07, 0.08, 0.06, 0, 0, 0, "legL");
   } else if (kind === "seal") {
     const fur = M(0x8aa0b4), eye = M(0x111111);
     add(sph(0.2), fur, 0, 0.2, 0);
     g.children[0].scale.set(1.5, 0.75, 0.9);
-    add(sph(0.13), fur, 0.32, 0.26, 0.06);
+    add(sph(0.13), fur, 0.32, 0.26, 0.06, 0, 0, 0, "head");
     add(sph(0.03), eye, 0.4, 0.32, 0.1);
-    add(box(0.18, 0.04, 0.1), fur, -0.1, 0.12, 0.16);
-    add(box(0.18, 0.04, 0.1), fur, -0.1, 0.12, -0.16);
+    add(box(0.18, 0.04, 0.1), fur, -0.1, 0.12, 0.16, 0, 0, 0, "wingL");
+    add(box(0.18, 0.04, 0.1), fur, -0.1, 0.12, -0.16, 0, 0, 0, "wingR");
   } else if (kind === "scorpion") {
     const sh = M(0xc46a1a), dk = M(0x8a4010);
     add(sph(0.16), sh, 0, 0.16, 0);
     g.children[0].scale.set(1.3, 0.55, 0.9);
-    add(sph(0.08), dk, 0.28, 0.16, 0);
-    add(cyl(0.035, 0.035, 0.28), sh, -0.22, 0.32, 0, 0, 0, -0.9);
+    add(sph(0.08), dk, 0.28, 0.16, 0, 0, 0, 0, "head");
+    add(cyl(0.035, 0.035, 0.28), sh, -0.22, 0.32, 0, 0, 0, -0.9, "tail");
     add(sph(0.06), dk, -0.36, 0.48, 0);
-    add(box(0.12, 0.06, 0.08), sh, 0.22, 0.18, 0.16);
-    add(box(0.12, 0.06, 0.08), sh, 0.22, 0.18, -0.16);
+    add(box(0.12, 0.06, 0.08), sh, 0.22, 0.18, 0.16, 0, 0, 0, "clawR");
+    add(box(0.12, 0.06, 0.08), sh, 0.22, 0.18, -0.16, 0, 0, 0, "clawL");
   } else if (kind === "fish") {
     const sc = M(0x2db8d8, 0x146888), fin = M(0xff8a3a);
     add(sph(0.2), sc, 0, 0.32, 0);
     g.children[0].scale.set(1.35, 0.8, 0.7);
-    add(box(0.16, 0.16, 0.04), fin, -0.28, 0.32, 0);
-    add(box(0.12, 0.1, 0.03), fin, 0, 0.5, 0);
+    add(box(0.16, 0.16, 0.04), fin, -0.28, 0.32, 0, 0, 0, 0, "tail");
+    add(box(0.12, 0.1, 0.03), fin, 0, 0.5, 0, 0, 0, 0, "wing");
     add(sph(0.035), M(0x111111), 0.16, 0.36, 0.12);
   } else if (kind === "jellyfish") {
     const cap = M(0xd890ff, 0x8040c0), arm = M(0xe8b0ff, 0x8040c0);
-    add(sph(0.22), cap, 0, 0.5, 0);
+    add(sph(0.22), cap, 0, 0.5, 0, 0, 0, 0, "head");
     g.children[0].scale.set(1.15, 0.6, 1.15);
-    add(cyl(0.02, 0.02, 0.32), arm, 0.08, 0.28, 0.06);
-    add(cyl(0.02, 0.02, 0.28), arm, -0.08, 0.26, 0);
-    add(cyl(0.02, 0.02, 0.3), arm, 0, 0.27, -0.08);
+    add(cyl(0.02, 0.02, 0.32), arm, 0.08, 0.28, 0.06, 0, 0, 0, "tentacle");
+    add(cyl(0.02, 0.02, 0.28), arm, -0.08, 0.26, 0, 0, 0, "tentacle");
+    add(cyl(0.02, 0.02, 0.3), arm, 0, 0.27, -0.08, 0, 0, 0, "tentacle");
   } else if (kind === "dino") {
     const sc = M(0x3aaa4a, 0x1a5a20), eye = M(0x111111);
     add(sph(0.22), sc, 0, 0.34, 0);
-    add(sph(0.14), sc, 0.28, 0.5, 0.04);
-    add(cyl(0.05, 0.07, 0.32), sc, -0.28, 0.34, 0, 0, 0, 1.1);
-    add(cyl(0.05, 0.05, 0.2), sc, 0.1, 0.14, 0.06);
-    add(cyl(0.05, 0.05, 0.2), sc, -0.08, 0.14, 0.06);
+    add(sph(0.14), sc, 0.28, 0.5, 0.04, 0, 0, 0, "head");
+    add(cyl(0.05, 0.07, 0.32), sc, -0.28, 0.34, 0, 0, 0, 1.1, "tail");
+    add(cyl(0.05, 0.05, 0.2), sc, 0.1, 0.14, 0.06, 0, 0, 0, "legR");
+    add(cyl(0.05, 0.05, 0.2), sc, -0.08, 0.14, 0.06, 0, 0, 0, "legL");
     add(sph(0.03), eye, 0.36, 0.54, 0.12);
   } else {
     // lizard
     const sc = M(0x6a8a2a);
-    add(sph(0.14), sc, 0.2, 0.16, 0);
+    add(sph(0.14), sc, 0.2, 0.16, 0, 0, 0, 0, "head");
     add(sph(0.12), sc, -0.04, 0.14, 0);
-    add(cyl(0.04, 0.05, 0.32), sc, -0.32, 0.14, 0, 0, 0, 1.2);
-    add(cyl(0.03, 0.03, 0.12), sc, 0.1, 0.08, 0.1);
-    add(cyl(0.03, 0.03, 0.12), sc, 0.1, 0.08, -0.1);
+    add(cyl(0.04, 0.05, 0.32), sc, -0.32, 0.14, 0, 0, 0, 1.2, "tail");
+    add(cyl(0.03, 0.03, 0.12), sc, 0.1, 0.08, 0.1, 0, 0, 0, "legR");
+    add(cyl(0.03, 0.03, 0.12), sc, 0.1, 0.08, -0.1, 0, 0, 0, "legL");
     add(sph(0.025), M(0x111111), 0.3, 0.2, 0.08);
   }
   return g;
 }
 function animateAnimal(o, dt) {
-  if (!o.mesh || !run || !run.course) return;
+  if (!o.mesh) return;
   o.t = (o.t || 0) + dt;
-  placeOnCourse(o.mesh, o.s, o.lane);
-  if (o.move === "hop") {
-    o.mesh.position.y += Math.abs(Math.sin(o.t * 5.5)) * 0.26;
-  } else {
-    const f = pathFrame(run.course, o.s);
-    o.mesh.position.addScaledVector(f.right, Math.sin(o.t * 2.4) * 0.32);
+  const t = o.t;
+  // walk / run along the track toward the player; collision uses the updated o.s
+  if (player && o.s != null && o.s > (player.s || 0) - 1) {
+    const runSp = (run && run.layout && run.layout.speed) || 8;
+    const approach = Math.max(1.2, Math.min(2.0, runSp * 0.24));
+    o.s -= approach * dt;
   }
+  placeOnCourse(o.mesh, o.s, o.lane);
+  const hop = o.move === "hop";
+  if (hop) {
+    const phase = Math.sin(t * 6.4);
+    const up = Math.abs(phase) * 0.88;
+    o.mesh.position.y += up;
+    o.mesh.rotation.x += -0.2 - up * 0.18;
+    o.mesh.rotation.z += phase * 0.16;
+    o.mesh.rotation.y += Math.sin(t * 3.2) * 0.1;
+  } else {
+    const amp = 1.08; // much of a lane width (lanes are ~2 units apart)
+    const sway = Math.sin(t * 2.05) * amp;
+    const v = Math.cos(t * 2.05);
+    if (run && run.course) {
+      const f = trackFrameAt(o.s);
+      o.mesh.position.addScaledVector(f.right, sway);
+    } else {
+      o.mesh.position.x += sway;
+    }
+    o.mesh.rotation.y += Math.atan2(v, 1.55);
+    o.mesh.rotation.z += -v * 0.25;
+    o.mesh.position.y += Math.abs(Math.sin(t * 7.5)) * 0.12;
+  }
+  // limb / head / tail / wing motion — also on Low (classroom projector)
+  const swing = hop ? 8.4 : 7.2;
+  o.mesh.traverse((m) => {
+    const p = m.userData && m.userData.part;
+    const b = m.userData && m.userData.base;
+    if (!p || !b) return;
+    m.position.set(b.x, b.y, b.z);
+    m.rotation.set(b.rx, b.ry, b.rz);
+    if (p === "head") {
+      m.rotation.y += Math.sin(t * 4.4) * 0.42;
+      m.rotation.x += Math.sin(t * 3.2) * 0.14;
+    } else if (p === "tail") {
+      m.rotation.z += Math.sin(t * 5.6) * 0.75;
+      m.rotation.y += Math.sin(t * 4.2) * 0.38;
+    } else if (p === "legL" || p === "armL") {
+      m.rotation.x += Math.sin(t * swing) * 0.75;
+    } else if (p === "legR" || p === "armR") {
+      m.rotation.x += Math.sin(t * swing + Math.PI) * 0.75;
+    } else if (p === "wingL") {
+      m.rotation.z += Math.sin(t * 10.5) * 0.6;
+    } else if (p === "wingR") {
+      m.rotation.z += -Math.sin(t * 10.5) * 0.6;
+    } else if (p === "wing") {
+      m.rotation.z += Math.sin(t * 10.5) * 0.5;
+      m.rotation.x += Math.sin(t * 10.5) * 0.18;
+    } else if (p === "clawL") {
+      m.rotation.y += Math.sin(t * 5.2) * 0.45;
+    } else if (p === "clawR") {
+      m.rotation.y += -Math.sin(t * 5.2) * 0.45;
+    } else if (p === "tentacle") {
+      m.rotation.x += Math.sin(t * 6.2 + (b.x || 0) * 10) * 0.55;
+    }
+  });
 }
 
 function hitObstacle(o) {
@@ -2287,13 +2383,27 @@ function hitObstacle(o) {
   updateHud();
   if (run.hearts <= 0) finishLevel(false);
 }
+
+function spawnEarlyAnimal() {
+  if (!run || !run.course || !player) return;
+  const s = 12;
+  const lane = 1;
+  const kind = pickAnimalKind(run.world);
+  const mesh = buildAnimal(kind);
+  placeOnCourse(mesh, s, lane);
+  runScene.add(mesh);
+  obstacles.push({ mesh, lane, type: "animal", hit: false, spin: 0, s, kind, move: animalMove(kind), t: 0 });
+  run.sawAnimal = true;
+}
 function spawnObstacle(s) {
   const L = (run && run.layout) || stageProfile(run ? run.st : 0, run && run.boss, run && run.world);
-  if (Math.random() > L.density) return;
+  const needAnimal = run && !run.sawAnimal;
+  if (!needAnimal && Math.random() > L.density) return;
   if (!letterObstacleOK(s)) return;
   // v9 fairness: never put an obstacle right in front of (or inside) an answer gate
   if (gates.some((g) => !g.resolved && s > g.s - 7 && s < g.s + 2.5)) return;
-  const type = L.types[Math.floor(Math.random() * L.types.length)];
+  const type = needAnimal ? "animal" : L.types[Math.floor(Math.random() * L.types.length)];
+  if (type === "animal" && run) run.sawAnimal = true;
   const dbl = L.diff ? L.diff.doubleBlock : 0.28;
   const blocked = type === "beam" ? [0, 1, 2] : shuffle([0, 1, 2]).slice(0, (Math.random() < dbl && L.density > 0.35) ? 2 : 1);
   blocked.forEach((lane) => {
@@ -2343,7 +2453,7 @@ function onCorrect() {
   burst(bp.clone().add(new THREE.Vector3(0.4, 0.3, 0)));
   popEl("prompt");
   popEl("hud-combo");
-  if (!isListenMode(run.activeMode)) say(w.en);
+  if (!isListenMode(run.activeMode)) say(run.speakText || speakText(w) || w.en);
   nextAfterResolve();
 }
 function onWrong() {
@@ -2592,6 +2702,7 @@ async function startLevel(wid, st, lost, opt) {
   rebuildCourseRibbon();
   layoutPathFromCourse();
   spawnFinishGate();
+  spawnEarlyAnimal();
   run.coinProto = await createProp(MP("platformer/coin-gold.glb"), 0.42);
   run.obsProtos = {};
   for (const f of world.obstacle) run.obsProtos[f] = await createProp(MP(f), 0.7);
@@ -3336,8 +3447,8 @@ function openJourney() {
   showUI("s-jr"); appMode = "map";
   $("s-jr").innerHTML = `<div class="glass" style="padding:18px;max-width:640px">
     <h2>🌍 המסע שלי</h2>
-    <p>מילים שנלמדו: <b>${ln}</b> מתוך ${WORDS.length}</p>
-    <div class="bar"><i style="width:${ln / WORDS.length * 100}%"></i></div>
+    <p>מילים שנלמדו: <b>${ln}</b> מתוך ${activeWords().length}</p>
+    <div class="bar"><i style="width:${ln / activeWords().length * 100}%"></i></div>
     <p>לתרגול: <b>${pr}</b> · עולמות: <b>${worldsDone()}</b>/${WORLDS.length} · שלבים: ${Object.keys(S.prog).length}/${WORLDS.length * NSTAGES}</p>
     <p>${coinHtml(S.coins)} · ⭐ ${starSum()}</p>
     <div class="row">${achHtml}</div>
@@ -3471,7 +3582,13 @@ function renderSettings(msg) {
   const st = S.settings;
   const ex = (t) => `<p class="set-explain">${t}</p>`;
   const autoNow = st.gfx === "auto" ? `כרגע נבחרה: <b>${TIER_HE[tier()]}</b>${autoReason ? " · " + esc(autoReason) : ""}` : "";
+  const ageNow = st.age || "de";
+  const ageInfo = AGES.find((a) => a.key === ageNow) || AGES[0];
   $("set-body").innerHTML = `
+    <div class="set-sec" id="set-age"><h3>שכבת גיל</h3>
+      ${ex("בחרו את שכבת הגיל של השחקן. התוכן משתנה לפי הגיל: בד׳–ה׳ מילים, אותיות ותמונות; בשכבות הגבוהות יותר אוצר מילים ארוך יותר, משפטים, השלמת פערים במשפט, הווה פשוט (do/does, he/she +s), הווה ממושך, עבר פשוט, there is/are, מילות יחס והבנת הנקרא. בי׳–י״ב אוצר מילים וזמנים בסגנון בגרות. רמת הקושי (מהירות וניקוד) נשארת נפרדת.")}
+      ${segRow("age", AGES.map((a) => ({ v: a.key, label: a.label })), ageNow)}
+      <p class="set-note">${esc(ageInfo.blurb)}</p></div>
     <div class="set-sec"><h3>🎯 רמת קושי</h3>
       ${ex("כמה המשחק קשה: מהירות הריצה, מספר הלבבות, כמה זמן יש לענות, קושי השאלות, ומכפיל הניקוד. ככל שהרמה גבוהה יותר — רצים מהר יותר ומרוויחים יותר נקודות.")}
       ${segRow("difficulty", Object.keys(DIFFS).map((k) => ({ v: k, label: DIFFS[k].label })), st.difficulty)}
@@ -3503,7 +3620,7 @@ function applySettingChange(kind) {
   S.settings = normSettings(S.settings);
   save();
   if (kind === "gfx") { autoTier = null; if (S.settings.gfx === "auto") { S.autoTier = null; fpsMon.drops = 0; save(); } applyQuality(); if (appMode === "run" && run) applyStageLook(WORLDS[run.world - 1]); }
-  if (kind === "types" || kind === "difficulty") { if (appMode === "map") renderStages(); fillDevGrid(); refreshPlayNext(); }
+  if (kind === "types" || kind === "difficulty" || kind === "age") { if (appMode === "map") renderStages(); fillDevGrid(); refreshPlayNext(); refreshWordcount(); }
   if (kind === "flag" && appMode === "run") $("btn-hint").classList.toggle("hidden", !(S.settings.hints && !(run && run.layout && run.layout.diff && run.layout.diff.hints === false)));
 }
 function openSettings(back) {
@@ -3588,7 +3705,7 @@ function initSettingsUI() {
 /* ===== BOOT ===== */
 const ready = (async function boot() {
   initDevTools();
-  $("wordcount").textContent = WORDS.length;
+  $("wordcount").textContent = activeWords().length;
   drawHeroBtns();
   buildPath();
   makeStars();
@@ -3751,7 +3868,13 @@ window.MQ = {
   setPaused: (v) => { paused = v; },
   getS: () => S,
   save,
+  setupQuestion,
   WORDS,
+  activeWords,
+  AGES,
+  wordsForAge: (a) => wordsForAge(a, WORDS),
+  validateAgeBanks: () => validateAgeBanks(WORDS),
+  getAge: () => (S.settings && S.settings.age) || "de",
   camera,
   renderer,
   THREE,

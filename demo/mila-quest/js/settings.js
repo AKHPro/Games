@@ -1,4 +1,4 @@
-/* Mila Quest v10.1 — player settings, one exercise type per world, and a difficulty model where
+/* Mila Quest v10.2 — age bands +  player settings, one exercise type per world, and a difficulty model where
    EVERY stage is harder than the one before it, every world is a clear jump, and the six
    difficulty levels feel really different. Run speed is set by the difficulty (no separate speed control). */
 
@@ -86,6 +86,14 @@ function migrateDifficulty(diff, speed) {
   return "normal";
 }
 
+export const AGES = [
+  { key: "de", label: "ד׳–ה׳", blurb: "התוכן הנוכחי: מילים, אותיות ותמונות." },
+  { key: "vz", label: "ו׳–ז׳", blurb: "אוצר מילים ארוך יותר, משפטים קצרים, השלמת פערים, והווה פשוט בהתחלה." },
+  { key: "ht", label: "ח׳–ט׳", blurb: "הווה פשוט (do/does, he/she +s), הווה ממושך, עבר פשוט, there is/are, מילות יחס, והבנת הנקרא במשפטים." },
+  { key: "y12", label: "י׳–י״ב", blurb: "אוצר מילים וזמנים בסגנון בגרות: משפטים ארוכים יותר, מחברים, והבנת הנקרא." }
+];
+export const normAge = (v) => (AGES.some((a) => a.key === v) ? v : "de");
+
 export const GFX_OPTS = [
   { v: "auto", label: "אוטומטי" },
   { v: "low", label: "נמוכה (פיקסלים)" },
@@ -101,7 +109,8 @@ export const DEFAULT_SETTINGS = () => ({
   sfx: 0.8,
   voice: 1,
   hints: true,
-  showAnswer: true
+  showAnswer: true,
+  age: "de"
 });
 
 export function normSettings(s) {
@@ -120,6 +129,7 @@ export function normSettings(s) {
   o.sfx = Math.max(0, Math.min(1, +o.sfx || 0));
   o.voice = Math.max(0, Math.min(1, o.voice == null ? 1 : +o.voice));
   if (!QTYPES.some((q) => o.types[q.key])) o.types.en2he = true; // at least one type stays on
+  o.age = normAge(o.age);
   return o;
 }
 export function enabledModes(set) {
@@ -215,10 +225,10 @@ export function difficultyFor(wid, st, boss, set) {
   const letterSim = r2(similarity * 0.7);
   const letterForgive = easy || (!hard && p <= 1);                   // a missed row re-spawns instead of costing a heart
   const types = STAGE_TYPES[i].slice();
-  // animals: start from stage 2 (or earlier on mid+ difficulties); weight rises with difficulty
-  if (p >= 1 || D.tier >= 2) types.push("animal");
-  if (D.tier >= 3 && p >= 2) types.push("animal");
-  if (D.tier >= 5 && p >= 3) types.push("animal");
+  // animals from stage 1 on every difficulty; noticeably frequent, more weight at higher tiers
+  types.push("animal", "animal");
+  if (D.tier >= 2) types.push("animal");
+  if (D.tier >= 4) types.push("animal");
   return {
     level: dk, scoreMul: D.scoreMul, speed, answerTime, lead, density, spacing, doubleBlock, similarity, bossHP, hearts: D.hearts, options,
     hints: D.hints, reveal: D.reveal, comboCap: D.comboCap, rate: D.rate, lvlMix: mix, types,
