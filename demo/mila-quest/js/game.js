@@ -3416,7 +3416,8 @@ function deleteAndRefresh(id) {
 function askPlayerName(onOk, opts) {
   opts = opts || {};
   const back = !!opts.backToPicker;
-  showModal(`<h2>מה השם שלך?</h2>
+  showModal(`<button type="button" class="mq-x" id="btn-name-x" aria-label="סגירה" title="סגירה"></button>
+    <h2>מה השם שלך?</h2>
     <input id="player-name-in" maxlength="20" autocomplete="nickname" dir="rtl" placeholder="השם שלי">
     <p class="name-err hidden" id="name-err">צריך לכתוב שם</p>
     <div class="row" style="margin-top:12px">
@@ -3431,6 +3432,7 @@ function askPlayerName(onOk, opts) {
     if (!n) { err.classList.remove("hidden"); inp.focus(); return; }
     err.classList.add("hidden");
     if (createNewProfile(n)) {
+      document.removeEventListener("keydown", escName);
       hideModal();
       if (onOk) onOk();
     } else {
@@ -3439,6 +3441,11 @@ function askPlayerName(onOk, opts) {
     }
   };
   $("btn-name-save").onclick = go;
+  // v11.2: close without a name (opened by mistake): back to the screen underneath, nothing saved
+  const closeName = () => { document.removeEventListener("keydown", escName); hideModal(); };
+  const escName = (e) => { if (e.key === "Escape" && $("btn-name-x")) closeName(); };
+  document.addEventListener("keydown", escName);
+  $("btn-name-x").onclick = (e) => { e.preventDefault(); e.stopPropagation(); closeName(); };
   inp.addEventListener("keydown", (e) => { if (e.key === "Enter") go(); });
   if ($("btn-name-back")) $("btn-name-back").onclick = () => openProfilePicker();
   if ($("btn-name-login")) $("btn-name-login").onclick = () => { hideModal(); window.EnglishiaAuth.openLogin(); };
@@ -3529,7 +3536,7 @@ $("btn-play").onclick = () => playNow();
 if ($("btn-profiles")) $("btn-profiles").onclick = () => { sfx.click(); openProfilePicker(); };
 initAccountButton();
 if ($("btn-profile")) $("btn-profile").onclick = () => { sfx.click(); openProfilePanel(); };
-$("btn-title-settings").onclick = () => { sfx.click(); openSettings(); };
+if ($("btn-title-settings")) $("btn-title-settings").onclick = () => { sfx.click(); openSettings(); }; // v11.2: removed from the title (top-left gear stays)
 $("btn-help").onclick = () => { showUI("s-help"); appMode = "title"; };
 $("btn-help-back").onclick = () => goTitle();
 initSettingsUI();
@@ -3636,12 +3643,17 @@ function openDevPanel() {
 function hideDevPanel() {
   if ($("dev-panel")) $("dev-panel").classList.add("hidden");
 }
+// v11.2: MQ_DEV can change while the game runs (owner logs in / out), so the
+// handlers are always wired and every entry point re-checks isDev().
+function syncDevAccess() {
+  syncDevButton(document.body.dataset.ui || "");
+  if (!isDev()) hideDevPanel();
+}
+if (typeof window !== "undefined") window.MQ_syncDev = syncDevAccess;
 function initDevTools() {
   const btn = $("btn-dev");
-  if (!btn || !isDev()) {
-    if (btn) btn.classList.add("hidden");
-    return;
-  }
+  if (!btn) return;
+  if (!isDev()) btn.classList.add("hidden");
   btn.onclick = () => openDevPanel();
   const close = $("btn-dev-close");
   if (close) close.onclick = hideDevPanel;
@@ -3649,7 +3661,7 @@ function initDevTools() {
   if (grid) {
     grid.onclick = (e) => {
       const b = e.target.closest("[data-dev-w]");
-      if (!b) return;
+      if (!b || !isDev()) return;
       hideDevPanel();
       startLevel(+b.dataset.devW, +b.dataset.devSt, false, { bypassLock: true });
     };
@@ -3658,6 +3670,7 @@ function initDevTools() {
   if (unlock) {
     unlock.checked = !!S.free;
     unlock.onchange = () => {
+      if (!isDev()) { unlock.checked = !!S.free; return; }
       S.free = !!unlock.checked;
       save();
       refreshLocks();
@@ -3668,6 +3681,7 @@ function initDevTools() {
   const rst = $("btn-dev-reset");
   if (rst) {
     rst.onclick = () => {
+      if (!isDev()) return;
       if (!confirm("לאפס את כל ההתקדמות השמורה? הפעולה הזו נשמרת.")) return;
       const hero = S.hero, quality = S.quality, wasMuted = S.muted, settings = S.settings, at = S.autoTier;
       S = def();

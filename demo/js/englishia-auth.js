@@ -6,6 +6,7 @@
    Public API (all async functions return Promises):
      init(opts) / ready()            -> user or null
      user, isAdmin                   -> current state (getters)
+     isOwner                         -> true only for the site owner (admins/{uid}), never managers
      onChange(cb)                    -> cb(user) after login/logout
      openLogin(), openProfile(gameId), openLeaderboard(gameId), openAdmin(), logout()
      recordSession(gameId, score, seconds, progress?)
@@ -1146,7 +1147,13 @@
     ".eng-menu.float{position:fixed;top:10px;left:10px}" +
     ".eng-menu button{font:700 20px/1.1 'Segoe UI',Arial,sans-serif;min-height:48px;padding:10px 16px;border-radius:999px;border:0;cursor:pointer;background:#fffaf0;color:#1d1a16;box-shadow:0 3px 0 rgba(0,0,0,.25)}" +
     ".eng-menu button.adm{background:#1d1a16;color:#ffd43b}" +
-    ".eng-x{float:left;font-size:22px;min-height:44px;margin:0 !important}";
+    ".eng-x{float:left;font-size:22px;min-height:44px;margin:0 !important}" +
+    // v12.2: the in-game students table fits narrow phones (iPhone portrait): scrolls inside the box, never cut off
+    ".eng-users{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}" +
+    ".eng-users .eng-tbl td:last-child{white-space:nowrap}" +
+    "@media (max-width:560px){.eng-ov{padding:8px}.eng-box{padding:16px 12px;font-size:18px}.eng-box h2{font-size:22px}.eng-box h3{font-size:19px}" +
+    ".eng-btn{font-size:17px;min-height:48px;padding:10px 14px}.eng-btn.sm{font-size:16px;min-height:44px;padding:8px 10px;margin:0}" +
+    ".eng-tbl{font-size:15px}.eng-tbl th,.eng-tbl td{padding:6px 4px}.eng-users .eng-opt{display:none}}";
   function injectCSS() {
     if (document.getElementById("eng-css")) return;
     var s = document.createElement("style"); s.id = "eng-css"; s.textContent = CSS; document.head.appendChild(s);
@@ -1298,6 +1305,10 @@
     ".eng-perm.off{opacity:.45;cursor:not-allowed}" +
     ".eng-tag{display:inline-block;border-radius:999px;padding:2px 10px;font-size:15px;font-weight:700;background:#1d1a16;color:#ffd43b;margin-inline-start:6px}" +
     ".eng-sec{border-top:2px dashed #eadcbf;margin-top:14px;padding-top:4px}" +
+    ".eng-pe select,.eng-pe-raw select{font-size:20px;padding:10px 12px;border:3px solid #d9c9a8;border-radius:14px;background:#fff;color:#111;max-width:100%}.eng-pe>select{width:100%}" +
+    ".eng-pe select:disabled{opacity:.5}.eng-pe-stars{margin:8px 0 0;font-weight:700}" +
+    ".eng-pe-per,.eng-pe-raw{margin-top:10px;background:#fff;border:2px solid #eadcbf;border-radius:14px;padding:6px 12px}" +
+    ".eng-pe-per summary,.eng-pe-raw summary{cursor:pointer;font-weight:700;min-height:40px;display:flex;align-items:center;font-size:18px}" +
     ".eng-inline{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.eng-inline input,.eng-inline select{width:auto;flex:1;min-width:120px}" +
     ".eng-box select{font-size:22px;padding:10px 12px;border:3px solid #d9c9a8;border-radius:14px;background:#fff;color:#111}" +
     ".eng-lb li .eng-rank{font-size:17px;color:#5b5348;margin-inline-start:8px}";
@@ -1372,26 +1383,128 @@
     var title = opts.gameTitle || GAME_TITLES[gameId] || gameId || "אינגלישיה";
     var role = isOwner() ? "בעל האתר" : "מנהל · " + permList(staff.perms).length + " הרשאות";
     var box = openBox("<h2>🛠️ ניהול · " + esc(title) + '<span class="eng-tag">' + esc(role) + "</span></h2>" +
-      '<div class="eng-row">' + (devTools ? '<button class="eng-btn" data-eng="dev">🧪 ' + esc(devTools.label) + "</button>" : "") +
+      '<div class="eng-row">' + (devTools && isOwner() ? '<button class="eng-btn" data-eng="dev">🧪 ' + esc(devTools.label) + "</button>" : "") +
       '<a class="eng-btn sec" style="text-decoration:none;display:inline-flex;align-items:center" href="' + esc(ROOT + "admin/") + '" target="_blank" rel="noopener">📋 עמוד ניהול מלא</a></div>' +
       (gameId ? (can("view") ? "<h3>תלמידים במשחק הזה</h3><div class=\"eng-users\">טוען…</div>" : '<p class="eng-hint">אין לך הרשאת צפייה בתלמידים.</p>') : ""), true);
-    if (q(box, '[data-eng="dev"]')) q(box, '[data-eng="dev"]').onclick = function () { closeBox(); devTools.fn(); };
+    if (q(box, '[data-eng="dev"]')) q(box, '[data-eng="dev"]').onclick = function () { closeBox(); if (isOwner()) devTools.fn(); };
     if (!gameId || !can("view")) return;
     admin.listUsers().then(function (users) {
       var w = q(box, ".eng-users");
       if (!w) return;
       if (!users.length) { w.textContent = "אין עדיין משתמשים."; return; }
-      w.innerHTML = '<table class="eng-tbl"><tr><th>שם</th><th>דרגה</th><th>שיא</th><th>ניקוד</th><th>זמן</th><th>פעמים</th><th></th></tr>' +
+      w.innerHTML = '<table class="eng-tbl"><tr><th>שם</th><th>דרגה</th><th>שיא</th><th>ניקוד</th><th class="eng-opt">זמן</th><th class="eng-opt">פעמים</th><th></th></tr>' +
         users.map(function (u) {
           var s = statsOf((u.games || {})[gameId]);
           return "<tr><td><b>" + esc(u.displayName) + "</b><br><small>" + esc(u.username) + "</small></td><td>" + rankChip(u.rank, 22) + "</td><td>" + s.best + "</td><td>" + s.totalScore +
-            "</td><td>" + esc(fmtTime(s.seconds)) + "</td><td>" + s.plays + '</td><td><button class="eng-btn sm" data-uid="' + esc(u.uid) + '">ניהול</button></td></tr>';
+            "</td><td class=\"eng-opt\">" + esc(fmtTime(s.seconds)) + "</td><td class=\"eng-opt\">" + s.plays + '</td><td><button class="eng-btn sm" data-uid="' + esc(u.uid) + '">ניהול</button></td></tr>';
         }).join("") + "</table>";
       Array.prototype.forEach.call(w.querySelectorAll("[data-uid]"), function (b) {
         b.onclick = function () { openAdminUser(b.getAttribute("data-uid"), gameId); };
       });
     }).catch(function (e) { var w = q(box, ".eng-users"); if (w) w.textContent = errText(e); });
   }
+  /* v12.2: friendly progress editor (in-game admin + /admin/ page). Saves through admin.setProgress
+     = "points" permission + audit entry, same as before. Raw JSON only behind a collapsed toggle. */
+  var MILA = {
+    worlds: ["אי הג'ונגל", "אוקיינוס הפיראטים", "העיר הקסומה", "גלקסיית החלל", "ממלכת הקרח", "מדבר הפירמידות", "מעמקי הים", "ארץ הר הגעש"],
+    heroes: ["ליאם", "מאיה", "נובה"], stages: 7, boss: 6
+  };
+  function milaStageName(t) { return t === MILA.boss ? "בוס" : "שלב " + (t + 1); }
+  // highest stage done, in play order: -1 = nothing yet, else world*7+stage
+  function milaReached(prog) {
+    var best = -1;
+    Object.keys(prog || {}).forEach(function (k) {
+      var m = /^(\d+)-(\d+)$/.exec(k); if (!m || !(prog[k] > 0)) return;
+      var w = +m[1] - 1, t = +m[2]; if (w < 0 || w >= MILA.worlds.length || t < 0 || t >= MILA.stages) return;
+      best = Math.max(best, w * MILA.stages + t);
+    });
+    return best;
+  }
+  function milaApplyReached(prog, reached) {
+    var out = {};
+    for (var w = 0; w < MILA.worlds.length; w++) for (var t = 0; t < MILA.stages; t++) {
+      var key = (w + 1) + "-" + t, idx = w * MILA.stages + t;
+      if (idx <= reached) out[key] = Math.min(3, Math.max(1, +(prog || {})[key] || 0));
+    }
+    return out;
+  }
+  function starSum(prog) { var n = 0; Object.keys(prog || {}).forEach(function (k) { n += +prog[k] || 0; }); return n; }
+  function progressEditor(host, uid, gameId, onSaved) {
+    injectCSS(); injectCSS2();
+    host.textContent = "טוען…";
+    return admin.loadProgress(uid, gameId).then(function (p) {
+      p = p && typeof p === "object" ? p : {};
+      var mila = gameId === "mila-quest";
+      var html = "";
+      var reached = -1;
+      if (mila) {
+        reached = milaReached(p.prog);
+        var rw = reached < 0 ? -1 : Math.floor(reached / MILA.stages), rt = reached < 0 ? 0 : reached % MILA.stages;
+        var per = MILA.worlds.map(function (n, i) {
+          var s = 0; for (var t = 0; t < MILA.stages; t++) s += +((p.prog || {})[(i + 1) + "-" + t]) || 0;
+          return "<tr><td>" + esc(n) + "</td><td>" + s + " / " + MILA.stages * 3 + "</td></tr>";
+        }).join("");
+        html += '<div class="eng-pe">' +
+          '<label for="eng-pe-coins">מטבעות</label><input id="eng-pe-coins" type="number" min="0" inputmode="numeric" value="' + num(p.coins) + '">' +
+          '<label for="eng-pe-hero">דמות</label><select id="eng-pe-hero">' + MILA.heroes.map(function (h, i) { return '<option value="' + i + '"' + ((+p.hero || 0) === i ? " selected" : "") + ">" + esc(h) + "</option>"; }).join("") + "</select>" +
+          '<label for="eng-pe-world">עד איפה הגיע/ה (השלב האחרון שהושלם)</label>' +
+          '<div class="eng-inline"><select id="eng-pe-world"><option value="-1"' + (rw < 0 ? " selected" : "") + ">עוד לא סיים/ה אף שלב</option>" +
+          MILA.worlds.map(function (n, i) { return '<option value="' + i + '"' + (rw === i ? " selected" : "") + ">עולם " + (i + 1) + " · " + esc(n) + "</option>"; }).join("") + "</select>" +
+          '<select id="eng-pe-stage">' + [0, 1, 2, 3, 4, 5, 6].map(function (t) { return '<option value="' + t + '"' + (rt === t ? " selected" : "") + ">" + milaStageName(t) + "</option>"; }).join("") + "</select></div>" +
+          '<p class="eng-hint">שלבים עד השלב שבחרתם יסומנו כהושלמו (עם הכוכבים שכבר היו, לפחות כוכב אחד), ושלבים אחריו יינעלו שוב. אם לא משנים את הבחירה, השלבים לא משתנים.</p>' +
+          '<p class="eng-pe-stars">כוכבים: <b id="eng-pe-stars">' + starSum(p.prog) + "</b> <span class=\"eng-hint\">(מחושב לבד מהשלבים)</span></p>" +
+          '<details class="eng-pe-per"><summary>כוכבים לפי עולם</summary><table class="eng-tbl">' + per + "</table></details>" +
+          '<div class="eng-row"><button class="eng-btn green" data-pe="save">שמירת התקדמות</button><button class="eng-btn red" data-pe="reset">איפוס התקדמות</button></div></div>';
+      } else {
+        html += '<p class="eng-hint">למשחק הזה אין טופס מיוחד. את הניקוד והזמן עורכים בשדות הניקוד.</p>';
+      }
+      html += '<details class="eng-pe-raw"><summary>עריכה מתקדמת (למומחים)</summary><p class="eng-hint">הנתונים השמורים של המשחק כטקסט (JSON). לשנות רק אם יודעים מה עושים.</p>' +
+        '<textarea id="eng-pe-json"></textarea><div class="eng-row"><button class="eng-btn sec" data-pe="json">שמירת הטקסט</button></div></details>';
+      host.innerHTML = html;
+      q(host, "#eng-pe-json").value = JSON.stringify(p, null, 1);
+      var msgBox = host;
+      function save(btn, data, okText) {
+        busy(btn, true);
+        return admin.setProgress(uid, gameId, data).then(function () {
+          busy(btn, false);
+          if (onSaved) onSaved(okText);
+          return progressEditor(host, uid, gameId, onSaved).then(function () { showMsg(host, okText, true); });
+        }).catch(function (e) { busy(btn, false); showMsg(msgBox, errText(e)); });
+      }
+      function on(k, fn) { var el = q(host, '[data-pe="' + k + '"]'); if (el) el.onclick = fn; }
+      on("json", function () {
+        var data;
+        try { data = JSON.parse(q(host, "#eng-pe-json").value); } catch (e) { showMsg(msgBox, "הטקסט לא תקין (JSON)."); return; }
+        if (!data || typeof data !== "object" || Array.isArray(data)) { showMsg(msgBox, "הטקסט צריך להיות אובייקט JSON."); return; }
+        save(this, data, "ההתקדמות נשמרה.");
+      });
+      if (!mila) return;
+      function chosen() { var w = +q(host, "#eng-pe-world").value; return w < 0 ? -1 : w * MILA.stages + (+q(host, "#eng-pe-stage").value); }
+      var stageSel = q(host, "#eng-pe-stage");
+      function syncStage() { stageSel.disabled = +q(host, "#eng-pe-world").value < 0; }
+      q(host, "#eng-pe-world").onchange = syncStage; syncStage();
+      on("save", function () {
+        var coins = q(host, "#eng-pe-coins").value;
+        if (coins === "" || !(+coins >= 0)) { showMsg(msgBox, "מספר המטבעות צריך להיות 0 או יותר."); return; }
+        var out = JSON.parse(JSON.stringify(p));
+        out.stagesV = 2;
+        out.coins = num(coins);
+        out.hero = Math.max(0, Math.min(MILA.heroes.length - 1, +q(host, "#eng-pe-hero").value || 0));
+        var c = chosen();
+        if (c !== reached) out.prog = milaApplyReached(p.prog, c);
+        else out.prog = p.prog || {};
+        out.stars = starSum(out.prog);
+        save(this, out, "ההתקדמות נשמרה.");
+      });
+      on("reset", function () {
+        if (!confirm("לאפס את ההתקדמות במשחק? כל השלבים, הכוכבים והמטבעות יתאפסו (הניקוד בטבלאות לא משתנה).")) return;
+        var out = { stagesV: 2, prog: {}, coins: 0, stars: 0, hero: +p.hero || 0, notebook: {}, known: {}, best: 0, runs: 0, ach: [] };
+        if (p.age) out.age = p.age;
+        save(this, out, "ההתקדמות אופסה.");
+      });
+    }).catch(function (e) { host.textContent = errText(e); });
+  }
+
   function openAdminUser(uid, gameId) {
     Promise.all([admin.getUser(uid), getTiers()]).then(function (r) {
       var u = r[0], tiers = r[1];
@@ -1422,12 +1535,11 @@
         html += "<div class=\"eng-sec\"><h3>שם</h3><input id=\"eng-a-name\" maxlength=\"20\" value=\"" + esc(u.displayName) + '"><div class="eng-row"><button class="eng-btn sec" data-eng="name">✏️ שינוי שם</button></div></div>';
       }
       if (can("points")) {
-        html += "<div class=\"eng-sec\"><h3>התקדמות (מתקדם)</h3><p class=\"eng-hint\">הנתונים השמורים של המשחק, לעריכה זהירה.</p><textarea id=\"eng-a-json\">טוען…</textarea>" +
-          '<div class="eng-row"><button class="eng-btn sec" data-eng="json">שמירת התקדמות</button></div></div>';
+        html += '<div class="eng-sec"><h3>התקדמות במשחק</h3><div class="eng-pe-host">טוען…</div></div>';
       }
       html += '<div class="eng-row"><button class="eng-btn sec" data-eng="back">חזרה לרשימה</button></div>';
       var box = openBox(html, true);
-      if (q(box, "#eng-a-json")) admin.loadProgress(uid, gameId).then(function (p) { q(box, "#eng-a-json").value = p ? JSON.stringify(p, null, 1) : "{}"; });
+      if (q(box, ".eng-pe-host")) progressEditor(q(box, ".eng-pe-host"), uid, gameId);
       q(box, '[data-eng="back"]').onclick = function () { openAdmin(gameId); };
       function act(btn, fn, okText, reopen) {
         busy(btn, true);
@@ -1452,11 +1564,6 @@
       on("rank", function () { var v = q(box, "#eng-a-rank").value; act(this, function () { return admin.setRank(uid, v); }, "הדרגה נשמרה.", true); });
       on("pass", function () { var p = q(box, "#eng-a-pass").value; act(this, function () { return admin.resetPassword(uid, p); }, "הסיסמה החדשה נשמרה. תנו אותה לתלמיד/ה."); });
       on("name", function () { act(this, function () { return admin.rename(uid, q(box, "#eng-a-name").value); }, "השם שונה."); });
-      on("json", function () {
-        var data;
-        try { data = JSON.parse(q(box, "#eng-a-json").value); } catch (e) { showMsg(box, "הטקסט לא תקין (JSON)."); return; }
-        act(this, function () { return admin.setProgress(uid, gameId, data); }, "ההתקדמות נשמרה.");
-      });
     }).catch(function (e) { openBox("<p>" + esc(errText(e)) + "</p>"); });
   }
 
@@ -1655,5 +1762,6 @@
   global.EnglishiaAuth.can = can;
   Object.defineProperty(global.EnglishiaAuth, "roleState", { get: function () { return roleState(); } });
   global.EnglishiaAuth.retryRole = retryRole;
+  global.EnglishiaAuth.progressEditor = progressEditor;
   global.EnglishiaAuth.ranks = { tiers: getTiers, of: rankOf, badge: badgeSVG, chip: rankChip, defaults: DEFAULT_TIERS, mine: function () { return state.user ? myRank() : null; } };
 })(window);

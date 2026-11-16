@@ -47,6 +47,9 @@
   .a.points,.a.reset_game{background:#fff3bf}.a.rank,.a.rankdefs{background:#e5dbff}.a.perms{background:#d0ebff}.a.delete_user,.a.restore_user{background:#ffe3e3}.a.password_reset,.a.username_change,.a.rename{background:#e9ecef}
   .a{display:inline-block;border-radius:999px;padding:2px 10px;font-size:15px}
   .ba{font-size:16px;color:#3b342a;max-width:360px;word-break:break-word}
+.pe-game{margin:8px 0;background:#fff;border:2px solid #eadcbf;border-radius:14px;padding:6px 12px}
+.pe-game>summary{cursor:pointer;font-weight:700;min-height:44px;display:flex;align-items:center;font-size:18px}
+.pe-host{font-size:18px}
 </style>
 </head>
 <body>
@@ -264,6 +267,12 @@
           '</td><td id="prog-' + esc(g) + '">…</td>' + (editable ? '<td><div class="row" style="margin:0"><input class="n" type="number" placeholder="+100" data-add="' + esc(g) + '"><button class="btn sm main" data-addgo="' + esc(g) + '">➕</button></div></td><td><button class="btn sm main" data-save="' + esc(g) + '">שמירה</button> ' +
           (u.games[g] ? '<button class="btn sm red" data-reset="' + esc(g) + '">מחיקה</button>' : "") + "</td>" : "<td>" + esc(D(s.lastPlayed)) + "</td>") + "</tr>";
       }).join("") + "</table>" + (editable ? '<p class="hint">הניקוד הכולל, טבלת השיאים והדרגה מתעדכנים אוטומטית. מספר שלילי בהוספה מוריד נקודות.</p>' : "");
+      // v12.2: friendly progress editor per game (same permission + audit path as the in-game panel)
+      if (editable && E.progressEditor) {
+        html += '<div class="sec"><h3>📈 עריכת התקדמות</h3><p class="hint">שלבים, מטבעות ודמות. נשמר ביומן הפעולות.</p>' + allGames.map(function (g) {
+          return '<details class="pe-game" data-pe-game="' + esc(g) + '"><summary>' + esc(gname(g)) + '</summary><div class="pe-host">טוען…</div></details>';
+        }).join("") + "</div>";
+      }
       if (E.can("ranks")) {
         html += '<div class="sec"><h3>🛡️ דרגה</h3><p class="hint">דרגה ידנית נשארת עד שמחזירים ל"לפי ניקוד". לפי הניקוד היום: <b>' + esc(u.rank.auto.name) + '</b></p><div class="row"><select class="f" id="u-rank"><option value="">לפי ניקוד (אוטומטי)</option>' +
           tiers.map(function (t, i) { return '<option value="' + esc(t.id) + '"' + (u.rankDoc && u.rankDoc.manual === t.id ? " selected" : "") + ">" + (i + 1) + ". " + esc(t.name) + " (מ-" + t.min + ")</option>"; }).join("") +
@@ -289,6 +298,13 @@
         "<h3>🕒 פעילות ב-7 הימים האחרונים</h3>" + actRows(acts, false);
       box.innerHTML = html;
       $("u-back").onclick = function () { tab("users"); };
+      Array.prototype.forEach.call(box.querySelectorAll("[data-pe-game]"), function (d) {
+        d.addEventListener("toggle", function () {
+          if (!d.open || d.getAttribute("data-loaded")) return;
+          d.setAttribute("data-loaded", "1");
+          E.progressEditor(d.querySelector(".pe-host"), uid, d.getAttribute("data-pe-game"), function () { loadUsers(); });
+        });
+      });
       gl.forEach(function (g) {
         A.loadProgress(uid, g).then(function (p) {
           var el = document.getElementById("prog-" + g); if (!el) return;

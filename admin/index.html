@@ -34,6 +34,22 @@
   .msg{border-radius:12px;padding:10px 14px;margin-top:10px;font-weight:700}.msg.ok{background:#ddf5e1;color:#14532d}.msg.err{background:#ffe1dc;color:#8a1c12}
   .hidden{display:none}
   .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}
+  .perm{display:flex;align-items:flex-start;gap:10px;font-size:19px;margin:6px 0;cursor:pointer}
+  .perm input{width:24px;height:24px;flex:none;margin-top:3px}
+  .perm.off{opacity:.45;cursor:not-allowed}
+  .rk{display:inline-flex;align-items:center;gap:6px;font-weight:700;white-space:nowrap}
+  .tag{display:inline-block;border-radius:999px;padding:2px 10px;font-size:15px;font-weight:700;background:#1d1a16;color:#ffd43b}
+  .tag.mgr{background:#1c7ed6;color:#fff}
+  .sec{border-top:2px dashed #eadcbf;margin-top:16px;padding-top:6px}
+  select.f{font-size:20px;padding:10px 12px;border:2px solid #d9c9a8;border-radius:12px;background:#fff}
+  input.n{font-size:20px;padding:8px 10px;border:2px solid #d9c9a8;border-radius:12px;width:120px;box-sizing:border-box}
+  .t.admin_points,.t.admin_rank,.t.admin_perms,.t.admin_delete,.t.admin_restore,.t.admin_rankdefs{background:#ffe3e3}
+  .a.points,.a.reset_game{background:#fff3bf}.a.rank,.a.rankdefs{background:#e5dbff}.a.perms{background:#d0ebff}.a.delete_user,.a.restore_user{background:#ffe3e3}.a.password_reset,.a.username_change,.a.rename{background:#e9ecef}
+  .a{display:inline-block;border-radius:999px;padding:2px 10px;font-size:15px}
+  .ba{font-size:16px;color:#3b342a;max-width:360px;word-break:break-word}
+.pe-game{margin:8px 0;background:#fff;border:2px solid #eadcbf;border-radius:14px;padding:6px 12px}
+.pe-game>summary{cursor:pointer;font-weight:700;min-height:44px;display:flex;align-items:center;font-size:18px}
+.pe-host{font-size:18px}
 </style>
 </head>
 <body>
@@ -46,27 +62,32 @@
     <h2>כניסת מנהל</h2>
     <p class="hint" id="gate-msg">טוען…</p>
     <button class="btn main hidden" id="gate-login">👤 התחברות</button>
+    <button class="btn main hidden" id="gate-retry">לנסות שוב</button>
   </div>
 
   <div id="app" class="hidden">
     <div class="tabs">
-      <button data-tab="users" class="on">👥 תלמידים</button>
-      <button data-tab="activity">🕒 פעילות (7 ימים)</button>
+      <button data-tab="users" class="on" data-need="view">👥 תלמידים</button>
+      <button data-tab="activity" data-need="view">🕒 פעילות (7 ימים)</button>
       <button data-tab="boards">🏆 טבלאות שיאים</button>
+      <button data-tab="ranks">🛡️ דרגות</button>
+      <button data-tab="managers" data-need="managers">🔐 מנהלים והרשאות</button>
+      <button data-tab="audit">📜 יומן ביקורת</button>
     </div>
 
     <section class="card" id="tab-users">
       <h2>👥 כל התלמידים</h2>
-      <p class="hint">לחצו על תלמיד כדי לראות את ההתקדמות, הפעילות, ולשנות שם או סיסמה.</p>
+      <p class="hint">לחצו על תלמיד כדי לראות את ההתקדמות, הפעילות, ולשנות ניקוד, דרגה, שם או סיסמה (לפי ההרשאות שלכם).</p>
       <input type="search" id="user-q" placeholder="חיפוש לפי שם">
       <div id="users" style="margin-top:10px">טוען…</div>
+      <div id="deleted"></div>
     </section>
 
     <section class="card hidden" id="tab-user"></section>
 
     <section class="card hidden" id="tab-activity">
       <h2>🕒 פעילות בשבוע האחרון</h2>
-      <p class="hint">כניסות, יציאות, משחקים, שלבים, ניקוד ושינויים. פעילות ישנה מ-7 ימים נמחקת אוטומטית. שינויי שם וסיסמה נשמרים שנה.</p>
+      <p class="hint">כניסות, יציאות, משחקים, שלבים, ניקוד ושינויים. פעילות ישנה מ-7 ימים נמחקת אוטומטית. שינויים בחשבון נשמרים שנה.</p>
       <div id="activity">טוען…</div>
     </section>
 
@@ -74,51 +95,104 @@
       <h2>🏆 טבלאות שיאים</h2>
       <div id="boards">טוען…</div>
     </section>
+
+    <section class="card hidden" id="tab-ranks">
+      <h2>🛡️ דרגות</h2>
+      <p class="hint">הדרגה נקבעת לפי הניקוד הכולל באינגלישיה (כל המשחקים יחד). מורה יכול לקבוע דרגה ידנית לתלמיד מסוים בדף התלמיד.</p>
+      <div id="ranks">טוען…</div>
+    </section>
+
+    <section class="card hidden" id="tab-managers">
+      <h2>🔐 מנהלים והרשאות</h2>
+      <p class="hint">כל הרשאה היא תיבה נפרדת, והשרת בודק אותה בכל פעולה. מנהל יכול לתת רק הרשאות שיש לו, ולא יכול לשנות את ההרשאות של עצמו. בעל האתר (amir) קבוע ולא ניתן להסרה.</p>
+      <div id="managers">טוען…</div>
+    </section>
+
+    <section class="card hidden" id="tab-audit">
+      <h2>📜 יומן ביקורת</h2>
+      <p class="hint" id="audit-hint">כל פעולה של מנהל: מי, מה, למי, לפני ואחרי, ומתי. אי אפשר לערוך או למחוק רשומות, והן לא נמחקות אחרי שבוע.</p>
+      <div class="row" id="audit-filters"></div>
+      <div id="audit">טוען…</div>
+    </section>
   </div>
 </main>
 <script src="../js/englishia-auth.js"></script>
 <script>
 (function () {
   "use strict";
-  var E = window.EnglishiaAuth, A = E.admin;
+  var E = window.EnglishiaAuth, A = E.admin, R = E.ranks;
   var TYPE_HE = { register: "הרשמה", login: "כניסה", logout: "יציאה", game_start: "פתח/ה משחק", stage_reached: "התחיל/ה שלב",
     stage_completed: "סיים/ה שלב", score: "ניקוד", name_change: "שינוי שם", password_change: "שינוי סיסמה",
-    username_change: "שינוי שם משתמש", admin_edit: "עריכת מנהל", admin_reset_progress: "איפוס התקדמות", admin_password_reset: "איפוס סיסמה ע״י המנהל" };
-  var users = [], byUid = {};
+    username_change: "שינוי שם משתמש", admin_edit: "עריכת מנהל", admin_reset_progress: "מחיקת ניקוד", admin_password_reset: "איפוס סיסמה ע״י המנהל",
+    admin_points: "עריכת נקודות", admin_rank: "שינוי דרגה", admin_perms: "הרשאות", admin_delete: "מחיקה", admin_restore: "שחזור", admin_rankdefs: "עריכת דרגות" };
+  var users = [], byUid = {}, tiers = [], managers = [];
   function $(id) { return document.getElementById(id); }
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
   var T = E.formatTime, D = E.formatDate;
   function gname(id) { return E.gameTitles[id] || id || ""; }
   function num(v) { v = +v; return isFinite(v) && v > 0 ? Math.round(v) : 0; }
-  function msg(el, text, ok) { var m = document.createElement("div"); m.className = "msg " + (ok ? "ok" : "err"); m.textContent = text; el.appendChild(m); setTimeout(function () { m.remove(); }, 6000); }
-  function errText(e) { return (e && e.heb) || (e && (e.code || e.message)) || "שגיאה"; }
+  function msg(el, text, ok) { if (!el) return; var m = document.createElement("div"); m.className = "msg " + (ok ? "ok" : "err"); m.textContent = text; el.appendChild(m); setTimeout(function () { m.remove(); }, 7000); }
+  function errText(e) {
+    if (e && e.heb) return e.heb;
+    if (e && e.code === "permission-denied") return "השרת דחה את הפעולה: אין הרשאה.";
+    return (e && (e.code || e.message)) || "שגיאה";
+  }
+  function chip(r, size) { return r && r.tier ? '<span class="rk">' + R.badge(r.tier, r.level, size || 24) + esc(r.tier.name) + (r.manual ? " <small>(ידני)</small>" : "") + "</span>" : ""; }
+  function permsLabel(p) { var l = A.PERMS.filter(function (k) { return p && p[k]; }); return l.length ? l.map(function (k) { return esc(A.PERM_HE[k]); }).join("<br>") : "—"; }
 
+  var gateKey = null;
   function gate() {
     var u = E.user;
-    if (!u) { $("gate-msg").textContent = "צריך להתחבר עם חשבון המנהל."; $("gate-login").classList.remove("hidden"); $("app").classList.add("hidden"); $("gate").classList.remove("hidden"); return; }
-    if (!E.isAdmin) { $("gate-msg").textContent = "החשבון " + u.username + " אינו חשבון מנהל."; $("gate-login").classList.add("hidden"); $("app").classList.add("hidden"); $("gate").classList.remove("hidden"); return; }
+    var rs = E.roleState || "ok";
+    var key = u ? u.uid + "|" + u.username + "|" + u.displayName + "|" + E.isAdmin + "|" + rs + "|" + JSON.stringify(E.perms) : "-" + (E.restoring ? "r" : "");
+    if (key === gateKey) return;
+    gateKey = key;
+    $("gate-retry").classList.add("hidden");
+    if (!u && E.restoring) { $("gate-msg").textContent = "מתחבר…"; $("gate-login").classList.add("hidden"); $("app").classList.add("hidden"); $("gate").classList.remove("hidden"); return; }
+    if (u && rs === "loading" && !(E.isAdmin && E.can("view"))) { $("gate-msg").textContent = "בודק הרשאות ניהול…"; $("gate-login").classList.add("hidden"); $("app").classList.add("hidden"); $("gate").classList.remove("hidden"); return; }
+    if (u && rs === "error" && !E.isAdmin) { $("gate-msg").textContent = "לא הצלחתי לבדוק את הרשאות הניהול, כי אין כרגע חיבור לשרת. בדקו את האינטרנט ולחצו \"לנסות שוב\"."; $("gate-login").classList.add("hidden"); $("gate-retry").classList.remove("hidden"); $("app").classList.add("hidden"); $("gate").classList.remove("hidden"); return; }
+    if (!u) { $("gate-msg").textContent = "צריך להתחבר עם חשבון מנהל."; $("gate-login").classList.remove("hidden"); $("app").classList.add("hidden"); $("gate").classList.remove("hidden"); return; }
+    if (!E.isAdmin) { $("gate-msg").textContent = "לחשבון " + (u.username || "הזה") + " אין הרשאות ניהול (החשבון אינו חשבון מנהל)."; $("gate-login").classList.add("hidden"); $("app").classList.add("hidden"); $("gate").classList.remove("hidden"); return; }
     $("gate").classList.add("hidden"); $("app").classList.remove("hidden");
-    $("who").textContent = "מחובר/ת: " + u.displayName;
+    $("who").innerHTML = "מחובר/ת: " + esc(u.displayName) + " " + (E.isOwner ? '<span class="tag">בעל האתר</span>' : '<span class="tag mgr">מנהל</span>');
+    Array.prototype.forEach.call(document.querySelectorAll("[data-need]"), function (b) { b.classList.toggle("hidden", !E.can(b.getAttribute("data-need"))); });
     A.cleanupActivity().catch(function () {});
-    loadUsers();
+    R.tiers().then(function (t) { tiers = t; });
+    if (E.can("view")) { tab("users"); if (usersState !== "loading") loadUsers(); } else tab("audit");
   }
   $("gate-login").onclick = function () { E.openLogin(); };
+  $("gate-retry").onclick = function () { $("gate-msg").textContent = "בודק הרשאות ניהול…"; $("gate-retry").classList.add("hidden"); E.retryRole(); };
+  // safety net: never leave "טוען…" / "בודק…" on screen forever
+  setTimeout(function () { if (!E.user && !$("gate").classList.contains("hidden") && /טוען|מתחבר/.test($("gate-msg").textContent)) { gateKey = null; gate(); } }, 15000);
 
   Array.prototype.forEach.call(document.querySelectorAll("[data-tab]"), function (b) {
     b.onclick = function () { tab(b.getAttribute("data-tab")); };
   });
   function tab(name) {
-    ["users", "user", "activity", "boards"].forEach(function (t) { $("tab-" + t).classList.toggle("hidden", t !== name); });
+    ["users", "user", "activity", "boards", "ranks", "managers", "audit"].forEach(function (t) { $("tab-" + t).classList.toggle("hidden", t !== name); });
     Array.prototype.forEach.call(document.querySelectorAll("[data-tab]"), function (b) { b.classList.toggle("on", b.getAttribute("data-tab") === name || (name === "user" && b.getAttribute("data-tab") === "users")); });
+    if (name === "users" && E.can("view") && !usersState) loadUsers();
     if (name === "activity") loadActivity();
     if (name === "boards") loadBoards();
+    if (name === "ranks") loadRanks();
+    if (name === "managers") loadManagers();
+    if (name === "audit") loadAudit();
   }
 
+  var usersState = null; // null | "loading" | "ok" | "error"
+  function retryBox(el, text, again) {
+    el.innerHTML = '<div class="msg err">' + esc(text) + '</div><button class="btn sm">לנסות שוב</button>';
+    el.querySelector("button").onclick = again;
+  }
   function loadUsers() {
+    usersState = "loading";
+    if (!users.length) $("users").textContent = "טוען…";
     return A.listUsers().then(function (list) {
+      usersState = "ok";
       users = list; byUid = {}; list.forEach(function (u) { byUid[u.uid] = u; });
       renderUsers();
-    }).catch(function (e) { $("users").textContent = errText(e); });
+      loadDeleted();
+    }).catch(function (e) { usersState = "error"; retryBox($("users"), errText(e), loadUsers); });
   }
   function renderUsers() {
     var qv = ($("user-q").value || "").trim().toLowerCase();
@@ -127,10 +201,10 @@
     var games = {};
     users.forEach(function (u) { Object.keys(u.games || {}).forEach(function (g) { games[g] = 1; }); });
     var gl = Object.keys(games);
-    $("users").innerHTML = "<table><tr><th>שם</th><th>שם משתמש</th><th>ניקוד כולל</th><th>זמן משחק</th>" +
+    $("users").innerHTML = "<table><tr><th>שם</th><th>שם משתמש</th><th>דרגה</th><th>ניקוד כולל</th><th>זמן משחק</th>" +
       gl.map(function (g) { return "<th>" + esc(gname(g)) + "<br><small>שיא · זמן</small></th>"; }).join("") + "<th>נראה לאחרונה</th></tr>" +
       list.map(function (u) {
-        return '<tr class="click" data-uid="' + esc(u.uid) + '"><td><b>' + esc(u.displayName) + "</b></td><td>" + esc(u.username) + "</td><td>" + num(u.totalScore) +
+        return '<tr class="click" data-uid="' + esc(u.uid) + '"><td><b>' + esc(u.displayName) + "</b>" + (u.manager ? ' <span class="tag mgr">מנהל</span>' : "") + "</td><td>" + esc(u.username) + "</td><td>" + chip(u.rank) + "</td><td>" + num(u.totalScore) +
           "</td><td>" + esc(T(u.totalSeconds)) + "</td>" + gl.map(function (g) {
             var s = (u.games || {})[g]; return "<td>" + (s ? num(s.best) + " · " + esc(T(s.seconds)) : "—") + "</td>";
           }).join("") + "<td>" + esc(D(u.lastSeen)) + "</td></tr>";
@@ -138,6 +212,16 @@
     Array.prototype.forEach.call($("users").querySelectorAll("[data-uid]"), function (tr) { tr.onclick = function () { openUser(tr.getAttribute("data-uid")); }; });
   }
   $("user-q").oninput = renderUsers;
+  function loadDeleted() {
+    A.listDeleted().catch(function () { return []; }).then(function (l) {
+      if (!l.length) { $("deleted").innerHTML = ""; return; }
+      $("deleted").innerHTML = '<div class="sec"><h3>🗑️ חשבונות שהוסרו</h3><p class="hint">אי אפשר להיכנס איתם לפרופיל עד ששחזרו אותם. בשחזור, התלמיד יתחיל מאפס.</p><table><tr><th>שם</th><th>שם משתמש</th><th>מתי</th><th></th></tr>' +
+        l.map(function (t) { return "<tr><td>" + esc(t.name) + "</td><td>" + esc(t.username) + "</td><td>" + esc(D(t.at)) + "</td><td>" + (E.can("delete") ? '<button class="btn sm" data-restore="' + esc(t.uid) + '">שחזור</button>' : "") + "</td></tr>"; }).join("") + "</table></div>";
+      Array.prototype.forEach.call($("deleted").querySelectorAll("[data-restore]"), function (b) {
+        b.onclick = function () { b.disabled = true; A.restoreUser(b.getAttribute("data-restore")).then(loadUsers).catch(function (e) { b.disabled = false; msg($("deleted"), errText(e)); }); };
+      });
+    }).catch(function () {});
+  }
 
   function actRows(list, showName) {
     if (!list.length) return "<p>אין פעילות.</p>";
@@ -146,57 +230,228 @@
         "</span></td><td>" + esc(gname(a.gameId)) + "</td><td>" + esc(a.detail) + (a.by && a.by !== a.uid ? " <small>(ע״י מנהל)</small>" : "") + "</td></tr>";
     }).join("") + "</table>";
   }
+  function auditRows(list, opt) {
+    opt = opt || {};
+    if (!list.length) return "<p>אין רשומות.</p>";
+    return "<table><tr><th>מתי</th>" + (opt.noActor ? "" : "<th>מי</th>") + "<th>פעולה</th>" + (opt.noTarget ? "" : "<th>למי</th>") + "<th>לפני</th><th>אחרי</th><th>פרטים</th></tr>" + list.map(function (a) {
+      return "<tr><td>" + esc(D(a.at)) + "</td>" + (opt.noActor ? "" : "<td><b>" + esc(a.actorName) + "</b></td>") + '<td><span class="a ' + esc(a.action) + '">' + esc(A.ACTION_HE[a.action] || a.action) + "</span></td>" +
+        (opt.noTarget ? "" : "<td>" + esc(a.targetName) + "</td>") + '<td class="ba">' + esc(a.before) + '</td><td class="ba">' + esc(a.after) + '</td><td class="ba">' + esc(a.detail) + "</td></tr>";
+    }).join("") + "</table>";
+  }
 
   function openUser(uid) {
     tab("user");
     var box = $("tab-user");
     box.innerHTML = "טוען…";
-    Promise.all([A.getUser(uid), A.listActivity({ uid: uid }), A.listChanges(uid)]).then(function (r) {
-      var u = r[0], acts = r[1], changes = r[2];
+    Promise.all([A.getUser(uid), A.listActivity({ uid: uid }), A.listChanges(uid), R.tiers(),
+      E.can("managers") ? A.listManagers().catch(function () { return []; }) : Promise.resolve([]),
+      E.can("audit") ? A.listAudit({ target: uid }).catch(function () { return []; }) : Promise.resolve(null)]).then(function (r) {
+      var u = r[0], acts = r[1], changes = r[2]; tiers = r[3];
+      var mgr = r[4].filter(function (m) { return m.uid === uid; })[0];
       if (!u) { box.textContent = "התלמיד לא נמצא."; return; }
       var gl = Object.keys(u.games || {});
-      box.innerHTML = '<div class="row"><button class="btn sm" id="u-back">← חזרה לרשימה</button></div>' +
-        "<h2>👤 " + esc(u.displayName) + "</h2><p class=\"hint\">שם משתמש לכניסה: <b>" + esc(u.username) + "</b> · נרשם/ה: " + esc(D(u.createdAt)) + " · נראה/תה לאחרונה: " + esc(D(u.lastSeen)) + "</p>" +
+      var me = E.user && E.user.uid === uid;
+      var html = '<div class="row"><button class="btn sm" id="u-back">← חזרה לרשימה</button></div>' +
+        '<h2>👤 ' + esc(u.displayName) + " " + chip(u.rank, 30) + "</h2><p class=\"hint\">שם משתמש לכניסה: <b>" + esc(u.username) + "</b> · נרשם/ה: " + esc(D(u.createdAt)) + " · נראה/תה לאחרונה: " + esc(D(u.lastSeen)) + "</p>" +
         '<div class="grid"><div class="stat"><b>' + num(u.totalScore) + '</b><span>ניקוד כולל</span></div><div class="stat"><b>' + esc(T(u.totalSeconds)) +
         '</b><span>זמן משחק כולל</span></div><div class="stat"><b>' + num(u.plays) + "</b><span>משחקים</span></div></div>" +
-        "<h3>🎮 לפי משחק</h3>" + (gl.length ? "<table><tr><th>משחק</th><th>שיא</th><th>ניקוד</th><th>זמן</th><th>פעמים</th><th>התקדמות</th><th>שיחק/ה לאחרונה</th><th></th></tr>" + gl.map(function (g) {
-          var s = u.games[g];
-          return "<tr><td>" + esc(gname(g)) + "</td><td>" + num(s.best) + "</td><td>" + num(s.totalScore) + "</td><td>" + esc(T(s.seconds)) + "</td><td>" + num(s.plays) +
-            '</td><td id="prog-' + esc(g) + '">…</td><td>' + esc(D(s.lastPlayed)) + '</td><td><button class="btn sm red" data-reset="' + esc(g) + '">איפוס</button></td></tr>';
-        }).join("") + "</table>" : "<p>עוד לא שיחק/ה.</p>") +
-        "<h3>✏️ שינוי שם</h3><p class=\"hint\">השם שמופיע במשחקים ובטבלת השיאים.</p><div class=\"row\"><input class=\"f\" id=\"u-name\" maxlength=\"20\" value=\"" + esc(u.displayName) + '"><button class="btn main" id="u-name-go">שמירה</button></div>' +
-        "<h3>🔑 איפוס סיסמה</h3><p class=\"hint\">כתבו סיסמה חדשה (לפחות 6 תווים) ותנו אותה לתלמיד/ה. בפעם הראשונה ייפתח חלון של גוגל: בחרו את חשבון הגוגל של המורה (בעל הפרויקט) ואשרו.</p>" +
-        '<div class="row"><input class="f" id="u-pass" autocomplete="off"><button class="btn main" id="u-pass-go">איפוס סיסמה</button></div>' +
-        "<h3>🪪 שינוי שם משתמש לכניסה</h3><p class=\"hint\">רק אם צריך. התלמיד/ה ייכנס/תיכנס מעכשיו עם השם החדש.</p>" +
-        '<div class="row"><input class="f" id="u-user" maxlength="15" value="' + esc(u.username) + '"><button class="btn" id="u-user-go">שינוי</button></div>' +
         '<div id="u-msg"></div>' +
-        "<h3>📝 היסטוריית שינויים (שם, סיסמה, עריכות מנהל)</h3>" + actRows(changes, false) +
+        "<h3>🎮 לפי משחק</h3>";
+      var editable = E.can("points");
+      var allGames = Object.keys(E.gameTitles).concat(gl.filter(function (g) { return !E.gameTitles[g]; }));
+      html += "<table><tr><th>משחק</th><th>שיא</th><th>ניקוד</th><th>זמן (דקות)</th><th>פעמים</th><th>התקדמות</th>" + (editable ? "<th>הוספת נקודות</th><th></th>" : "<th>שיחק/ה לאחרונה</th>") + "</tr>" + allGames.map(function (g) {
+        var s = (u.games || {})[g] || {};
+        if (!editable && !u.games[g]) return "";
+        var cell = function (k, v) { return editable ? '<input class="n" type="number" min="0" data-g="' + esc(g) + '" data-k="' + k + '" value="' + v + '">' : String(v); };
+        return "<tr><td>" + esc(gname(g)) + "</td><td>" + cell("best", num(s.best)) + "</td><td>" + cell("totalScore", num(s.totalScore)) + "</td><td>" + cell("min", Math.round(num(s.seconds) / 60)) + "</td><td>" + cell("plays", num(s.plays)) +
+          '</td><td id="prog-' + esc(g) + '">…</td>' + (editable ? '<td><div class="row" style="margin:0"><input class="n" type="number" placeholder="+100" data-add="' + esc(g) + '"><button class="btn sm main" data-addgo="' + esc(g) + '">➕</button></div></td><td><button class="btn sm main" data-save="' + esc(g) + '">שמירה</button> ' +
+          (u.games[g] ? '<button class="btn sm red" data-reset="' + esc(g) + '">מחיקה</button>' : "") + "</td>" : "<td>" + esc(D(s.lastPlayed)) + "</td>") + "</tr>";
+      }).join("") + "</table>" + (editable ? '<p class="hint">הניקוד הכולל, טבלת השיאים והדרגה מתעדכנים אוטומטית. מספר שלילי בהוספה מוריד נקודות.</p>' : "");
+      // v12.2: friendly progress editor per game (same permission + audit path as the in-game panel)
+      if (editable && E.progressEditor) {
+        html += '<div class="sec"><h3>📈 עריכת התקדמות</h3><p class="hint">שלבים, מטבעות ודמות. נשמר ביומן הפעולות.</p>' + allGames.map(function (g) {
+          return '<details class="pe-game" data-pe-game="' + esc(g) + '"><summary>' + esc(gname(g)) + '</summary><div class="pe-host">טוען…</div></details>';
+        }).join("") + "</div>";
+      }
+      if (E.can("ranks")) {
+        html += '<div class="sec"><h3>🛡️ דרגה</h3><p class="hint">דרגה ידנית נשארת עד שמחזירים ל"לפי ניקוד". לפי הניקוד היום: <b>' + esc(u.rank.auto.name) + '</b></p><div class="row"><select class="f" id="u-rank"><option value="">לפי ניקוד (אוטומטי)</option>' +
+          tiers.map(function (t, i) { return '<option value="' + esc(t.id) + '"' + (u.rankDoc && u.rankDoc.manual === t.id ? " selected" : "") + ">" + (i + 1) + ". " + esc(t.name) + " (מ-" + t.min + ")</option>"; }).join("") +
+          '</select><button class="btn main" id="u-rank-go">שמירת דרגה</button></div></div>';
+      }
+      if (E.can("names")) html += "<div class=\"sec\"><h3>✏️ שינוי שם</h3><p class=\"hint\">השם שמופיע במשחקים ובטבלת השיאים.</p><div class=\"row\"><input class=\"f\" id=\"u-name\" maxlength=\"20\" value=\"" + esc(u.displayName) + '"><button class="btn main" id="u-name-go">שמירה</button></div></div>';
+      if (E.isOwner) {
+        html += "<div class=\"sec\"><h3>🔑 איפוס סיסמה</h3><p class=\"hint\">רק לבעל האתר. כתבו סיסמה חדשה (לפחות 6 תווים) ותנו אותה לתלמיד/ה. בפעם הראשונה ייפתח חלון של גוגל: בחרו את חשבון הגוגל של המורה (בעל הפרויקט) ואשרו.</p>" +
+          '<div class="row"><input class="f" id="u-pass" autocomplete="off"><button class="btn main" id="u-pass-go">איפוס סיסמה</button></div>' +
+          "<h3>🪪 שינוי שם משתמש לכניסה</h3><p class=\"hint\">רק אם צריך. התלמיד/ה ייכנס/תיכנס מעכשיו עם השם החדש.</p>" +
+          '<div class="row"><input class="f" id="u-user" maxlength="15" value="' + esc(u.username) + '"><button class="btn" id="u-user-go">שינוי</button></div></div>';
+      }
+      if (E.can("managers") && !me) {
+        html += '<div class="sec"><h3>🔐 הרשאות ניהול</h3><p class="hint">' + (mgr ? "המשתמש הזה מנהל." : "המשתמש הזה לא מנהל. סמנו הרשאות כדי למנות אותו.") + " אפשר לתת רק הרשאות שיש לכם. בלי צפייה בתלמידים, רוב ההרשאות האחרות לא שימושיות.</p>" +
+          permBoxes("u-perm", mgr && mgr.perms) + '<div class="row"><button class="btn main" id="u-perm-go">שמירת הרשאות</button>' + (mgr ? '<button class="btn red" id="u-perm-del">הסרה מניהול</button>' : "") + "</div></div>";
+      }
+      if (E.can("delete") && !me) {
+        html += '<div class="sec"><h3>🗑️ מחיקת תלמיד</h3><p class="hint">מוחק את הפרופיל, הניקוד, ההתקדמות והדרגה, ומוריד אותו מטבלאות השיאים. התלמיד לא יוכל לשמור התקדמות עד ששחזרו אותו (השחזור מתחיל מאפס). שם המשתמש נשאר תפוס.</p>' +
+          '<button class="btn red" id="u-del">מחיקת התלמיד</button></div>';
+      }
+      if (r[5]) html += "<h3>📜 פעולות מנהלים על התלמיד הזה</h3>" + auditRows(r[5], { noTarget: true });
+      html += "<h3>📝 היסטוריית שינויים (שם, סיסמה, עריכות מנהל)</h3>" + actRows(changes, false) +
         "<h3>🕒 פעילות ב-7 הימים האחרונים</h3>" + actRows(acts, false);
+      box.innerHTML = html;
       $("u-back").onclick = function () { tab("users"); };
+      Array.prototype.forEach.call(box.querySelectorAll("[data-pe-game]"), function (d) {
+        d.addEventListener("toggle", function () {
+          if (!d.open || d.getAttribute("data-loaded")) return;
+          d.setAttribute("data-loaded", "1");
+          E.progressEditor(d.querySelector(".pe-host"), uid, d.getAttribute("data-pe-game"), function () { loadUsers(); });
+        });
+      });
       gl.forEach(function (g) {
         A.loadProgress(uid, g).then(function (p) {
           var el = document.getElementById("prog-" + g); if (!el) return;
           if (!p) { el.textContent = "—"; return; }
           var bits = [];
           if (p.prog) bits.push(Object.keys(p.prog).length + " שלבים");
-          if (p.stars) bits.push("⭐ " + p.stars);
+          if (p.stars) bits.push("כוכבים " + p.stars);
           if (p.coins) bits.push("מטבעות " + p.coins);
           el.textContent = bits.join(" · ") || "נשמר";
         });
       });
-      Array.prototype.forEach.call(box.querySelectorAll("[data-reset]"), function (b) {
-        b.onclick = function () {
-          var g = b.getAttribute("data-reset");
-          if (!confirm("לאפס את ההתקדמות והניקוד של " + u.displayName + " ב" + gname(g) + "?")) return;
-          b.disabled = true;
-          A.resetGame(uid, g).then(function () { loadUsers(); openUser(uid); }).catch(function (e) { b.disabled = false; msg($("u-msg"), errText(e)); });
-        };
-      });
-      function run(btn, p, ok) { btn.disabled = true; p.then(function () { btn.disabled = false; msg($("u-msg"), ok, true); loadUsers(); }).catch(function (e) { btn.disabled = false; msg($("u-msg"), errText(e)); }); }
-      $("u-name-go").onclick = function () { run(this, A.rename(uid, $("u-name").value), "השם שונה."); };
-      $("u-pass-go").onclick = function () { run(this, A.resetPassword(uid, $("u-pass").value), "הסיסמה החדשה נשמרה. תנו אותה לתלמיד/ה."); };
-      $("u-user-go").onclick = function () { run(this, A.changeUsername(uid, $("u-user").value), "שם המשתמש לכניסה שונה."); };
+      allGames.forEach(function (g) { var el = document.getElementById("prog-" + g); if (el && !u.games[g]) el.textContent = "—"; });
+      function val(g, k) { var el = box.querySelector('[data-g="' + g + '"][data-k="' + k + '"]'); return el ? el.value : 0; }
+      function run(btn, p, ok, reopen) {
+        btn.disabled = true;
+        p.then(function () { btn.disabled = false; loadUsers(); if (reopen) openUser(uid).then(function () { msg($("u-msg"), ok, true); }); else msg($("u-msg"), ok, true); })
+         .catch(function (e) { btn.disabled = false; msg($("u-msg"), errText(e)); });
+      }
+      function each(sel, fn) { Array.prototype.forEach.call(box.querySelectorAll(sel), fn); }
+      each("[data-save]", function (b) { b.onclick = function () { var g = b.getAttribute("data-save");
+        run(b, A.setStats(uid, g, { best: val(g, "best"), totalScore: val(g, "totalScore"), seconds: (+val(g, "min") || 0) * 60, plays: val(g, "plays") }), "הניקוד נשמר.", true); }; });
+      each("[data-addgo]", function (b) { b.onclick = function () { var g = b.getAttribute("data-addgo"), v = box.querySelector('[data-add="' + g + '"]').value;
+        run(b, A.addPoints(uid, g, v), (+v > 0 ? "נוספו " + v : "הורדו " + Math.abs(+v)) + " נקודות.", true); }; });
+      each("[data-reset]", function (b) { b.onclick = function () { var g = b.getAttribute("data-reset");
+        if (!confirm("למחוק את הניקוד וההתקדמות של " + u.displayName + " ב" + gname(g) + "?")) return;
+        run(b, A.resetGame(uid, g), "הניקוד וההתקדמות נמחקו.", true); }; });
+      if ($("u-rank-go")) $("u-rank-go").onclick = function () { run(this, A.setRank(uid, $("u-rank").value), "הדרגה נשמרה.", true); };
+      if ($("u-name-go")) $("u-name-go").onclick = function () { run(this, A.rename(uid, $("u-name").value), "השם שונה.", true); };
+      if ($("u-pass-go")) $("u-pass-go").onclick = function () { run(this, A.resetPassword(uid, $("u-pass").value), "הסיסמה החדשה נשמרה. תנו אותה לתלמיד/ה."); };
+      if ($("u-user-go")) $("u-user-go").onclick = function () { run(this, A.changeUsername(uid, $("u-user").value), "שם המשתמש לכניסה שונה.", true); };
+      if ($("u-perm-go")) { wirePerms("u-perm"); $("u-perm-go").onclick = function () { run(this, A.setManager(uid, readPerms("u-perm"), u.displayName), "ההרשאות נשמרו.", true); }; }
+      if ($("u-perm-del")) $("u-perm-del").onclick = function () { if (confirm("להסיר את " + u.displayName + " מניהול?")) run(this, A.removeManager(uid), "הוסר/ה מניהול.", true); };
+      if ($("u-del")) $("u-del").onclick = function () {
+        if (!confirm("למחוק את " + u.displayName + "? כל הניקוד וההתקדמות יימחקו.")) return;
+        var b = this; b.disabled = true;
+        A.deleteUser(uid).then(function () { loadUsers(); tab("users"); msg($("users"), u.displayName + " נמחק/ה.", true); }).catch(function (e) { b.disabled = false; msg($("u-msg"), errText(e)); });
+      };
     }).catch(function (e) { box.textContent = errText(e); });
+    return new Promise(function (res) { setTimeout(res, 1200); });
+  }
+
+  // permission checkboxes; a permission you do not hold is shown but cannot be ticked
+  function permBoxes(id, cur) {
+    return '<div id="' + id + '">' + A.PERMS.map(function (k) {
+      var mine = E.can(k), on = !!(cur && cur[k]);
+      return '<label class="perm' + (mine ? "" : " off") + '"><input type="checkbox" data-perm="' + k + '"' + (on ? " checked" : "") + (mine ? "" : " disabled") + "><span>" + esc(A.PERM_HE[k]) +
+        (mine ? "" : " <small>(אין לך את ההרשאה הזאת)</small>") + "</span></label>";
+    }).join("") + "</div>";
+  }
+  function wirePerms(id) {
+    var w = $(id), v = w.querySelector('[data-perm="view"]');
+    Array.prototype.forEach.call(w.querySelectorAll("[data-perm]"), function (c) {
+      c.addEventListener("change", function () { if (c.checked && c !== v && v && !v.disabled) v.checked = true; });
+    });
+  }
+  function readPerms(id) {
+    var p = {}; Array.prototype.forEach.call($(id).querySelectorAll("[data-perm]"), function (c) { p[c.getAttribute("data-perm")] = c.checked; }); return p;
+  }
+
+  function loadManagers() {
+    var w = $("managers"); w.textContent = "טוען…";
+    Promise.all([A.listManagers(), E.can("view") ? A.listUsers().catch(function () { return []; }) : Promise.resolve(users)]).then(function (r) {
+      managers = r[0]; if (r[1].length) { users = r[1]; byUid = {}; users.forEach(function (u) { byUid[u.uid] = u; }); }
+      var html = "<table><tr><th>מנהל</th><th>הרשאות</th><th>עודכן</th><th></th></tr>" +
+        '<tr><td><b>' + esc((E.isOwner ? E.user.displayName : "amir")) + '</b> <span class="tag">בעל האתר</span></td><td>כל ההרשאות, כולל איפוס סיסמאות. קבוע.</td><td></td><td></td></tr>' +
+        managers.map(function (m) {
+          var u = byUid[m.uid];
+          return "<tr><td><b>" + esc((u && u.displayName) || m.name) + "</b><br><small>" + esc(u ? u.username : "") + "</small></td><td>" + permsLabel(m.perms) + "</td><td>" + esc(D(m.updatedAt)) +
+            '</td><td><button class="btn sm" data-edit="' + esc(m.uid) + '">עריכה</button></td></tr>';
+        }).join("") + "</table>";
+      html += '<div class="sec"><h3>➕ מינוי מנהל חדש</h3>';
+      var cands = users.filter(function (u) { return !(E.user && u.uid === E.user.uid) && !managers.some(function (m) { return m.uid === u.uid; }); });
+      html += cands.length ? '<div class="row"><select class="f" id="m-new">' + cands.map(function (u) { return '<option value="' + esc(u.uid) + '">' + esc(u.displayName) + " (" + esc(u.username) + ")</option>"; }).join("") + "</select></div>" +
+        permBoxes("m-perms", { view: true }) + '<div class="row"><button class="btn main" id="m-go">מינוי</button></div>' : "<p>אין משתמשים נוספים. המשתמש צריך להירשם קודם.</p>";
+      html += '<div id="m-msg"></div></div>';
+      w.innerHTML = html;
+      Array.prototype.forEach.call(w.querySelectorAll("[data-edit]"), function (b) { b.onclick = function () { openUser(b.getAttribute("data-edit")); }; });
+      if ($("m-go")) {
+        wirePerms("m-perms");
+        $("m-go").onclick = function () {
+          var b = this, uid = $("m-new").value, u = byUid[uid]; b.disabled = true;
+          A.setManager(uid, readPerms("m-perms"), u && u.displayName).then(function () { loadManagers(); }).catch(function (e) { b.disabled = false; msg($("m-msg"), errText(e)); });
+        };
+      }
+    }).catch(function (e) { w.textContent = errText(e); });
+  }
+
+  function loadRanks() {
+    var w = $("ranks"); w.textContent = "טוען…";
+    R.tiers().then(function (t) {
+      tiers = t;
+      var edit = E.can("rankdefs");
+      var html = "<table id=\"tier-tbl\"><tr><th>#</th><th>סמל</th><th>שם הדרגה</th><th>מאיזה ניקוד כולל</th><th>צבע</th>" + (edit ? "<th></th>" : "") + "</tr>" +
+        t.map(function (x, i) { return tierRow(x, i, edit); }).join("") + "</table>";
+      if (edit) html += '<div class="row"><button class="btn" id="tier-add">➕ דרגה חדשה</button><button class="btn main" id="tier-save">שמירת הדרגות</button><button class="btn" id="tier-def">החזרה לברירת המחדל</button></div><p class="hint">הדרגה הראשונה תמיד מתחילה מ-0. אפשר עד 12 דרגות. תלמידים עם דרגה ידנית נשארים איתה.</p>';
+      else html += '<p class="hint">אין לך הרשאה לערוך את הדרגות.</p>';
+      html += '<div id="tier-msg"></div>';
+      w.innerHTML = html;
+      if (!edit) return;
+      function bind() {
+        Array.prototype.forEach.call(w.querySelectorAll("[data-del]"), function (b) { b.onclick = function () { b.closest("tr").remove(); renum(); }; });
+        Array.prototype.forEach.call(w.querySelectorAll("tr[data-id] input"), function (inp) { inp.oninput = function () { var tr = inp.closest("tr"); tr.querySelector(".sym").innerHTML = R.badge({ color: tr.querySelector('[data-k="color"]').value }, +tr.getAttribute("data-i") + 1, 30); }; });
+      }
+      function renum() { Array.prototype.forEach.call(w.querySelectorAll("tr[data-id]"), function (tr, i) { tr.setAttribute("data-i", i); tr.firstChild.textContent = i + 1; }); }
+      bind();
+      $("tier-add").onclick = function () { var n = w.querySelectorAll("tr[data-id]").length; if (n >= 12) return; $("tier-tbl").insertAdjacentHTML("beforeend", tierRow({ id: "", name: "", min: 0, color: "#495057" }, n, true)); bind(); };
+      $("tier-def").onclick = function () { $("tier-tbl").innerHTML = "<tr><th>#</th><th>סמל</th><th>שם הדרגה</th><th>מאיזה ניקוד כולל</th><th>צבע</th><th></th></tr>" + R.defaults.map(function (x, i) { return tierRow(x, i, true); }).join(""); bind(); };
+      $("tier-save").onclick = function () {
+        var b = this, list = Array.prototype.map.call(w.querySelectorAll("tr[data-id]"), function (tr) {
+          return { id: tr.getAttribute("data-id"), name: tr.querySelector('[data-k="name"]').value, min: tr.querySelector('[data-k="min"]').value, color: tr.querySelector('[data-k="color"]').value };
+        });
+        b.disabled = true;
+        A.setTiers(list).then(function () { loadRanks(); setTimeout(function () { msg($("tier-msg"), "הדרגות נשמרו.", true); }, 600); }).catch(function (e) { b.disabled = false; msg($("tier-msg"), errText(e)); });
+      };
+    });
+  }
+  function tierRow(x, i, edit) {
+    return '<tr data-id="' + esc(x.id) + '" data-i="' + i + '"><td>' + (i + 1) + '</td><td class="sym">' + R.badge(x, i + 1, 30) + "</td>" +
+      (edit ? '<td><input class="f" data-k="name" maxlength="20" value="' + esc(x.name) + '"></td><td><input class="n" type="number" min="0" data-k="min" value="' + num(x.min) + '"' + (i === 0 ? " disabled" : "") + '></td><td><input type="color" data-k="color" value="' + esc(x.color) + '" style="width:60px;height:44px"></td><td><button class="btn sm red" data-del>מחיקה</button></td>'
+        : "<td><b>" + esc(x.name) + "</b></td><td>" + num(x.min) + "</td><td></td>") + "</tr>";
+  }
+
+  function loadAudit() {
+    var all = E.can("audit");
+    $("audit-hint").textContent = all ? "כל פעולה של מנהל: מי, מה, למי, לפני ואחרי, ומתי. אי אפשר לערוך או למחוק רשומות, והן לא נמחקות אחרי שבוע."
+      : "כאן מופיעות הפעולות שלך בלבד. אי אפשר לערוך או למחוק רשומות.";
+    var f = $("audit-filters");
+    if (all && !f.innerHTML) {
+      f.innerHTML = '<label>מנהל: <select class="f" id="af-actor"><option value="">כולם</option></select></label> <label>תלמיד: <select class="f" id="af-target"><option value="">כולם</option></select></label>';
+      $("af-actor").onchange = $("af-target").onchange = function () { fetchAudit(); };
+    }
+    fetchAudit(true);
+  }
+  function fetchAudit(fill) {
+    var all = E.can("audit"), o = {};
+    if (all && $("af-actor")) { o.actor = $("af-actor").value; o.target = $("af-target").value; }
+    $("audit").textContent = "טוען…";
+    A.listAudit(o).then(function (list) {
+      if (all && fill && !o.actor && !o.target) {
+        var actors = {}, targets = {};
+        list.forEach(function (a) { actors[a.actor] = a.actorName; if (a.target !== "config") targets[a.target] = a.targetName; });
+        users.forEach(function (u) { targets[u.uid] = targets[u.uid] || u.displayName; });
+        $("af-actor").innerHTML = '<option value="">כולם</option>' + Object.keys(actors).map(function (k) { return '<option value="' + esc(k) + '">' + esc(actors[k]) + "</option>"; }).join("");
+        $("af-target").innerHTML = '<option value="">כולם</option><option value="config">הגדרות הדרגות</option>' + Object.keys(targets).map(function (k) { return '<option value="' + esc(k) + '">' + esc(targets[k]) + "</option>"; }).join("");
+      }
+      $("audit").innerHTML = auditRows(list, { noActor: !all });
+    }).catch(function (e) { $("audit").textContent = errText(e); });
   }
 
   function loadActivity() {
@@ -207,17 +462,19 @@
   function loadBoards() {
     var ids = Object.keys(E.gameTitles);
     $("boards").innerHTML = ids.map(function (g) { return "<h3>" + esc(gname(g)) + '</h3><div id="lb-' + esc(g) + '">טוען…</div>'; }).join("");
-    ids.forEach(function (g) {
-      E.getLeaderboard(g, 10).then(function (l) {
-        $("lb-" + g).innerHTML = l.length ? "<table><tr><th>#</th><th>שם</th><th>שיא</th></tr>" + l.map(function (e) {
-          return "<tr" + (e.rank === 1 ? ' style="background:#ffe066;font-weight:800"' : "") + "><td>" + e.rank + "</td><td>" + esc(e.name) + "</td><td>" + e.score + "</td></tr>";
-        }).join("") + "</table>" : "<p>עוד אין שיאים.</p>";
+    R.tiers().then(function (t) {
+      ids.forEach(function (g) {
+        E.getLeaderboard(g, 10).then(function (l) {
+          $("lb-" + g).innerHTML = l.length ? "<table><tr><th>#</th><th>שם</th><th>שיא</th></tr>" + l.map(function (e) {
+            return "<tr" + (e.rank === 1 ? ' style="background:#ffe066;font-weight:800"' : "") + "><td>" + e.rank + "</td><td>" + esc(e.name) + "</td><td>" + e.score + "</td></tr>";
+          }).join("") + "</table>" : "<p>עוד אין שיאים.</p>";
+        }).catch(function (e) { $("lb-" + g).textContent = errText(e); });
       });
     });
   }
 
   E.init({ mount: "header .row" }).then(gate);
-  E.onChange(gate);
+  E.onChange(function () { setTimeout(gate, 50); });
 })();
 </script>
 </body>

@@ -42665,7 +42665,8 @@
   function askPlayerName(onOk, opts) {
     opts = opts || {};
     const back = !!opts.backToPicker;
-    showModal(`<h2>\u05DE\u05D4 \u05D4\u05E9\u05DD \u05E9\u05DC\u05DA?</h2>
+    showModal(`<button type="button" class="mq-x" id="btn-name-x" aria-label="\u05E1\u05D2\u05D9\u05E8\u05D4" title="\u05E1\u05D2\u05D9\u05E8\u05D4"></button>
+    <h2>\u05DE\u05D4 \u05D4\u05E9\u05DD \u05E9\u05DC\u05DA?</h2>
     <input id="player-name-in" maxlength="20" autocomplete="nickname" dir="rtl" placeholder="\u05D4\u05E9\u05DD \u05E9\u05DC\u05D9">
     <p class="name-err hidden" id="name-err">\u05E6\u05E8\u05D9\u05DA \u05DC\u05DB\u05EA\u05D5\u05D1 \u05E9\u05DD</p>
     <div class="row" style="margin-top:12px">
@@ -42684,6 +42685,7 @@
       }
       err.classList.add("hidden");
       if (createNewProfile(n)) {
+        document.removeEventListener("keydown", escName);
         hideModal();
         if (onOk) onOk();
       } else {
@@ -42692,6 +42694,19 @@
       }
     };
     $("btn-name-save").onclick = go;
+    const closeName = () => {
+      document.removeEventListener("keydown", escName);
+      hideModal();
+    };
+    const escName = (e) => {
+      if (e.key === "Escape" && $("btn-name-x")) closeName();
+    };
+    document.addEventListener("keydown", escName);
+    $("btn-name-x").onclick = (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      closeName();
+    };
     inp.addEventListener("keydown", (e) => {
       if (e.key === "Enter") go();
     });
@@ -42809,7 +42824,7 @@
     sfx.click();
     openProfilePanel();
   };
-  $("btn-title-settings").onclick = () => {
+  if ($("btn-title-settings")) $("btn-title-settings").onclick = () => {
     sfx.click();
     openSettings();
   };
@@ -42953,12 +42968,15 @@
   function hideDevPanel() {
     if ($("dev-panel")) $("dev-panel").classList.add("hidden");
   }
+  function syncDevAccess() {
+    syncDevButton(document.body.dataset.ui || "");
+    if (!isDev()) hideDevPanel();
+  }
+  if (typeof window !== "undefined") window.MQ_syncDev = syncDevAccess;
   function initDevTools() {
     const btn = $("btn-dev");
-    if (!btn || !isDev()) {
-      if (btn) btn.classList.add("hidden");
-      return;
-    }
+    if (!btn) return;
+    if (!isDev()) btn.classList.add("hidden");
     btn.onclick = () => openDevPanel();
     const close = $("btn-dev-close");
     if (close) close.onclick = hideDevPanel;
@@ -42966,7 +42984,7 @@
     if (grid) {
       grid.onclick = (e) => {
         const b = e.target.closest("[data-dev-w]");
-        if (!b) return;
+        if (!b || !isDev()) return;
         hideDevPanel();
         startLevel(+b.dataset.devW, +b.dataset.devSt, false, { bypassLock: true });
       };
@@ -42975,6 +42993,10 @@
     if (unlock) {
       unlock.checked = !!S.free;
       unlock.onchange = () => {
+        if (!isDev()) {
+          unlock.checked = !!S.free;
+          return;
+        }
         S.free = !!unlock.checked;
         save();
         refreshLocks();
@@ -42985,6 +43007,7 @@
     const rst = $("btn-dev-reset");
     if (rst) {
       rst.onclick = () => {
+        if (!isDev()) return;
         if (!confirm("\u05DC\u05D0\u05E4\u05E1 \u05D0\u05EA \u05DB\u05DC \u05D4\u05D4\u05EA\u05E7\u05D3\u05DE\u05D5\u05EA \u05D4\u05E9\u05DE\u05D5\u05E8\u05D4? \u05D4\u05E4\u05E2\u05D5\u05DC\u05D4 \u05D4\u05D6\u05D5 \u05E0\u05E9\u05DE\u05E8\u05EA.")) return;
         const hero = S.hero, quality = S.quality, wasMuted = S.muted, settings = S.settings, at = S.autoTier;
         S = def();
