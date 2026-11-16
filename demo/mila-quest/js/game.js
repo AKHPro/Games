@@ -2361,8 +2361,9 @@ function changeLane(dir) {
   player.lane = Math.max(0, Math.min(2, player.lane + dir));
 }
 function jump() {
-  if (!player || paused || appMode !== "run" || player.jumping) return;
-  player.jumping = true; player.vy = 8.4; player.sliding = false;
+  if (!player || paused || appMode !== "run") return;
+  if (player.jumping) { if (player.vy < 0 && player.y < 0.6) player.jumpQ = true; return; }
+  player.jumping = true; player.vy = 9.6; player.sliding = false;
   playAnim(player, "jump", 0.08, true); sfx.jump();
 }
 function slide() {
@@ -2533,10 +2534,10 @@ function updateRunner(dt) {
   player.laneShift = (player.laneShift == null ? want : player.laneShift);
   player.laneShift += (want - player.laneShift) * Math.min(1, dt * 11);
   if (player.jumping) {
-    player.vy += -26 * dt;
+    player.vy += -23 * dt;
     player.y += player.vy * dt;
     if (player.y <= 0) {
-      player.y = 0; player.vy = 0; player.jumping = false;
+      player.y = 0; player.vy = 0; player.jumping = false; if (player.jumpQ) { player.jumpQ = false; jump(); }
       playAnim(player, player.sliding ? "crouch" : "sprint");
     }
   }
@@ -2602,7 +2603,7 @@ function updateRunner(dt) {
     if (o.spin) o.mesh.rotation.x += dt * o.spin;
     if ((o.s != null ? o.s : 0) < player.s - 4) { o.hit = true; disposeDeep(o.mesh); continue; }
     if (Math.abs((o.s || 0) - player.s) < 0.7 && o.lane === playerLaneNow()) {
-      if ((o.type === "low" || o.type === "hole") && player.y > 0.48) continue;
+      if ((o.type === "low" || o.type === "hole") && player.y > 0.4) continue;
       if (o.type === "beam" && player.sliding) continue;
       hitObstacle(o);
     }
