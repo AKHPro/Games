@@ -463,8 +463,8 @@ html.short .map-top{padding-right:calc(env(safe-area-inset-right) + 180px)}
   }
   var chain = Promise.resolve();
   chain = chain.then(function () { return loadScript("./js/englishia-player.js"); });
-  // v11: one Englishia account for all games (../../js/englishia-auth.js). Guests still play.
-  chain = chain.then(function () { return loadScript("../../js/englishia-auth.js").catch(function () {}); })
+  // v11: one Englishia account for all games (../js/englishia-auth.js). Guests still play.
+  chain = chain.then(function () { return loadScript("../js/englishia-auth.js").catch(function () {}); })
     .then(function () {
       if (!window.EnglishiaAuth) return;
       EnglishiaAuth.init({ gameId: "mila-quest", gameTitle: "\u05de\u05d9\u05dc\u05d4 \u05e7\u05d5\u05d5\u05e1\u05d8", mount: false, reloadOnChange: true,
