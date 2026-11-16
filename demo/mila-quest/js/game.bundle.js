@@ -33370,8 +33370,30 @@
     build: ["let", "tr", "en2he"]
   };
   var DIFFS = {
+    veryeasy: {
+      label: "\u05E7\u05DC \u05DE\u05D0\u05D5\u05D3",
+      scoreMul: 0.5,
+      mul: 0.55,
+      hearts: 5,
+      timeMul: 1.45,
+      timeAdd: 0.9,
+      densMul: 0.45,
+      spaceMul: 1.5,
+      simMul: 0.3,
+      options: 2,
+      hints: true,
+      reveal: true,
+      boss: -1,
+      lvlShift: -0.35,
+      comboCap: 0.08,
+      rate: 0.68,
+      minAnswer: 2.8,
+      tier: 0,
+      desc: "\u05E8\u05D9\u05E6\u05D4 \u05D0\u05D9\u05D8\u05D9\u05EA \u05DE\u05D0\u05D5\u05D3, 5 \u05DC\u05D1\u05D1\u05D5\u05EA, \u05D4\u05E8\u05D1\u05D4 \u05D6\u05DE\u05DF \u05DC\u05E2\u05E0\u05D5\u05EA, \u05E8\u05E7 2 \u05EA\u05E9\u05D5\u05D1\u05D5\u05EA, \u05E4\u05D7\u05D5\u05EA \u05DE\u05DB\u05E9\u05D5\u05DC\u05D9\u05DD \u05D5\u05E8\u05DE\u05D6\u05D9\u05DD \u05DE\u05D4\u05D9\u05E0\u05E9\u05D5\u05E3. \u05E0\u05D9\u05E7\u05D5\u05D3 \xD70.5."
+    },
     easy: {
       label: "\u05E7\u05DC",
+      scoreMul: 1,
       mul: 0.75,
       hearts: 5,
       timeMul: 1.3,
@@ -33386,10 +33408,13 @@
       lvlShift: -0.25,
       comboCap: 0.12,
       rate: 0.72,
-      desc: "\u05D0\u05D9\u05D8\u05D9 \u05DE\u05D0\u05D5\u05D3, 5 \u05DC\u05D1\u05D1\u05D5\u05EA, \u05D4\u05E8\u05D1\u05D4 \u05D6\u05DE\u05DF \u05DC\u05E2\u05E0\u05D5\u05EA, \u05E8\u05E7 2 \u05EA\u05E9\u05D5\u05D1\u05D5\u05EA \u05DC\u05D1\u05D7\u05D9\u05E8\u05D4, \u05E4\u05D7\u05D5\u05EA \u05DE\u05DB\u05E9\u05D5\u05DC\u05D9\u05DD \u05D5\u05E8\u05DE\u05D6\u05D9\u05DD \u05DE\u05D4\u05D9\u05E0\u05E9\u05D5\u05E3."
+      minAnswer: 2.4,
+      tier: 1,
+      desc: "\u05E8\u05D9\u05E6\u05D4 \u05D0\u05D9\u05D8\u05D9\u05EA, 5 \u05DC\u05D1\u05D1\u05D5\u05EA, \u05D4\u05E8\u05D1\u05D4 \u05D6\u05DE\u05DF \u05DC\u05E2\u05E0\u05D5\u05EA, 2 \u05EA\u05E9\u05D5\u05D1\u05D5\u05EA \u05DC\u05D1\u05D7\u05D9\u05E8\u05D4, \u05E4\u05D7\u05D5\u05EA \u05DE\u05DB\u05E9\u05D5\u05DC\u05D9\u05DD \u05D5\u05E8\u05DE\u05D6\u05D9\u05DD \u05DE\u05D4\u05D9\u05E0\u05E9\u05D5\u05E3. \u05E0\u05D9\u05E7\u05D5\u05D3 \xD71."
     },
     normal: {
       label: "\u05E8\u05D2\u05D9\u05DC",
+      scoreMul: 1.5,
       mul: 1,
       hearts: 4,
       timeMul: 1,
@@ -33404,17 +33429,41 @@
       lvlShift: 0,
       comboCap: 0.3,
       rate: 0.82,
-      desc: "\u05DE\u05D4\u05D9\u05E8\u05D5\u05EA \u05E8\u05D2\u05D9\u05DC\u05D4, 4 \u05DC\u05D1\u05D1\u05D5\u05EA, 3 \u05EA\u05E9\u05D5\u05D1\u05D5\u05EA \u05DC\u05D1\u05D7\u05D9\u05E8\u05D4. \u05DB\u05DC \u05E9\u05DC\u05D1 \u05E7\u05E6\u05EA \u05D9\u05D5\u05EA\u05E8 \u05E7\u05E9\u05D4 \u05DE\u05D4\u05E7\u05D5\u05D3\u05DD."
+      minAnswer: 2.4,
+      tier: 2,
+      desc: "\u05DE\u05D4\u05D9\u05E8\u05D5\u05EA \u05E8\u05D2\u05D9\u05DC\u05D4, 4 \u05DC\u05D1\u05D1\u05D5\u05EA, 3 \u05EA\u05E9\u05D5\u05D1\u05D5\u05EA \u05DC\u05D1\u05D7\u05D9\u05E8\u05D4. \u05DB\u05DC \u05E9\u05DC\u05D1 \u05E7\u05E6\u05EA \u05D9\u05D5\u05EA\u05E8 \u05E7\u05E9\u05D4 \u05DE\u05D4\u05E7\u05D5\u05D3\u05DD. \u05E0\u05D9\u05E7\u05D5\u05D3 \xD71.5."
     },
     hard: {
       label: "\u05E7\u05E9\u05D4",
-      mul: 1.3,
+      scoreMul: 2,
+      mul: 1.2,
       hearts: 3,
-      timeMul: 0.8,
+      timeMul: 0.85,
       timeAdd: 0,
-      densMul: 1.3,
-      spaceMul: 0.88,
-      simMul: 1.6,
+      densMul: 1.2,
+      spaceMul: 0.92,
+      simMul: 1.4,
+      options: 3,
+      hints: false,
+      reveal: false,
+      boss: 1,
+      lvlShift: 0.18,
+      comboCap: 0.38,
+      rate: 0.88,
+      minAnswer: 2.15,
+      tier: 3,
+      desc: "\u05E8\u05D9\u05E6\u05D4 \u05DE\u05D4\u05D9\u05E8\u05D4, 3 \u05DC\u05D1\u05D1\u05D5\u05EA, \u05E4\u05D7\u05D5\u05EA \u05D6\u05DE\u05DF \u05DC\u05E2\u05E0\u05D5\u05EA, \u05EA\u05E9\u05D5\u05D1\u05D5\u05EA \u05D3\u05D5\u05DE\u05D5\u05EA, \u05D9\u05D5\u05EA\u05E8 \u05DE\u05DB\u05E9\u05D5\u05DC\u05D9\u05DD \u05D5\u05D1\u05DC\u05D9 \u05E8\u05DE\u05D6\u05D9\u05DD. \u05E0\u05D9\u05E7\u05D5\u05D3 \xD72."
+    },
+    veryhard: {
+      label: "\u05E7\u05E9\u05D4 \u05DE\u05D0\u05D5\u05D3",
+      scoreMul: 3,
+      mul: 1.35,
+      hearts: 3,
+      timeMul: 0.78,
+      timeAdd: 0,
+      densMul: 1.32,
+      spaceMul: 0.86,
+      simMul: 1.65,
       options: 3,
       hints: false,
       reveal: false,
@@ -33422,15 +33471,40 @@
       lvlShift: 0.25,
       comboCap: 0.42,
       rate: 0.92,
-      desc: "\u05DE\u05D4\u05D9\u05E8 \u05DE\u05D0\u05D5\u05D3, 3 \u05DC\u05D1\u05D1\u05D5\u05EA, \u05E4\u05D7\u05D5\u05EA \u05D6\u05DE\u05DF \u05DC\u05E2\u05E0\u05D5\u05EA, \u05EA\u05E9\u05D5\u05D1\u05D5\u05EA \u05D3\u05D5\u05DE\u05D5\u05EA \u05D5\u05DE\u05D1\u05DC\u05D1\u05DC\u05D5\u05EA, \u05DE\u05D9\u05DC\u05D9\u05DD \u05E7\u05E9\u05D5\u05EA, \u05D9\u05D5\u05EA\u05E8 \u05DE\u05DB\u05E9\u05D5\u05DC\u05D9\u05DD \u05D5\u05D1\u05DC\u05D9 \u05E8\u05DE\u05D6\u05D9\u05DD."
+      minAnswer: 2,
+      tier: 4,
+      desc: "\u05E8\u05D9\u05E6\u05D4 \u05DE\u05D4\u05D9\u05E8\u05D4 \u05DE\u05D0\u05D5\u05D3, 3 \u05DC\u05D1\u05D1\u05D5\u05EA, \u05DE\u05E2\u05D8 \u05D6\u05DE\u05DF \u05DC\u05E2\u05E0\u05D5\u05EA, \u05DE\u05D9\u05DC\u05D9\u05DD \u05E7\u05E9\u05D5\u05EA, \u05D4\u05E8\u05D1\u05D4 \u05DE\u05DB\u05E9\u05D5\u05DC\u05D9\u05DD \u05D5\u05D1\u05DC\u05D9 \u05E8\u05DE\u05D6\u05D9\u05DD. \u05E0\u05D9\u05E7\u05D5\u05D3 \xD73."
+    },
+    master: {
+      label: "\u05D0\u05DC\u05D5\u05E3",
+      scoreMul: 4,
+      mul: 1.5,
+      hearts: 3,
+      timeMul: 0.72,
+      timeAdd: 0,
+      densMul: 1.4,
+      spaceMul: 0.82,
+      simMul: 1.8,
+      options: 3,
+      hints: false,
+      reveal: false,
+      boss: 2,
+      lvlShift: 0.32,
+      comboCap: 0.48,
+      rate: 0.96,
+      minAnswer: 2,
+      tier: 5,
+      desc: "\u05D4\u05DB\u05D9 \u05DE\u05D4\u05D9\u05E8, 2 \u05DC\u05D1\u05D1\u05D5\u05EA, \u05D4\u05D6\u05DE\u05DF \u05D4\u05E7\u05E6\u05E8 \u05D1\u05D9\u05D5\u05EA\u05E8 \u05DC\u05E2\u05E0\u05D5\u05EA, \u05E9\u05D0\u05DC\u05D5\u05EA \u05E7\u05E9\u05D5\u05EA \u05D5\u05DE\u05DB\u05E9\u05D5\u05DC\u05D9\u05DD \u05E6\u05E4\u05D5\u05E4\u05D9\u05DD, \u05D1\u05DC\u05D9 \u05E8\u05DE\u05D6\u05D9\u05DD. \u05E0\u05D9\u05E7\u05D5\u05D3 \xD74."
     }
   };
-  var SPEEDS = [
-    { v: 0.75, label: "\u05D0\u05D9\u05D8\u05D9 \u05DE\u05D0\u05D5\u05D3" },
-    { v: 0.9, label: "\u05D0\u05D9\u05D8\u05D9" },
-    { v: 1, label: "\u05E8\u05D2\u05D9\u05DC" },
-    { v: 1.15, label: "\u05DE\u05D4\u05D9\u05E8" }
-  ];
+  function migrateDifficulty(diff, speed) {
+    if (diff === "veryeasy" || diff === "veryhard" || diff === "master") return diff;
+    const sp = speed == null || speed === "" ? 1 : +speed;
+    if (diff === "easy") return sp < 1 ? "veryeasy" : "easy";
+    if (diff === "hard") return sp >= 1.15 ? "master" : sp >= 1 ? "veryhard" : "hard";
+    if (diff === "normal") return sp >= 1.15 ? "hard" : sp <= 0.75 ? "easy" : "normal";
+    return "normal";
+  }
   var GFX_OPTS = [
     { v: "auto", label: "\u05D0\u05D5\u05D8\u05D5\u05DE\u05D8\u05D9" },
     { v: "low", label: "\u05E0\u05DE\u05D5\u05DB\u05D4 (\u05E4\u05D9\u05E7\u05E1\u05DC\u05D9\u05DD)" },
@@ -33439,8 +33513,8 @@
   ];
   var DEFAULT_SETTINGS = () => ({
     difficulty: "normal",
+    diffV: 2,
     types: { en2he: true, he2en: true, picture: true, missing: true, listen: true, hear: true, build: true },
-    speed: 1,
     gfx: "auto",
     sfx: 0.8,
     voice: 1,
@@ -33448,11 +33522,17 @@
     showAnswer: true
   });
   function normSettings(s) {
+    const raw = s || {};
     const d = DEFAULT_SETTINGS();
-    const o = Object.assign(d, s || {});
-    o.types = Object.assign(DEFAULT_SETTINGS().types, s && s.types || {});
-    if (!DIFFS[o.difficulty]) o.difficulty = "normal";
-    if (!SPEEDS.some((x) => x.v === o.speed)) o.speed = 1;
+    const o = Object.assign(d, raw);
+    o.types = Object.assign(DEFAULT_SETTINGS().types, raw.types || {});
+    if (raw.diffV !== 2) {
+      o.difficulty = migrateDifficulty(raw.difficulty, raw.speed);
+      o.diffV = 2;
+    } else if (!DIFFS[o.difficulty]) {
+      o.difficulty = "normal";
+    }
+    delete o.speed;
     if (!GFX_OPTS.some((x) => x.v === o.gfx)) o.gfx = "auto";
     o.sfx = Math.max(0, Math.min(1, +o.sfx || 0));
     o.voice = Math.max(0, Math.min(1, o.voice == null ? 1 : +o.voice));
@@ -33503,12 +33583,12 @@
     const k = clamp2((wid || 1) - 1, 0, 9);
     const dk = set.difficulty in DIFFS ? set.difficulty : "normal";
     const D = DIFFS[dk];
-    const easy = dk === "easy", hard = dk === "hard";
+    const easy = D.tier <= 1, hard = D.tier >= 4;
     const i = boss ? 6 : clamp2(st || 0, 0, 5);
     const p = boss ? 5.6 : i;
     const m = D.mul;
     const speed = r2((6.2 + 0.5 * k + 0.22 * p) * m);
-    const answerTime = r2(Math.max(hard ? 2 : 2.4, (5.2 - 0.3 * k - 0.12 * p) * D.timeMul + D.timeAdd));
+    const answerTime = r2(Math.max(D.minAnswer, (5.2 - 0.3 * k - 0.12 * p) * D.timeMul + D.timeAdd));
     const lead = r2(clamp2(answerTime * speed, 14, 70));
     const density = r2(clamp2((0.28 + 0.07 * k + 0.05 * p) * D.densMul, 0.1, hard ? 0.97 : 0.9));
     const spacing = r2(Math.max(8, 12.5 - 0.5 * k - 0.25 * p) * D.spaceMul);
@@ -33539,14 +33619,19 @@
     const spellModel = easy || !hard && p <= 1;
     const letterSpeed = r2(clamp2(0.74 + 0.03 * k + 0.015 * p + (hard ? 0.06 : 0) - (easy ? 0.06 : 0), 0.66, 0.96));
     const letterGap = +clamp2((16 - 0.6 * k - 0.3 * p) / m + (easy ? 2 : 0), 9, 19).toFixed(1);
-    const letterFirst = 18 + (easy ? 4 : 0);
-    const letterClear = +clamp2(8 - 0.4 * k - 0.15 * p, 4.5, 9).toFixed(1);
+    const letterFirst = r2(Math.max(18, speed * 1.4) + (easy ? 4 : 0));
+    const letterClear = +clamp2(Math.max(8 - 0.4 * k - 0.15 * p, speed * 0.5 + 3), 4.5, 16).toFixed(1);
     const letterObs = easy || k <= 1 ? 0 : r2(clamp2((0.06 * (k - 1) + 0.04 * p) * (hard ? 1.3 : 1), 0, 0.5));
-    const letterReach = r2(clamp2(1.35 - 0.05 * k - 0.02 * p + (easy ? 0.2 : 0) - (hard ? 0.1 : 0), 0.85, 1.55));
+    const letterReach = r2(Math.max(clamp2(1.35 - 0.05 * k - 0.02 * p + (easy ? 0.2 : 0) - (hard ? 0.1 : 0), 0.85, 1.55), 0.1 * speed, 1.15));
     const letterSim = r2(similarity * 0.7);
     const letterForgive = easy || !hard && p <= 1;
+    const types = STAGE_TYPES[i].slice();
+    if (p >= 1 || D.tier >= 2) types.push("animal");
+    if (D.tier >= 3 && p >= 2) types.push("animal");
+    if (D.tier >= 5 && p >= 3) types.push("animal");
     return {
       level: dk,
+      scoreMul: D.scoreMul,
       speed,
       answerTime,
       lead,
@@ -33562,7 +33647,7 @@
       comboCap: D.comboCap,
       rate: D.rate,
       lvlMix: mix,
-      types: STAGE_TYPES[i].slice(),
+      types,
       picRiddle,
       letMissing,
       letAny,
@@ -39336,6 +39421,7 @@
   var player = null;
   var bossActor = null;
   var run = null;
+  var finishGate = null;
   var paused = true;
   var holdCam = false;
   var shakeT = 0;
@@ -39833,6 +39919,94 @@
     }
     return g;
   }
+  function finishAt() {
+    if (!run || !run.course) return 1;
+    return Math.max(20, run.course.length - 30);
+  }
+  function scoreMul() {
+    const m = run && run.layout && run.layout.diff && run.layout.diff.scoreMul;
+    return m > 0 ? m : 1;
+  }
+  function makeCheckerTex(repX, repY) {
+    const c = document.createElement("canvas");
+    c.width = c.height = 8;
+    const g = c.getContext("2d");
+    for (let y = 0; y < 8; y++) for (let x = 0; x < 8; x++) {
+      g.fillStyle = x + y & 1 ? "#f4f4f4" : "#161616";
+      g.fillRect(x, y, 1, 1);
+    }
+    const t = new CanvasTexture(c);
+    t.magFilter = NearestFilter;
+    t.minFilter = NearestFilter;
+    t.wrapS = t.wrapT = RepeatWrapping;
+    t.repeat.set(repX || 6, repY || 2);
+    return t;
+  }
+  function buildFinishGate() {
+    const g = new Group();
+    g.name = "finishGate";
+    const halfW = trackHalfWidth();
+    const postMat = new MeshStandardMaterial({ color: 1710618, roughness: 0.5, metalness: 0.08 });
+    [-halfW, halfW].forEach((x) => {
+      const post = new Mesh(new CylinderGeometry(0.18, 0.22, 5.2, 8), postMat);
+      post.position.set(x, 2.6, 0);
+      post.castShadow = true;
+      g.add(post);
+    });
+    const bannerTex = makeCheckerTex(8, 2);
+    const bannerMat = new MeshStandardMaterial({ map: bannerTex, roughness: 0.55, metalness: 0.04, side: DoubleSide });
+    const banner = new Mesh(new PlaneGeometry(halfW * 2 + 0.3, 1.2), bannerMat);
+    banner.position.set(0, 4.4, 0);
+    g.add(banner);
+    const beam = new Mesh(new BoxGeometry(halfW * 2 + 0.55, 0.18, 0.18), postMat);
+    beam.position.set(0, 5.08, 0);
+    g.add(beam);
+    const groundTex2 = makeCheckerTex(8, 2);
+    const groundMat = new MeshStandardMaterial({ map: groundTex2, roughness: 0.7, metalness: 0.02, side: DoubleSide });
+    const ground = new Mesh(new PlaneGeometry(halfW * 2 + 1.6, 1.5), groundMat);
+    ground.rotation.x = -Math.PI / 2;
+    ground.position.set(0, 0.09, 0);
+    g.add(ground);
+    return g;
+  }
+  function clearFinishGate() {
+    if (!finishGate) return;
+    if (finishGate.parent) finishGate.parent.remove(finishGate);
+    disposeDeep(finishGate);
+    finishGate = null;
+  }
+  function spawnFinishGate() {
+    clearFinishGate();
+    if (!run || !run.course) return;
+    const s = finishAt();
+    run.finishS = s;
+    finishGate = buildFinishGate();
+    placeOnCourse(finishGate, s, null, true);
+    runScene.add(finishGate);
+  }
+  function updateTrackBar() {
+    const bar = $("track-bar");
+    if (!bar) return;
+    if (!run || !player || appMode !== "run") {
+      bar.classList.add("hidden");
+      return;
+    }
+    bar.classList.remove("hidden");
+    const end = run.finishS || finishAt();
+    const p = Math.max(0, Math.min(1, (player.s || 0) / end));
+    bar.style.setProperty("--p", (p * 100).toFixed(2) + "%");
+    bar.setAttribute("aria-valuenow", String(Math.round(p * 100)));
+    const boss = $("track-bar-boss");
+    if (boss) boss.classList.toggle("hidden", !run.boss);
+  }
+  function updateFinishCue() {
+    const el = $("finish-cue");
+    if (!el || !run || !player) return;
+    const end = run.finishS || finishAt();
+    const near = player.s > end - 32 && player.s < end + 4;
+    const turning = $("turn-cue") && !$("turn-cue").classList.contains("hidden");
+    el.classList.toggle("hidden", !near || turning);
+  }
   function clearDyn() {
     [...gates, ...coins, ...letters].forEach((o) => {
       if (o.mesh) runScene.remove(o.mesh);
@@ -39840,6 +40014,7 @@
     });
     obstacles.forEach((o) => disposeDeep(o.mesh));
     gates.length = coins.length = obstacles.length = letters.length = 0;
+    clearFinishGate();
   }
   function laneXs() {
     const span = run && run.layout && run.layout.narrow ? 1.7 : 2;
@@ -39985,11 +40160,13 @@
     popEl("prompt");
   }
   function updateHud() {
+    document.body.classList.toggle("mq-run", appMode === "run");
     if (!run) return;
     $("hud-hearts").textContent = "\u2764\uFE0F".repeat(run.hearts) + "\u{1F5A4}".repeat(Math.max(0, (run.maxHearts || 3) - run.hearts));
     $("hud-score").textContent = "\u2B50 " + run.score;
     $("hud-combo").textContent = "\u{1F525} " + run.combo;
     $("hud-coins").innerHTML = coinHtml(S.coins);
+    updateTrackBar();
     if (run.boss) $("hud-prog").textContent = BOSSES[run.world - 1].name + " " + "\u2764\uFE0F".repeat(run.bossHP) + "\u{1F5A4}".repeat(Math.max(0, run.bossMax - run.bossHP));
     else $("hud-prog").textContent = `${Math.min(run.i + 1, run.queue.length)}/${run.queue.length}`;
   }
@@ -40106,7 +40283,7 @@
       e.stopPropagation();
       sayCurrent(false, true);
     };
-    const baseSpeed = (run.layout && run.layout.speed || 8) * (S.settings.speed || 1);
+    const baseSpeed = run.layout && run.layout.speed || 8;
     const lead = D.answerTime ? Math.max(14, (D.answerTime + extraT) * baseSpeed) : D.lead || 20;
     const s = player.s + (gates.length ? lead : Math.max(12, lead * 0.75));
     const group = buildGate(opts);
@@ -40255,6 +40432,181 @@
     }
     return g;
   }
+  var ANIMAL_BY_WORLD = {
+    1: ["snake", "monkey"],
+    2: ["crab", "seagull"],
+    3: ["bat", "cat"],
+    4: ["alien", "blob"],
+    5: ["penguin", "seal"],
+    6: ["scorpion", "snake"],
+    7: ["fish", "jellyfish"],
+    8: ["dino", "lizard"]
+  };
+  function pickAnimalKind(wid) {
+    const list = ANIMAL_BY_WORLD[wid] || ANIMAL_BY_WORLD[1];
+    return list[Math.floor(Math.random() * list.length)];
+  }
+  function animalMove(kind) {
+    return kind === "snake" || kind === "crab" || kind === "scorpion" || kind === "lizard" || kind === "seal" ? "sidestep" : "hop";
+  }
+  function buildAnimal(kind) {
+    const g = new Group();
+    g.name = "animal-" + kind;
+    const segs = isHigh() ? 8 : 5;
+    const M2 = (c, em) => new MeshStandardMaterial({ color: c, roughness: 0.58, metalness: 0.06, flatShading: true, emissive: em || 0, emissiveIntensity: em ? 0.16 : 0 });
+    const add = (geom, mat2, x, y, z, rx, ry, rz) => {
+      const m = new Mesh(geom, mat2);
+      m.position.set(x || 0, y || 0, z || 0);
+      if (rx) m.rotation.x = rx;
+      if (ry) m.rotation.y = ry;
+      if (rz) m.rotation.z = rz;
+      if (isHigh()) m.castShadow = true;
+      g.add(m);
+      return m;
+    };
+    const sph = (r) => new SphereGeometry(r, segs, segs - 1);
+    const box = (a, b, c) => new BoxGeometry(a, b, c);
+    const cyl = (t, b, h) => new CylinderGeometry(t, b, h, segs);
+    if (kind === "snake") {
+      const m = M2(3119692, 1331232);
+      const eye = M2(1710618);
+      add(sph(0.16), m, 0.42, 0.2, 0);
+      add(sph(0.14), m, 0.12, 0.16, 0);
+      add(sph(0.12), m, -0.16, 0.14, 0);
+      add(sph(0.09), m, -0.4, 0.12, 0);
+      add(sph(0.035), eye, 0.5, 0.26, 0.08);
+      add(sph(0.035), eye, 0.5, 0.26, -0.08);
+    } else if (kind === "monkey") {
+      const fur = M2(9062946), face = M2(15253648), eye = M2(1710618);
+      add(sph(0.28), fur, 0, 0.38, 0);
+      add(sph(0.18), face, 0, 0.68, 0.08);
+      add(sph(0.035), eye, 0.07, 0.74, 0.2);
+      add(sph(0.035), eye, -0.07, 0.74, 0.2);
+      add(cyl(0.05, 0.05, 0.32), fur, 0.28, 0.42, 0, 0, 0, 0.7);
+      add(cyl(0.05, 0.05, 0.32), fur, -0.28, 0.42, 0, 0, 0, -0.7);
+      add(cyl(0.06, 0.06, 0.22), fur, 0.12, 0.16, 0);
+      add(cyl(0.06, 0.06, 0.22), fur, -0.12, 0.16, 0);
+    } else if (kind === "crab") {
+      const sh = M2(13912106), claw = M2(12859416);
+      add(sph(0.22), sh, 0, 0.2, 0);
+      g.children[0].scale.set(1.35, 0.55, 1);
+      add(box(0.16, 0.08, 0.12), claw, 0.32, 0.22, 0.12);
+      add(box(0.16, 0.08, 0.12), claw, -0.32, 0.22, 0.12);
+      add(cyl(0.025, 0.025, 0.16), sh, 0.16, 0.08, 0.1);
+      add(cyl(0.025, 0.025, 0.16), sh, -0.16, 0.08, 0.1);
+      add(sph(0.04), M2(1710618), 0.1, 0.28, 0.16);
+      add(sph(0.04), M2(1710618), -0.1, 0.28, 0.16);
+    } else if (kind === "seagull") {
+      const w = M2(16053488), beak = M2(16756778), eye = M2(1710618);
+      add(sph(0.16), w, 0, 0.42, 0);
+      add(sph(0.11), w, 0, 0.55, 0.1);
+      add(box(0.62, 0.04, 0.16), w, 0, 0.46, 0);
+      add(cyl(0.02, 0.04, 0.14), beak, 0, 0.52, 0.22, Math.PI / 2);
+      add(sph(0.03), eye, 0.05, 0.58, 0.16);
+    } else if (kind === "bat") {
+      const d = M2(3811925, 1708080), eye = M2(16769152, 16755251);
+      add(sph(0.14), d, 0, 0.5, 0);
+      add(box(0.72, 0.06, 0.22), d, 0, 0.5, 0);
+      add(sph(0.04), eye, 0.06, 0.54, 0.1);
+      add(sph(0.04), eye, -0.06, 0.54, 0.1);
+      add(box(0.08, 0.12, 0.04), d, 0.08, 0.64, 0);
+      add(box(0.08, 0.12, 0.04), d, -0.08, 0.64, 0);
+    } else if (kind === "cat") {
+      const fur = M2(12878906), eye = M2(2236962);
+      add(sph(0.2), fur, 0, 0.28, 0);
+      add(sph(0.14), fur, 0.22, 0.38, 0.06);
+      add(box(0.08, 0.12, 0.04), fur, 0.18, 0.52, 0.04);
+      add(box(0.08, 0.12, 0.04), fur, 0.28, 0.52, 0.04);
+      add(cyl(0.03, 0.03, 0.28), fur, -0.22, 0.34, 0, 0, 0, 0.8);
+      add(sph(0.03), eye, 0.28, 0.42, 0.16);
+      add(sph(0.03), eye, 0.16, 0.42, 0.16);
+      add(cyl(0.045, 0.045, 0.16), fur, 0.08, 0.12, 0.06);
+      add(cyl(0.045, 0.045, 0.16), fur, -0.08, 0.12, 0.06);
+    } else if (kind === "alien") {
+      const sk = M2(7003978, 2787872), eye = M2(1118481);
+      add(sph(0.22), sk, 0, 0.34, 0);
+      g.children[0].scale.set(1, 1.25, 0.9);
+      add(sph(0.16), sk, 0, 0.62, 0);
+      add(sph(0.08), eye, 0.06, 0.66, 0.12);
+      add(sph(0.08), eye, -0.06, 0.66, 0.12);
+      add(cyl(0.03, 0.03, 0.2), sk, 0.16, 0.14, 0);
+      add(cyl(0.03, 0.03, 0.2), sk, -0.16, 0.14, 0);
+    } else if (kind === "blob") {
+      const sk = M2(8019199, 3809450);
+      add(sph(0.32), sk, 0, 0.32, 0);
+      g.children[0].scale.set(1.15, 0.85, 1.15);
+      add(sph(0.07), M2(1118481), 0.1, 0.4, 0.22);
+      add(sph(0.07), M2(1118481), -0.1, 0.4, 0.22);
+    } else if (kind === "penguin") {
+      const blk = M2(1842212), wh = M2(16185074), beak = M2(16756778);
+      add(sph(0.2), blk, 0, 0.36, 0);
+      g.children[0].scale.set(0.9, 1.25, 0.85);
+      add(sph(0.12), wh, 0, 0.34, 0.1);
+      add(sph(0.12), blk, 0, 0.62, 0);
+      add(cyl(0.025, 0.04, 0.1), beak, 0, 0.58, 0.14, Math.PI / 2);
+      add(box(0.16, 0.04, 0.1), beak, 0.07, 0.08, 0.06);
+      add(box(0.16, 0.04, 0.1), beak, -0.07, 0.08, 0.06);
+    } else if (kind === "seal") {
+      const fur = M2(9085108), eye = M2(1118481);
+      add(sph(0.2), fur, 0, 0.2, 0);
+      g.children[0].scale.set(1.5, 0.75, 0.9);
+      add(sph(0.13), fur, 0.32, 0.26, 0.06);
+      add(sph(0.03), eye, 0.4, 0.32, 0.1);
+      add(box(0.18, 0.04, 0.1), fur, -0.1, 0.12, 0.16);
+      add(box(0.18, 0.04, 0.1), fur, -0.1, 0.12, -0.16);
+    } else if (kind === "scorpion") {
+      const sh = M2(12872218), dk = M2(9060368);
+      add(sph(0.16), sh, 0, 0.16, 0);
+      g.children[0].scale.set(1.3, 0.55, 0.9);
+      add(sph(0.08), dk, 0.28, 0.16, 0);
+      add(cyl(0.035, 0.035, 0.28), sh, -0.22, 0.32, 0, 0, 0, -0.9);
+      add(sph(0.06), dk, -0.36, 0.48, 0);
+      add(box(0.12, 0.06, 0.08), sh, 0.22, 0.18, 0.16);
+      add(box(0.12, 0.06, 0.08), sh, 0.22, 0.18, -0.16);
+    } else if (kind === "fish") {
+      const sc = M2(2996440, 1337480), fin = M2(16747066);
+      add(sph(0.2), sc, 0, 0.32, 0);
+      g.children[0].scale.set(1.35, 0.8, 0.7);
+      add(box(0.16, 0.16, 0.04), fin, -0.28, 0.32, 0);
+      add(box(0.12, 0.1, 0.03), fin, 0, 0.5, 0);
+      add(sph(0.035), M2(1118481), 0.16, 0.36, 0.12);
+    } else if (kind === "jellyfish") {
+      const cap = M2(14192895, 8405184), arm = M2(15249663, 8405184);
+      add(sph(0.22), cap, 0, 0.5, 0);
+      g.children[0].scale.set(1.15, 0.6, 1.15);
+      add(cyl(0.02, 0.02, 0.32), arm, 0.08, 0.28, 0.06);
+      add(cyl(0.02, 0.02, 0.28), arm, -0.08, 0.26, 0);
+      add(cyl(0.02, 0.02, 0.3), arm, 0, 0.27, -0.08);
+    } else if (kind === "dino") {
+      const sc = M2(3844682, 1727008), eye = M2(1118481);
+      add(sph(0.22), sc, 0, 0.34, 0);
+      add(sph(0.14), sc, 0.28, 0.5, 0.04);
+      add(cyl(0.05, 0.07, 0.32), sc, -0.28, 0.34, 0, 0, 0, 1.1);
+      add(cyl(0.05, 0.05, 0.2), sc, 0.1, 0.14, 0.06);
+      add(cyl(0.05, 0.05, 0.2), sc, -0.08, 0.14, 0.06);
+      add(sph(0.03), eye, 0.36, 0.54, 0.12);
+    } else {
+      const sc = M2(6982186);
+      add(sph(0.14), sc, 0.2, 0.16, 0);
+      add(sph(0.12), sc, -0.04, 0.14, 0);
+      add(cyl(0.04, 0.05, 0.32), sc, -0.32, 0.14, 0, 0, 0, 1.2);
+      add(cyl(0.03, 0.03, 0.12), sc, 0.1, 0.08, 0.1);
+      add(cyl(0.03, 0.03, 0.12), sc, 0.1, 0.08, -0.1);
+      add(sph(0.025), M2(1118481), 0.3, 0.2, 0.08);
+    }
+    return g;
+  }
+  function animateAnimal(o, dt) {
+    if (!o.mesh || !run || !run.course) return;
+    o.t = (o.t || 0) + dt;
+    placeOnCourse(o.mesh, o.s, o.lane);
+    if (o.move === "hop") {
+      o.mesh.position.y += Math.abs(Math.sin(o.t * 5.5)) * 0.26;
+    } else {
+      const f = pathFrame(run.course, o.s);
+      o.mesh.position.addScaledVector(f.right, Math.sin(o.t * 2.4) * 0.32);
+    }
+  }
   function hitObstacle(o) {
     if (o.hit) return;
     o.hit = true;
@@ -40282,7 +40634,12 @@
     const blocked = type === "beam" ? [0, 1, 2] : shuffle([0, 1, 2]).slice(0, Math.random() < dbl && L2.density > 0.35 ? 2 : 1);
     blocked.forEach((lane) => {
       let mesh2;
-      if (type === "low") {
+      let move = null, kind = null;
+      if (type === "animal") {
+        kind = pickAnimalKind(run.world);
+        mesh2 = buildAnimal(kind);
+        move = animalMove(kind);
+      } else if (type === "low") {
         const world = WORLDS[run.world - 1];
         const file = world.obstacle[Math.floor(Math.random() * world.obstacle.length)];
         const proto = run.obsProtos && run.obsProtos[file];
@@ -40290,7 +40647,7 @@
       } else mesh2 = hazardMark(type);
       placeOnCourse(mesh2, s, lane);
       runScene.add(mesh2);
-      obstacles.push({ mesh: mesh2, lane, type, hit: false, spin: type === "roll" ? 4 : 0, s });
+      obstacles.push({ mesh: mesh2, lane, type, hit: false, spin: type === "roll" ? 4 : 0, s, kind, move, t: Math.random() * 4 });
     });
   }
   function nextAfterResolve() {
@@ -40310,7 +40667,7 @@
   }
   function onCorrect() {
     const w = run.cur;
-    const p = PTS[Math.min(run.hint, 3)] * (run.wrongHere ? 0.5 : 1) | 0;
+    const p = Math.round(PTS[Math.min(run.hint, 3)] * (run.wrongHere ? 0.5 : 1) * scoreMul());
     run.score += p;
     run.combo++;
     const c = Math.max(1, Math.round(p / 20) + Math.min(3, run.combo >> 1));
@@ -40371,7 +40728,7 @@
     $("s-end").innerHTML = `<div class="glass pop" style="padding:22px;max-width:640px">
     <h2>${title}</h2>
     <div style="font-size:48px">${"\u2B50".repeat(st)}${"\u2606".repeat(3 - st)}</div>
-    <p>\u05E0\u05D9\u05E7\u05D5\u05D3: <b>${run.score}</b> \xB7 ${coinHtml("+" + run.coins)} \xB7 \u05E0\u05DB\u05D5\u05DF \u05D1\u05E0\u05D9\u05E1\u05D9\u05D5\u05DF \u05E8\u05D0\u05E9\u05D5\u05DF: ${run.firstTry}/${run.queue.length}</p>
+    <p>\u05E0\u05D9\u05E7\u05D5\u05D3: <b>${run.score}</b> <span class="score-mul">\xD7${scoreMul()} (${esc((DIFFS[run.layout && run.layout.diff && run.layout.diff.level] || DIFFS.normal).label)})</span> \xB7 ${coinHtml("+" + run.coins)} \xB7 \u05E0\u05DB\u05D5\u05DF \u05D1\u05E0\u05D9\u05E1\u05D9\u05D5\u05DF \u05E8\u05D0\u05E9\u05D5\u05DF: ${run.firstTry}/${run.queue.length}</p>
     ${ok && run.boss && run.bossHP <= 0 && run.world < WORLDS.length ? "<p>\u{1F511} \u05E7\u05D9\u05D1\u05DC\u05EA\u05DD \u05DE\u05E4\u05EA\u05D7 \u05D6\u05D4\u05D1! \u05D4\u05E2\u05D5\u05DC\u05DD \u05D4\u05D1\u05D0 \u05E0\u05E4\u05EA\u05D7.</p>" : ""}
   </div>
   <div class="row" style="margin-top:12px">${nx}
@@ -40617,6 +40974,7 @@
     await spawnDecor(world);
     rebuildCourseRibbon();
     layoutPathFromCourse();
+    spawnFinishGate();
     run.coinProto = await createProp(MP("platformer/coin-gold.glb"), 0.42);
     run.obsProtos = {};
     for (const f of world.obstacle) run.obsProtos[f] = await createProp(MP(f), 0.7);
@@ -40651,7 +41009,7 @@
     showUI("hud");
     $("btn-hint").classList.toggle("hidden", !(S.settings.hints && D.hints));
     const how = lost ? "" : `<p class="mode-how">${esc(MODE_DESC[worldMode(wid, S.settings)] || "")}</p>`;
-    const lvl = `<p class="lvl-line">\u05E8\u05DE\u05EA \u05E7\u05D5\u05E9\u05D9: <b>${esc(DIFFS[D.level].label)}</b> \xB7 \u2764\uFE0F ${D.hearts} \xB7 ${D.options === 2 ? "2 \u05EA\u05E9\u05D5\u05D1\u05D5\u05EA" : "3 \u05EA\u05E9\u05D5\u05D1\u05D5\u05EA"}${boss ? "" : " \xB7 \u05E9\u05DC\u05D1 " + (st + 1) + " \u05DE\u05EA\u05D5\u05DA 6"}</p>`;
+    const lvl = `<p class="lvl-line">\u05E8\u05DE\u05EA \u05E7\u05D5\u05E9\u05D9: <b>${esc(DIFFS[D.level].label)}</b> \xB7 \xD7${D.scoreMul} \xB7 \u2764\uFE0F ${D.hearts} \xB7 ${D.options === 2 ? "2 \u05EA\u05E9\u05D5\u05D1\u05D5\u05EA" : "3 \u05EA\u05E9\u05D5\u05D1\u05D5\u05EA"}${boss ? "" : " \xB7 \u05E9\u05DC\u05D1 " + (st + 1) + " \u05DE\u05EA\u05D5\u05DA 6"}</p>`;
     showModal(`<h2>${title}</h2>${scene}${how}<p>${boss ? "\u05D4\u05D1\u05D5\u05E1 \u05E8\u05E5 \u05DE\u05D0\u05D7\u05D5\u05E8\u05D9\u05DB\u05DD! \u05E2\u05E0\u05D5 \u05E0\u05DB\u05D5\u05DF \u05DB\u05D3\u05D9 \u05DC\u05D4\u05D7\u05DC\u05D9\u05E9 \u05D0\u05D5\u05EA\u05D5!" : st === 0 && !lost ? INTRO[wid - 1] : "\u05DB\u05DC \u05E9\u05DC\u05D1 \u05E7\u05E9\u05D4 \u05D9\u05D5\u05EA\u05E8 \u05DE\u05D4\u05E7\u05D5\u05D3\u05DD. \u05E7\u05D3\u05D9\u05DE\u05D4, \u05D0\u05EA\u05DD \u05D9\u05DB\u05D5\u05DC\u05D9\u05DD!"}</p>${lvl}
     <button class="btn g" id="mgo">\u05D9\u05D5\u05E6\u05D0\u05D9\u05DD \u05DC\u05D3\u05E8\u05DA \u25B6</button>${opt && opt.quick ? `<p class="mgo-count" id="mgo-count"></p>` : ""}`);
     if (opt && opt.quick) {
@@ -40742,11 +41100,11 @@
   function jump() {
     if (!player || paused || appMode !== "run") return;
     if (player.jumping) {
-      if (player.vy < 0 && player.y < 0.6) player.jumpQ = true;
+      if (player.vy < 0 && player.y < 0.75) player.jumpQ = true;
       return;
     }
     player.jumping = true;
-    player.vy = 9.6;
+    player.vy = 11;
     player.sliding = false;
     playAnim(player, "jump", 0.08, true);
     sfx.jump();
@@ -40934,7 +41292,7 @@
   function updateRunner(dt) {
     run.playSec = (run.playSec || 0) + dt;
     const world = WORLDS[run.world - 1];
-    let base = (run.layout && run.layout.speed || 8.2) * (S.settings.speed || 1);
+    let base = run.layout && run.layout.speed || 8.2;
     if (run.activeMode === "build" && run.layout && run.layout.diff) base *= run.layout.diff.letterSpeed || 1;
     const cap = run.layout && run.layout.diff && run.layout.diff.comboCap != null ? run.layout.diff.comboCap : 0.42;
     let speed = base * (1 + Math.min(run.activeMode === "build" ? Math.min(0.15, cap) : cap, run.combo * 0.028));
@@ -40949,7 +41307,7 @@
     player.laneShift = player.laneShift == null ? want : player.laneShift;
     player.laneShift += (want - player.laneShift) * Math.min(1, dt * 11);
     if (player.jumping) {
-      player.vy += -23 * dt;
+      player.vy += -20 * dt;
       player.y += player.vy * dt;
       if (player.y <= 0) {
         player.y = 0;
@@ -40975,6 +41333,8 @@
     }
     const turn = currentTurn(player.s);
     showTurnCue(turn && !turn.committed ? turn : null);
+    updateTrackBar();
+    updateFinishCue();
     if (turn && !turn.committed && player.s > turn.sApex) {
       turn.committed = "miss";
       missSharpTurn();
@@ -41022,7 +41382,7 @@
         runScene.remove(c.mesh);
         S.coins += 1;
         run.coins += 1;
-        run.score += 10;
+        run.score += Math.round(10 * scoreMul());
         sfx.coin();
         updateHud();
       }
@@ -41035,9 +41395,11 @@
         disposeDeep(o.mesh);
         continue;
       }
+      if (o.type === "animal") animateAnimal(o, dt);
       if (Math.abs((o.s || 0) - player.s) < 0.7 && o.lane === playerLaneNow()) {
-        if ((o.type === "low" || o.type === "hole") && player.y > 0.4) continue;
-        if (o.type === "beam" && player.sliding) continue;
+        if ((o.type === "low" || o.type === "hole" || o.type === "roll" || o.type === "animal") && player.y > 0.28) continue;
+        if (o.type === "wall" && player.y > 1.3) continue;
+        if (o.type === "beam" && (player.sliding || player.y > 1.45)) continue;
         hitObstacle(o);
       }
     }
@@ -41050,7 +41412,7 @@
         if (L2.taken) continue;
         if ((L2.s != null ? L2.s : 0) < player.s - 4) continue;
         const pr = run.layout && run.layout.diff && run.layout.diff.letterReach || 1.1;
-        if (L2.index === run.spell.idx && Math.abs((L2.s || 0) - player.s) < pr && L2.lane === playerLaneNow() && player.y < 2.4) {
+        if (L2.index === run.spell.idx && Math.abs((L2.s || 0) - player.s) < pr && L2.lane === playerLaneNow()) {
           L2.taken = true;
           runScene.remove(L2.mesh);
           const need = run.spell.rest[run.spell.idx];
@@ -41653,17 +42015,14 @@
     const autoNow = st.gfx === "auto" ? `\u05DB\u05E8\u05D2\u05E2 \u05E0\u05D1\u05D7\u05E8\u05D4: <b>${TIER_HE[tier()]}</b>${autoReason ? " \xB7 " + esc(autoReason) : ""}` : "";
     $("set-body").innerHTML = `
     <div class="set-sec"><h3>\u{1F3AF} \u05E8\u05DE\u05EA \u05E7\u05D5\u05E9\u05D9</h3>
-      ${ex("\u05DB\u05DE\u05D4 \u05D4\u05DE\u05E9\u05D7\u05E7 \u05E7\u05E9\u05D4: \u05DE\u05D4\u05D9\u05E8\u05D5\u05EA \u05D4\u05E8\u05D9\u05E6\u05D4, \u05DE\u05E1\u05E4\u05E8 \u05D4\u05DC\u05D1\u05D1\u05D5\u05EA, \u05DB\u05DE\u05D4 \u05D6\u05DE\u05DF \u05D9\u05E9 \u05DC\u05E2\u05E0\u05D5\u05EA \u05D5\u05DB\u05DE\u05D4 \u05EA\u05E9\u05D5\u05D1\u05D5\u05EA \u05D9\u05E9 \u05DC\u05D1\u05D7\u05D9\u05E8\u05D4.")}
+      ${ex("\u05DB\u05DE\u05D4 \u05D4\u05DE\u05E9\u05D7\u05E7 \u05E7\u05E9\u05D4: \u05DE\u05D4\u05D9\u05E8\u05D5\u05EA \u05D4\u05E8\u05D9\u05E6\u05D4, \u05DE\u05E1\u05E4\u05E8 \u05D4\u05DC\u05D1\u05D1\u05D5\u05EA, \u05DB\u05DE\u05D4 \u05D6\u05DE\u05DF \u05D9\u05E9 \u05DC\u05E2\u05E0\u05D5\u05EA, \u05E7\u05D5\u05E9\u05D9 \u05D4\u05E9\u05D0\u05DC\u05D5\u05EA, \u05D5\u05DE\u05DB\u05E4\u05D9\u05DC \u05D4\u05E0\u05D9\u05E7\u05D5\u05D3. \u05DB\u05DB\u05DC \u05E9\u05D4\u05E8\u05DE\u05D4 \u05D2\u05D1\u05D5\u05D4\u05D4 \u05D9\u05D5\u05EA\u05E8 \u2014 \u05E8\u05E6\u05D9\u05DD \u05DE\u05D4\u05E8 \u05D9\u05D5\u05EA\u05E8 \u05D5\u05DE\u05E8\u05D5\u05D5\u05D9\u05D7\u05D9\u05DD \u05D9\u05D5\u05EA\u05E8 \u05E0\u05E7\u05D5\u05D3\u05D5\u05EA.")}
       ${segRow("difficulty", Object.keys(DIFFS).map((k) => ({ v: k, label: DIFFS[k].label })), st.difficulty)}
       <ul class="diff-desc">${Object.keys(DIFFS).map((k) => `<li class="${k === st.difficulty ? "on" : ""}"><b>${esc(DIFFS[k].label)}:</b> ${esc(DIFFS[k].desc)}</li>`).join("")}</ul>
-      <p class="set-note">\u05D1\u05DB\u05DC \u05E8\u05DE\u05D4: \u05DB\u05DC \u05E9\u05DC\u05D1 \u05E7\u05E9\u05D4 \u05D9\u05D5\u05EA\u05E8 \u05DE\u05D4\u05E7\u05D5\u05D3\u05DD, \u05D5\u05DB\u05DC \u05E2\u05D5\u05DC\u05DD \u05E7\u05E9\u05D4 \u05D9\u05D5\u05EA\u05E8 \u05DE\u05D4\u05E2\u05D5\u05DC\u05DD \u05E9\u05DC\u05E4\u05E0\u05D9\u05D5.</p></div>
+      <p class="set-note">\u05D1\u05DB\u05DC \u05E8\u05DE\u05D4: \u05DB\u05DC \u05E9\u05DC\u05D1 \u05E7\u05E9\u05D4 \u05D9\u05D5\u05EA\u05E8 \u05DE\u05D4\u05E7\u05D5\u05D3\u05DD, \u05D5\u05DB\u05DC \u05E2\u05D5\u05DC\u05DD \u05E7\u05E9\u05D4 \u05D9\u05D5\u05EA\u05E8 \u05DE\u05D4\u05E2\u05D5\u05DC\u05DD \u05E9\u05DC\u05E4\u05E0\u05D9\u05D5. \u05DE\u05D4\u05D9\u05E8\u05D5\u05EA \u05D4\u05E8\u05D9\u05E6\u05D4 \u05E0\u05E7\u05D1\u05E2\u05EA \u05DC\u05E4\u05D9 \u05E8\u05DE\u05EA \u05D4\u05E7\u05D5\u05E9\u05D9.</p></div>
     <div class="set-sec"><h3>\u2753 \u05E1\u05D5\u05D2\u05D9 \u05EA\u05E8\u05D2\u05D9\u05DC\u05D9\u05DD</h3>
       ${ex("\u05D0\u05D9\u05DC\u05D5 \u05EA\u05E8\u05D2\u05D9\u05DC\u05D9\u05DD \u05D9\u05D5\u05E4\u05D9\u05E2\u05D5 \u05D1\u05DE\u05E9\u05D7\u05E7. \u05DE\u05E1\u05DE\u05E0\u05D9\u05DD \u2714 \u05D0\u05EA \u05DE\u05D4 \u05E9\u05E8\u05D5\u05E6\u05D9\u05DD \u05DC\u05EA\u05E8\u05D2\u05DC, \u05D5\u05DE\u05D5\u05E8\u05D9\u05D3\u05D9\u05DD \u05D0\u05EA \u05D4\u05E1\u05D9\u05DE\u05D5\u05DF \u05DE\u05DE\u05D4 \u05E9\u05DC\u05D0.")}
       <div class="set-checks">${QTYPES.map((q) => `<label class="set-check"><input type="checkbox" data-type="${q.key}" ${st.types[q.key] ? "checked" : ""}> ${esc(q.label)}</label>`).join("")}</div>
       <p class="set-note" id="set-types-msg">${msg ? esc(msg) : "\u05DC\u05DB\u05DC \u05E2\u05D5\u05DC\u05DD \u05D9\u05E9 \u05E1\u05D5\u05D2 \u05EA\u05E8\u05D2\u05D9\u05DC \u05DE\u05E9\u05DC\u05D5. \u05E2\u05D5\u05DC\u05DD \u05E9\u05D4\u05E1\u05D5\u05D2 \u05E9\u05DC\u05D5 \u05DB\u05D1\u05D5\u05D9 \u05D9\u05E7\u05D1\u05DC \u05E1\u05D5\u05D2 \u05D3\u05D5\u05DE\u05D4 \u05D0\u05D7\u05E8."}</p></div>
-    <div class="set-sec"><h3>\u{1F3C3} \u05DE\u05D4\u05D9\u05E8\u05D5\u05EA \u05D4\u05DE\u05E9\u05D7\u05E7</h3>
-      ${ex("\u05DB\u05DE\u05D4 \u05DE\u05D4\u05E8 \u05D4\u05D3\u05DE\u05D5\u05EA \u05E8\u05E6\u05D4, \u05D1\u05DC\u05D9 \u05E7\u05E9\u05E8 \u05DC\u05E8\u05DE\u05EA \u05D4\u05E7\u05D5\u05E9\u05D9. \xAB\u05D0\u05D9\u05D8\u05D9\xBB \u05E0\u05D5\u05EA\u05DF \u05D9\u05D5\u05EA\u05E8 \u05D6\u05DE\u05DF \u05DC\u05E7\u05E8\u05D5\u05D0 \u05D5\u05DC\u05D7\u05E9\u05D5\u05D1.")}
-      ${segRow("speed", SPEEDS, st.speed)}</div>
     <div class="set-sec"><h3>\u{1F5A5}\uFE0F \u05D0\u05D9\u05DB\u05D5\u05EA \u05D2\u05E8\u05E4\u05D9\u05E7\u05D4</h3>
       ${ex("\u05DB\u05DE\u05D4 \u05D9\u05E4\u05D4 \u05D4\u05EA\u05DE\u05D5\u05E0\u05D4. \u05D0\u05DD \u05D4\u05DE\u05E9\u05D7\u05E7 \u05D0\u05D9\u05D8\u05D9 \u05D0\u05D5 \u05E0\u05EA\u05E7\u05E2 \u2013 \u05D1\u05D7\u05E8\u05D5 \xAB\u05E0\u05DE\u05D5\u05DB\u05D4\xBB. \xAB\u05D0\u05D5\u05D8\u05D5\u05DE\u05D8\u05D9\xBB \u05D1\u05D5\u05D7\u05E8 \u05DC\u05D1\u05D3 \u05DC\u05E4\u05D9 \u05D4\u05DE\u05D7\u05E9\u05D1.")}
       ${segRow("gfx", GFX_OPTS, st.gfx)}
@@ -41676,11 +42035,11 @@
       <div class="set-item">${ex("\u05DC\u05D5\u05D7\u05E6\u05D9\u05DD \u05DB\u05D3\u05D9 \u05DC\u05D1\u05D3\u05D5\u05E7 \u05E9\u05D4\u05E8\u05DE\u05E7\u05D5\u05DC\u05D9\u05DD \u05E2\u05D5\u05D1\u05D3\u05D9\u05DD \u05D5\u05E9\u05D5\u05DE\u05E2\u05D9\u05DD \u05D0\u05EA \u05D4\u05D4\u05E7\u05E8\u05D0\u05D4.")}
       <button type="button" class="btn s" id="set-test-voice">\u{1F50A} \u05D1\u05D3\u05D9\u05E7\u05EA \u05D4\u05E7\u05E8\u05D0\u05D4</button></div></div>
     <div class="set-sec"><h3>\u{1F989} \u05E2\u05D6\u05E8\u05D4</h3>
-      <div class="set-item">${ex("\u05DE\u05E6\u05D9\u05D2 \u05D0\u05EA \u05DB\u05E4\u05EA\u05D5\u05E8 \u05D4\u05D9\u05E0\u05E9\u05D5\u05E3 \u05D1\u05D6\u05DE\u05DF \u05D4\u05E8\u05D9\u05E6\u05D4 \u2013 \u05D0\u05E4\u05E9\u05E8 \u05DC\u05D1\u05E7\u05E9 \u05E8\u05DE\u05D6 \u05DB\u05E9\u05EA\u05E7\u05D5\u05E2\u05D9\u05DD. (\u05D1\u05E8\u05DE\u05D4 \xAB\u05E7\u05E9\u05D4\xBB \u05D0\u05D9\u05DF \u05E8\u05DE\u05D6\u05D9\u05DD.)")}
+      <div class="set-item">${ex("\u05DE\u05E6\u05D9\u05D2 \u05D0\u05EA \u05DB\u05E4\u05EA\u05D5\u05E8 \u05D4\u05D9\u05E0\u05E9\u05D5\u05E3 \u05D1\u05D6\u05DE\u05DF \u05D4\u05E8\u05D9\u05E6\u05D4 \u2013 \u05D0\u05E4\u05E9\u05E8 \u05DC\u05D1\u05E7\u05E9 \u05E8\u05DE\u05D6 \u05DB\u05E9\u05EA\u05E7\u05D5\u05E2\u05D9\u05DD. (\u05D1\u05E8\u05DE\u05D5\u05EA \xAB\u05E7\u05E9\u05D4\xBB, \xAB\u05E7\u05E9\u05D4 \u05DE\u05D0\u05D5\u05D3\xBB \u05D5\xAB\u05D0\u05DC\u05D5\u05E3\xBB \u05D0\u05D9\u05DF \u05E8\u05DE\u05D6\u05D9\u05DD.)")}
         <label class="set-check"><input type="checkbox" data-flag="hints" ${st.hints ? "checked" : ""}> \u05DB\u05E4\u05EA\u05D5\u05E8 \u05E8\u05DE\u05D6\u05D9\u05DD (\u05D4\u05D9\u05E0\u05E9\u05D5\u05E3)</label></div>
-      <div class="set-item">${ex("\u05D0\u05D7\u05E8\u05D9 \u05D8\u05E2\u05D5\u05EA \u05DE\u05D5\u05E4\u05D9\u05E2\u05D4 \u05D4\u05EA\u05E9\u05D5\u05D1\u05D4 \u05D4\u05E0\u05DB\u05D5\u05E0\u05D4, \u05DB\u05D3\u05D9 \u05DC\u05DC\u05DE\u05D5\u05D3 \u05DE\u05DE\u05E0\u05D4. (\u05D1\u05E2\u05D5\u05DC\u05DE\u05D5\u05EA \u05D4\u05D4\u05D0\u05D6\u05E0\u05D4 \u2013 \u05E8\u05E7 \u05D1\u05E8\u05DE\u05D4 \xAB\u05E7\u05DC\xBB.)")}
+      <div class="set-item">${ex("\u05D0\u05D7\u05E8\u05D9 \u05D8\u05E2\u05D5\u05EA \u05DE\u05D5\u05E4\u05D9\u05E2\u05D4 \u05D4\u05EA\u05E9\u05D5\u05D1\u05D4 \u05D4\u05E0\u05DB\u05D5\u05E0\u05D4, \u05DB\u05D3\u05D9 \u05DC\u05DC\u05DE\u05D5\u05D3 \u05DE\u05DE\u05E0\u05D4. (\u05D1\u05E2\u05D5\u05DC\u05DE\u05D5\u05EA \u05D4\u05D4\u05D0\u05D6\u05E0\u05D4 \u2013 \u05E8\u05E7 \u05D1\u05E8\u05DE\u05D5\u05EA \xAB\u05E7\u05DC \u05DE\u05D0\u05D5\u05D3\xBB \u05D5\xAB\u05E7\u05DC\xBB.)")}
         <label class="set-check"><input type="checkbox" data-flag="showAnswer" ${st.showAnswer ? "checked" : ""}> \u05D4\u05E6\u05D2\u05EA \u05D4\u05EA\u05E9\u05D5\u05D1\u05D4 \u05D4\u05E0\u05DB\u05D5\u05E0\u05D4 \u05D0\u05D7\u05E8\u05D9 \u05D8\u05E2\u05D5\u05EA</label></div></div>
-    <p class="set-note">${appMode === "run" ? "\u05E9\u05D9\u05E0\u05D5\u05D9 \u05D1\u05E8\u05DE\u05EA \u05D4\u05E7\u05D5\u05E9\u05D9 \u05D5\u05D1\u05E1\u05D5\u05D2\u05D9 \u05D4\u05EA\u05E8\u05D2\u05D9\u05DC\u05D9\u05DD \u05D9\u05D9\u05DB\u05E0\u05E1 \u05DC\u05EA\u05D5\u05E7\u05E3 \u05DE\u05D4\u05E9\u05DC\u05D1 \u05D4\u05D1\u05D0. \u05DE\u05D4\u05D9\u05E8\u05D5\u05EA, \u05D2\u05E8\u05E4\u05D9\u05E7\u05D4 \u05D5\u05E6\u05DC\u05D9\u05DC\u05D9\u05DD \u05DE\u05E9\u05EA\u05E0\u05D9\u05DD \u05DE\u05D9\u05D3." : "\u05D4\u05D4\u05D2\u05D3\u05E8\u05D5\u05EA \u05E0\u05E9\u05DE\u05E8\u05D5\u05EA \u05D1\u05DE\u05D7\u05E9\u05D1 \u05D4\u05D6\u05D4."}</p>`;
+    <p class="set-note">${appMode === "run" ? "\u05E9\u05D9\u05E0\u05D5\u05D9 \u05D1\u05E8\u05DE\u05EA \u05D4\u05E7\u05D5\u05E9\u05D9 \u05D5\u05D1\u05E1\u05D5\u05D2\u05D9 \u05D4\u05EA\u05E8\u05D2\u05D9\u05DC\u05D9\u05DD \u05D9\u05D9\u05DB\u05E0\u05E1 \u05DC\u05EA\u05D5\u05E7\u05E3 \u05DE\u05D4\u05E9\u05DC\u05D1 \u05D4\u05D1\u05D0. \u05D2\u05E8\u05E4\u05D9\u05E7\u05D4 \u05D5\u05E6\u05DC\u05D9\u05DC\u05D9\u05DD \u05DE\u05E9\u05EA\u05E0\u05D9\u05DD \u05DE\u05D9\u05D3." : "\u05D4\u05D4\u05D2\u05D3\u05E8\u05D5\u05EA \u05E0\u05E9\u05DE\u05E8\u05D5\u05EA \u05D1\u05DE\u05D7\u05E9\u05D1 \u05D4\u05D6\u05D4."}</p>`;
   }
   function applySettingChange(kind) {
     S.settings = normSettings(S.settings);
@@ -42042,6 +42401,28 @@
         obstacles.push({ mesh: mesh2, lane, type, hit: false, spin: type === "roll" ? 4 : 0, s: ps });
       });
     },
+    spawnTypedObstacle: (type, s, lane) => {
+      lane = lane == null ? 1 : lane;
+      const ps = s == null ? (player.s || 0) + 10 : s;
+      let mesh2, move = null, kind = null;
+      if (type === "animal") {
+        kind = pickAnimalKind(run && run.world);
+        mesh2 = buildAnimal(kind);
+        move = animalMove(kind);
+      } else mesh2 = type === "low" ? hazardMark("low") : hazardMark(type);
+      placeOnCourse(mesh2, ps, lane);
+      runScene.add(mesh2);
+      const o = { mesh: mesh2, lane, type, hit: false, spin: type === "roll" ? 4 : 0, s: ps, kind, move, t: 0 };
+      obstacles.push(o);
+      return o;
+    },
+    clearObstacles: () => {
+      obstacles.forEach((o) => {
+        o.hit = true;
+        if (o.mesh) disposeDeep(o.mesh);
+      });
+      obstacles.length = 0;
+    },
     hitObstacle,
     holdCam: (v) => {
       holdCam = !!v;
@@ -42148,6 +42529,8 @@
     currentTurn: () => player && currentTurn(player.s),
     syncPlayerPose,
     syncWorldFollowers,
+    finishAt,
+    updateTrackBar,
     GAME_ID,
     refreshPlayerChip,
     applyProfileState,
