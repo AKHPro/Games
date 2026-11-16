@@ -52,7 +52,7 @@
 
   var fb = null;          // { app, auth, db, A, F }
   var loading = null;
-  var state = { user: null, doc: null, admin: false, resolved: false };
+  var state = { user: null, doc: null, admin: false, resolved: false, restoring: false };
   var listeners = [];
   var devTools = null;
   var opts = { gameId: "", gameTitle: "" };
@@ -77,7 +77,7 @@
     ]).then(function (m) {
       var appM = m[0], A = m[1], F = m[2];
       var app = appM.getApps().filter(function (a) { return a.name === "englishia"; })[0] || appM.initializeApp(cfg, "englishia");
-      var auth = A.getAuth(app);
+      var auth = createAuth(A, app);
       var db;
       try { db = F.initializeFirestore(app, { experimentalForceLongPolling: true }); } catch (e) { db = F.getFirestore(app); }
       if (EMU) {
@@ -111,16 +111,71 @@
   }
 
   /* ---------- helpers ---------- */
-  function emit() {
+  var HINTKEY = "englishia.session.v1";
+  function readHint() {
+    try { return JSON.parse(localStorage.getItem(HINTKEY) || "null"); } catch (e) { return null; }
+  }
+  function writeHint() {
+    try {
+      if (state.user) {
+        var d = state.doc || {}, h = readHint() || {};
+        localStorage.setItem(HINTKEY, JSON.stringify({
+          uid: state.user.uid,
+          username: d.username || h.username || "",
+          displayName: d.displayName || d.username || h.displayName || "",
+          at: Date.now()
+        }));
+      } else if (!state.restoring) {
+        localStorage.removeItem(HINTKEY);
+      }
+    } catch (e) {}
+  }
+  function webkitAuth() {
+    try {
+      var ua = navigator.userAgent || "";
+      if (/iP(hone|ad|od)/.test(ua)) return true;
+      if (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1) return true;
+      if (/Safari/i.test(ua) && !/Chrome|Chromium|CriOS|Edg|Android|OPR|Firefox|FxiOS/i.test(ua)) return true;
+    } catch (e) {}
+    return false;
+  }
+  function createAuth(A, app) {
+    // Default: same cascade the task asked for. On WebKit/iOS, localStorage is tried first
+    // because IndexedDB often reports "available" but then fails to restore the session.
+    var persist = [A.indexedDBLocalPersistence, A.browserLocalPersistence];
+    if (webkitAuth()) persist = [A.browserLocalPersistence, A.indexedDBLocalPersistence];
+    try {
+      if (typeof A.initializeAuth === "function") {
+        return A.initializeAuth(app, {
+          persistence: persist,
+          popupRedirectResolver: A.browserPopupRedirectResolver
+        });
+      }
+    } catch (e) {
+      if (!(e && e.code === "auth/already-initialized")) console.warn("englishia auth init", e);
+    }
+    return A.getAuth(app);
+  }
+  function emit(silent) {
     document.documentElement.classList.toggle("eng-signed-in", !!state.user);
     document.documentElement.classList.toggle("eng-admin", !!state.admin);
-    listeners.slice().forEach(function (cb) { try { cb(publicUser()); } catch (e) { console.error(e); } });
+    document.documentElement.classList.toggle("eng-restoring", !!state.restoring);
+    if (!silent) {
+      listeners.slice().forEach(function (cb) { try { cb(publicUser()); } catch (e) { console.error(e); } });
+    }
     renderMenus();
+    writeHint();
   }
   function publicUser() {
     if (!state.user) return null;
-    var d = state.doc || {};
-    return { uid: state.user.uid, username: d.username || "", displayName: d.displayName || d.username || "", isAdmin: state.admin };
+    var d = state.doc || {}, h = readHint() || {};
+    if (h.uid && h.uid !== state.user.uid) h = {};
+    return {
+      uid: state.user.uid,
+      username: d.username || h.username || "",
+      displayName: d.displayName || d.username || h.displayName || h.username || "",
+      isAdmin: state.admin
+    };
   }
   function num(v) { v = +v; return isFinite(v) && v > 0 ? Math.round(v) : 0; }
   function expireFor(type) {
@@ -209,24 +264,55 @@
   }
 
   function start() {
-    var timer = setTimeout(function () { finishReady(); }, 7000);
-    function finishReady() { clearTimeout(timer); if (!state.resolved) { state.resolved = true; readyResolve(publicUser()); } }
+    // Until Auth reports the persisted user, show "מתחבר..." instead of a fake logout.
+    state.restoring = true;
+    renderMenus();
+    var timer = setTimeout(function () { finishReady(true); }, 20000);
+    function finishReady(fromTimeout) {
+      clearTimeout(timer);
+      if (state.resolved) return;
+      state.resolved = true;
+      if (fromTimeout && !state.user && (state.restoring || readHint())) {
+        state.restoring = true;
+        readyResolve(publicUser());
+        renderMenus();
+        return;
+      }
+      if (!fromTimeout) state.restoring = false;
+      readyResolve(publicUser());
+    }
     loadFirebase().then(function () {
       var first = true;
       fb.A.onAuthStateChanged(fb.auth, function (u) {
-        loadUserState(u).catch(function (e) { console.warn("englishia user", e); }).then(function () {
-          if (first) {
-            first = false;
-            finishReady();
-            if (state.user && opts.gameId) logEvent("game_start", opts.gameId, opts.gameTitle || "");
-            if (state.user) touch();
-          }
+        if (u) state.user = u;
+        else { state.user = null; state.doc = null; state.admin = false; }
+        state.restoring = false;
+        var isFirst = first;
+        if (first) { first = false; finishReady(false); }
+        // Paint the session immediately — do not wait for Firestore, which can hang.
+        emit();
+        loadUserState(u).catch(function (e) {
+          console.warn("englishia user", e);
+          if (u) state.user = u;
+        }).then(function () {
+          if (isFirst && state.user && opts.gameId) logEvent("game_start", opts.gameId, opts.gameTitle || "");
+          if (isFirst && state.user) touch();
           emit();
         });
       });
     }).catch(function (e) {
       if (e && e.message !== "not-configured") console.warn("Englishia accounts offline:", e);
-      finishReady();
+      // A missing SDK is not a logout. Keep a stored hint and do not notify
+      // listeners with null (that would drop a game's cloud profile map).
+      if (readHint()) {
+        state.restoring = false;
+        finishReady(false);
+        emit(true);
+      } else {
+        state.restoring = false;
+        finishReady(false);
+        emit();
+      }
     });
   }
   function touch() {
@@ -592,7 +678,7 @@
 
   /* ---------- UI ---------- */
   var CSS = "" +
-    ".eng-ov{position:fixed;inset:0;z-index:2147483000;background:rgba(10,14,24,.72);display:flex;align-items:center;justify-content:center;padding:16px;direction:rtl;font-family:'Segoe UI',Arial,'Noto Sans Hebrew',sans-serif}" +
+    ".eng-login-btn.eng-restoring{opacity:.85;cursor:progress}.eng-ov{position:fixed;inset:0;z-index:2147483000;background:rgba(10,14,24,.72);display:flex;align-items:center;justify-content:center;padding:16px;direction:rtl;font-family:'Segoe UI',Arial,'Noto Sans Hebrew',sans-serif}" +
     ".eng-box{background:#fffaf0;color:#1d1a16;border-radius:24px;max-width:640px;width:100%;max-height:calc(100vh - 32px);overflow:auto;padding:24px 26px;box-shadow:0 18px 60px rgba(0,0,0,.45);font-size:22px;line-height:1.45;text-align:right}" +
     ".eng-box.wide{max-width:1000px}" +
     ".eng-box h2{margin:0 0 12px;font-size:30px;text-align:center;color:#1d1a16;font-family:inherit}" +
@@ -857,8 +943,14 @@
       b.type = "button";
       b.className = "eng-login-btn";
       if (state.user) {
-        b.textContent = "👤 " + ((state.doc && state.doc.displayName) || "החשבון שלי");
+        var hintName = (function () { var h = readHint(); return h && (h.displayName || h.username) || ""; })();
+        b.textContent = "👤 " + ((state.doc && state.doc.displayName) || hintName || "החשבון שלי");
         b.onclick = function () { openProfile(); };
+      } else if (state.restoring) {
+        b.textContent = "👤 מתחבר...";
+        b.className = "eng-login-btn eng-restoring";
+        b.setAttribute("aria-busy", "true");
+        b.onclick = function () { if (state.resolved) openLogin(); };
       } else {
         b.textContent = "👤 התחברות";
         b.onclick = function () { openLogin(); };
@@ -928,25 +1020,8 @@
       }
       return orig.clearName.call(L);
     };
-    onChange(function (u) {
-      if (!u) {
-        var m = map();
-        Object.keys(m).forEach(function (uid) { try { L.deleteProfile(m[uid]); } catch (e) {} });
-        setMap({});
-        try { L.clearName && orig.clearName.call(L); } catch (e) {}
-      }
-    });
-
-    return ready().then(function (u) {
-      if (!u) {
-        // signed out on this device: drop any cached account profile
-        var m0 = map();
-        if (Object.keys(m0).length) {
-          Object.keys(m0).forEach(function (k) { try { L.deleteProfile(m0[k]); } catch (e) {} });
-          setMap({}); try { orig.clearName.call(L); } catch (e) {}
-        }
-        return;
-      }
+    function applyCloudProfile(u) {
+      if (!u) return Promise.resolve();
       getLeaderboard(gameId, 10);
       return loadProgress(gameId).then(function (cloud) {
         var m = map(), lid = m[u.uid];
@@ -965,6 +1040,37 @@
         else orig.setProgress.call(L, gameId, null);
         lastStages = stageCount(cloud);
       });
+    }
+    onChange(function (u) {
+      if (!u) {
+        if (state.restoring) return;
+        var m = map();
+        var hadCloud = Object.keys(m).length > 0;
+        Object.keys(m).forEach(function (uid) { try { L.deleteProfile(m[uid]); } catch (e) {} });
+        setMap({});
+        // Only drop the active local name after a real account logout.
+        // Guests must keep their device profile across reloads.
+        if (hadCloud) {
+          try { L.clearName && orig.clearName.call(L); } catch (e) {}
+        }
+      } else {
+        applyCloudProfile(u);
+      }
+    });
+
+    return ready().then(function (u) {
+      if (!u) {
+        // Auth may still be restoring after a slow reload; wait for onChange.
+        if (state.restoring) return;
+        // signed out on this device: drop any cached account profile
+        var m0 = map();
+        if (Object.keys(m0).length) {
+          Object.keys(m0).forEach(function (k) { try { L.deleteProfile(m0[k]); } catch (e) {} });
+          setMap({}); try { orig.clearName.call(L); } catch (e) {}
+        }
+        return;
+      }
+      return applyCloudProfile(u);
     });
   }
 
@@ -991,6 +1097,7 @@
     init: init, ready: ready, onChange: onChange,
     get user() { return publicUser(); },
     get isAdmin() { return !!state.admin; },
+    get restoring() { return !!state.restoring; },
     get emulator() { return EMU; },
     root: ROOT,
     register: register, login: login, logout: logout,

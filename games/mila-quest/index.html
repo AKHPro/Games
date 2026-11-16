@@ -205,8 +205,8 @@ html.short .set-sec h3{font-size:19px;margin:0 0 4px}
 html.short .seg-b{padding:6px 14px;font-size:17px;min-width:90px}
 html.short .set-check{font-size:16px;padding:5px 10px}
 html.short #s-end h2{font-size:22px;margin:4px 0}
-.map-top{padding-left:calc(env(safe-area-inset-left) + 186px)}
-html.portrait .map-top{padding-left:0;padding-top:50px}
+.map-top{padding-left:calc(env(safe-area-inset-left) + 186px);padding-right:calc(env(safe-area-inset-right) + 230px)}
+html.portrait .map-top{padding-left:0;padding-right:calc(env(safe-area-inset-right) + 200px);padding-top:50px}
 html.portrait .map-side{position:static;width:auto;max-height:none;flex-direction:row;flex-wrap:wrap;gap:6px;overflow:visible;margin-top:6px;justify-content:center}
 html.portrait .map-side .side-card{padding:0;background:none;border:0;box-shadow:none;backdrop-filter:none}
 html.portrait .map-side .side-card h3,html.portrait .map-side .side-card p,html.portrait .map-side .side-card .bar{display:none}
@@ -275,6 +275,31 @@ html.portrait .track-bar{bottom:max(12px,env(safe-area-inset-bottom))}
 .eng-signed-in #btn-profiles,.eng-signed-in #btn-profile{display:none!important}
 .eng-signed-in #player-chip{display:none!important}
 #s-title .eng-menu button{font-size:clamp(16px,2.2vw,20px)}
+
+/* v11.1: persistent Englishia account button, top-right, CSS icon (no emoji) */
+#mq-account{position:fixed;top:max(10px,env(safe-area-inset-top));right:max(10px,env(safe-area-inset-right));z-index:14;display:flex;flex-direction:column;align-items:flex-end;gap:8px;max-width:min(320px,62vw);pointer-events:auto;direction:rtl}
+#mq-account-btn{display:inline-flex;align-items:center;gap:8px;max-width:100%;font-size:clamp(16px,2.2vw,22px);font-weight:800;line-height:1.15;padding:8px 14px}
+#mq-account-btn.signed{background:var(--owl);color:#fff;box-shadow:0 6px 0 var(--owl-d)}
+#mq-account-btn.signed:active{box-shadow:0 2px 0 var(--owl-d)}
+#mq-account-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.ico-user{display:inline-block;width:1.25em;height:1.25em;position:relative;flex:0 0 auto;vertical-align:-.2em}
+.ico-user::before{content:"";position:absolute;width:.42em;height:.42em;border-radius:50%;background:currentColor;top:.06em;left:50%;transform:translateX(-50%)}
+.ico-user::after{content:"";position:absolute;width:.86em;height:.5em;border-radius:.45em .45em 0 0;background:currentColor;bottom:.06em;left:50%;transform:translateX(-50%)}
+.mq-account-menu{position:absolute;top:calc(100% + 8px);right:0;width:min(320px,92vw);background:linear-gradient(180deg,#fffdf8f8,#ffe8c0f4);border:4px solid #8a5a2b;border-radius:20px;padding:12px 14px;text-align:right;box-shadow:0 16px 40px #0006;z-index:15}
+.mq-account-menu h3{margin:0 0 4px;font-size:clamp(16px,2vw,19px)}
+.mq-account-menu p{margin:2px 0;font-size:clamp(16px,2.1vw,20px);font-weight:700}
+.mq-account-menu .mq-acc-head{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:clamp(18px,2.4vw,24px);font-weight:800}
+.mq-account-menu .mq-acc-head .mq-acc-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mq-account-menu .mq-acc-stats{background:#fff9;border:2px solid #8a5a2b55;border-radius:14px;padding:8px 10px;margin:8px 0}
+.mq-account-menu .row, .mq-account-menu .mq-acc-actions{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.mq-account-menu .mq-acc-actions .btn{width:100%;font-size:clamp(16px,2.1vw,20px);padding:10px 14px;border-radius:14px}
+.mq-account-menu .mq-acc-out{background:#e8553d;color:#fff;box-shadow:0 5px 0 #8a2a18}
+#s-title .eng-menu{display:none!important}
+body[data-ui="hud"] #mq-account,body[data-ui="s-load"] #mq-account{display:none}
+body.set-open #mq-account{display:flex}
+html.short #mq-account-btn,html.portrait #mq-account-btn{font-size:16px;padding:7px 12px}
+html.short #s-settings,html.portrait #s-settings{padding-top:62px}
+html.short .map-top{padding-right:calc(env(safe-area-inset-right) + 180px)}
 </style>
 </head>
 <body>
@@ -282,6 +307,13 @@ html.portrait .track-bar{bottom:max(12px,env(safe-area-inset-bottom))}
 <button class="btn s" id="mute" aria-label="השתקה">🔊</button>
 <button class="btn s" id="btn-settings" aria-label="הגדרות">⚙️ הגדרות</button>
 <button class="btn s hidden" id="btn-dev" aria-label="Developer">DEVELOPER</button>
+<div id="mq-account">
+  <button type="button" class="btn s mq-account-btn" id="mq-account-btn" aria-label="התחברות לאינגלישיה" aria-expanded="false" aria-haspopup="true" aria-controls="mq-account-menu">
+    <span class="ico-user" aria-hidden="true"></span>
+    <span id="mq-account-label">התחברות</span>
+  </button>
+  <div id="mq-account-menu" class="mq-account-menu hidden" hidden role="menu" aria-label="תפריט חשבון"></div>
+</div>
 <div class="ui">
 
   <section id="s-load" class="center">
@@ -435,7 +467,7 @@ html.portrait .track-bar{bottom:max(12px,env(safe-area-inset-bottom))}
   chain = chain.then(function () { return loadScript("../../js/englishia-auth.js").catch(function () {}); })
     .then(function () {
       if (!window.EnglishiaAuth) return;
-      EnglishiaAuth.init({ gameId: "mila-quest", gameTitle: "\u05de\u05d9\u05dc\u05d4 \u05e7\u05d5\u05d5\u05e1\u05d8", mount: "#s-title .title-sec", reloadOnChange: true,
+      EnglishiaAuth.init({ gameId: "mila-quest", gameTitle: "\u05de\u05d9\u05dc\u05d4 \u05e7\u05d5\u05d5\u05e1\u05d8", mount: false, reloadOnChange: true,
         devTools: function () { var b = document.getElementById("btn-dev"); if (b) b.click(); },
         devToolsLabel: "DEVELOPER \u00b7 \u05e7\u05e4\u05d9\u05e6\u05d4 \u05dc\u05e2\u05d5\u05dc\u05de\u05d5\u05ea \u05d5\u05e9\u05dc\u05d1\u05d9\u05dd" });
       var wait = EnglishiaAuth.bridgeLocal(window.Englishia, "mila-quest");
@@ -458,7 +490,7 @@ html.portrait .track-bar{bottom:max(12px,env(safe-area-inset-bottom))}
 <div id="mq-credit" style="position:fixed;left:0;right:0;bottom:4px;text-align:center;font:600 12px/1.2 system-ui,sans-serif;color:rgba(255,255,255,.75);text-shadow:0 1px 2px rgba(0,0,0,.6);pointer-events:none;z-index:3;direction:ltr"></div>
 <script>
 (function(){var demo=/\/demo\//.test(location.pathname);
-var V="11";var el=document.getElementById("mq-credit");
+var V="11.1";var el=document.getElementById("mq-credit");
 var l1=document.createElement("div");l1.textContent="\u00A9 2026 Amir \u00B7 Englishia \u00B7 All rights reserved \u00B7 "+(demo?"Demo version "+V:"Version "+V);
 var l2=document.createElement("div");l2.dir="rtl";l2.textContent="\u00A9 2026 \u05D0\u05DE\u05D9\u05E8 \u00B7 \u05D0\u05D9\u05E0\u05D2\u05DC\u05D9\u05E9\u05D9\u05D4 \u00B7 \u05DB\u05DC \u05D4\u05D6\u05DB\u05D5\u05D9\u05D5\u05EA \u05E9\u05DE\u05D5\u05E8\u05D5\u05EA \u00B7 "+(demo?"\u05D2\u05E8\u05E1\u05EA \u05D3\u05DE\u05D5 "+V:"\u05D2\u05E8\u05E1\u05D4 "+V);
 el.appendChild(l1);el.appendChild(l2);})();

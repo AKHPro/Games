@@ -192,7 +192,7 @@ function syncDevButton(id) {
   const menu = isDev() && (id === "s-title" || id === "s-map" || id === "s-help" || id === "s-jr" || id === "s-nb");
   btn.classList.toggle("hidden", !menu);
 }
-function showUI(id) { hideAll(); $(id).classList.remove("hidden"); syncDevButton(id); document.body.dataset.ui = id; }
+function showUI(id) { hideAll(); $(id).classList.remove("hidden"); syncDevButton(id); document.body.dataset.ui = id; closeAccountMenu(); }
 function showModal(html) {
   $("modal-box").innerHTML = html;
   $("modal").classList.remove("hidden");
@@ -3234,6 +3234,118 @@ function playNow() {
   startLevel(n.wid, n.st, false, { quick: true });
 }
 
+
+/* v11.1: persistent top-right Englishia account button */
+function accountUser() {
+  try { if (window.EnglishiaAuth) return EnglishiaAuth.user || null; } catch (e) {}
+  return null;
+}
+function closeAccountMenu() {
+  const m = $("mq-account-menu");
+  const b = $("mq-account-btn");
+  if (m) { m.classList.add("hidden"); m.setAttribute("hidden", ""); m.innerHTML = ""; }
+  if (b) b.setAttribute("aria-expanded", "false");
+}
+function accSet(id, text) { const el = $(id); if (el) el.textContent = text; }
+function fillAccountMenu(u) {
+  const menu = $("mq-account-menu");
+  if (!menu || !u) return;
+  const local = (window.Englishia && Englishia.getProfile && Englishia.getProfile()) || {};
+  const g = (local.games && local.games[GAME_ID]) || {};
+  const gameScore = g.totalScore || g.best || 0;
+  const gameTime = formatPlayTime(g.seconds || 0);
+  const platScore = local.totalScore || 0;
+  const platTime = formatPlayTime(local.totalSeconds || 0);
+  menu.innerHTML = `<div class="mq-acc-head"><span class="ico-user" aria-hidden="true"></span><span class="mq-acc-name">${esc(u.displayName || u.username || "")}</span></div>
+    <div class="mq-acc-stats" id="mq-account-game-stats">
+      <h3>הפרופיל שלי · מילה קווסט</h3>
+      <p>ניקוד: <b id="mq-acc-game-score">${gameScore}</b></p>
+      <p>זמן משחק: <b id="mq-acc-game-time">${esc(gameTime)}</b></p>
+    </div>
+    <div class="mq-acc-stats" id="mq-account-eng-stats">
+      <h3>סיכום אינגלישיה</h3>
+      <p>ניקוד בכל המשחקים: <b id="mq-acc-eng-score">${platScore}</b></p>
+      <p>זמן כולל: <b id="mq-acc-eng-time">${esc(platTime)}</b></p>
+    </div>
+    <div class="mq-acc-actions">
+      <button type="button" class="btn s" id="mq-account-profile" role="menuitem">הפרופיל שלי</button>
+      <button type="button" class="btn s" id="mq-account-summary" role="menuitem">סיכום אינגלישיה</button>
+      ${u.isAdmin ? '<button type="button" class="btn s p" id="mq-account-admin" role="menuitem">ניהול</button>' : ""}
+      <button type="button" class="btn s mq-acc-out" id="mq-account-logout" role="menuitem">התנתקות</button>
+    </div>`;
+  if ($("mq-account-profile")) $("mq-account-profile").onclick = () => { closeAccountMenu(); if (window.EnglishiaAuth) EnglishiaAuth.openProfile(GAME_ID); };
+  if ($("mq-account-summary")) $("mq-account-summary").onclick = () => { closeAccountMenu(); if (window.EnglishiaAuth) EnglishiaAuth.openProfile(); };
+  if ($("mq-account-admin")) $("mq-account-admin").onclick = () => { closeAccountMenu(); if (window.EnglishiaAuth) EnglishiaAuth.openAdmin(); };
+  if ($("mq-account-logout")) $("mq-account-logout").onclick = () => {
+    closeAccountMenu();
+    if (window.EnglishiaAuth) EnglishiaAuth.logout().then(() => { location.reload(); }).catch(() => { location.reload(); });
+  };
+  if (window.EnglishiaAuth) {
+    EnglishiaAuth.getGameProfile(GAME_ID).then((gp) => {
+      if (!gp || $("mq-account-menu").classList.contains("hidden")) return;
+      accSet("mq-acc-game-score", String(gp.totalScore || gp.best || 0));
+      accSet("mq-acc-game-time", formatPlayTime(gp.seconds || 0));
+    }).catch(() => {});
+    EnglishiaAuth.getPlatformProfile().then((pp) => {
+      if (!pp || $("mq-account-menu").classList.contains("hidden")) return;
+      accSet("mq-acc-eng-score", String(pp.totalScore || 0));
+      accSet("mq-acc-eng-time", formatPlayTime(pp.totalSeconds || 0));
+    }).catch(() => {});
+  }
+}
+function toggleAccountMenu() {
+  const u = accountUser();
+  const menu = $("mq-account-menu");
+  const btn = $("mq-account-btn");
+  if (!u) {
+    closeAccountMenu();
+    if (window.EnglishiaAuth && EnglishiaAuth.openLogin) EnglishiaAuth.openLogin();
+    else openProfilePicker();
+    return;
+  }
+  const willOpen = menu && menu.classList.contains("hidden");
+  if (willOpen) {
+    fillAccountMenu(u);
+    menu.classList.remove("hidden");
+    menu.removeAttribute("hidden");
+    if (btn) btn.setAttribute("aria-expanded", "true");
+  } else closeAccountMenu();
+}
+function refreshAccountButton() {
+  const btn = $("mq-account-btn");
+  const nameEl = $("mq-account-label");
+  if (!btn || !nameEl) return;
+  const u = accountUser();
+  btn.classList.toggle("signed", !!u);
+  if (u) {
+    const nm = u.displayName || u.username || "החשבון שלי";
+    nameEl.textContent = nm;
+    btn.setAttribute("aria-label", "החשבון של " + nm);
+    btn.setAttribute("aria-haspopup", "true");
+  } else {
+    nameEl.textContent = "התחברות";
+    btn.setAttribute("aria-label", "התחברות לאינגלישיה");
+    btn.setAttribute("aria-haspopup", "dialog");
+    closeAccountMenu();
+  }
+}
+function initAccountButton() {
+  const btn = $("mq-account-btn");
+  if (!btn || btn.dataset.ready) return;
+  btn.dataset.ready = "1";
+  btn.onclick = () => { try { sfx.click(); } catch (e) {} toggleAccountMenu(); };
+  document.addEventListener("click", (e) => {
+    const wrap = $("mq-account");
+    if (wrap && !wrap.contains(e.target)) closeAccountMenu();
+  });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") closeAccountMenu(); });
+  if (window.EnglishiaAuth && EnglishiaAuth.onChange) {
+    EnglishiaAuth.onChange(() => { refreshAccountButton(); });
+    if (EnglishiaAuth.ready) EnglishiaAuth.ready().then(() => refreshAccountButton()).catch(() => {});
+  }
+  refreshAccountButton();
+}
+
 function refreshPlayerChip() {
   const chip = $("player-chip");
   const el = $("player-chip-name");
@@ -3255,6 +3367,7 @@ function applyProfileState() {
   if ($("mute")) $("mute").textContent = muted ? "🔇" : "🔊";
   if ($("btn-hud-mute")) $("btn-hud-mute").textContent = muted ? "🔇" : "🔊";
   refreshPlayerChip();
+  refreshAccountButton();
   refreshPlayNext();
   drawHeroBtns();
   highlightHero();
@@ -3414,6 +3527,7 @@ $("hero-btns").onclick = (e) => {
 $("btn-start").onclick = () => goMapMode();
 $("btn-play").onclick = () => playNow();
 if ($("btn-profiles")) $("btn-profiles").onclick = () => { sfx.click(); openProfilePicker(); };
+initAccountButton();
 if ($("btn-profile")) $("btn-profile").onclick = () => { sfx.click(); openProfilePanel(); };
 $("btn-title-settings").onclick = () => { sfx.click(); openSettings(); };
 $("btn-help").onclick = () => { showUI("s-help"); appMode = "title"; };
@@ -4045,6 +4159,8 @@ window.MQ = {
   updateTrackBar,
   GAME_ID,
   refreshPlayerChip,
+  refreshAccountButton,
+  closeAccountMenu,
   applyProfileState,
   switchToProfile,
   createNewProfile,
