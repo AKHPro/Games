@@ -270,6 +270,11 @@ html.portrait .track-bar{bottom:max(12px,env(safe-area-inset-bottom))}
 .prompt .passage{direction:ltr;unicode-bidi:isolate;font-size:clamp(18px,2.6vw,26px);font-weight:700;line-height:1.35;text-align:left;margin:0 0 8px;font-family:Fredoka,Rubik,sans-serif}
 .prompt .gap-en{direction:ltr;unicode-bidi:isolate}
 #set-age .seg-b{min-width:88px}
+
+/* v11: Englishia accounts */
+.eng-signed-in #btn-profiles,.eng-signed-in #btn-profile{display:none!important}
+.eng-signed-in #player-chip{display:none!important}
+#s-title .eng-menu button{font-size:clamp(16px,2.2vw,20px)}
 </style>
 </head>
 <body>
@@ -426,6 +431,19 @@ html.portrait .track-bar{bottom:max(12px,env(safe-area-inset-bottom))}
   }
   var chain = Promise.resolve();
   chain = chain.then(function () { return loadScript("./js/englishia-player.js"); });
+  // v11: one Englishia account for all games (../../js/englishia-auth.js). Guests still play.
+  chain = chain.then(function () { return loadScript("../../js/englishia-auth.js").catch(function () {}); })
+    .then(function () {
+      if (!window.EnglishiaAuth) return;
+      EnglishiaAuth.init({ gameId: "mila-quest", gameTitle: "\u05de\u05d9\u05dc\u05d4 \u05e7\u05d5\u05d5\u05e1\u05d8", mount: "#s-title .title-sec", reloadOnChange: true,
+        devTools: function () { var b = document.getElementById("btn-dev"); if (b) b.click(); },
+        devToolsLabel: "DEVELOPER \u00b7 \u05e7\u05e4\u05d9\u05e6\u05d4 \u05dc\u05e2\u05d5\u05dc\u05de\u05d5\u05ea \u05d5\u05e9\u05dc\u05d1\u05d9\u05dd" });
+      var wait = EnglishiaAuth.bridgeLocal(window.Englishia, "mila-quest");
+      return Promise.race([wait, new Promise(function (r) { setTimeout(r, 9000); })]).then(function () {
+        // Admins get the DEVELOPER button in the official game too.
+        if (EnglishiaAuth.isAdmin) window.MQ_DEV = true;
+      });
+    });
   // DEMO ONLY: js/dev-flag.js sets window.MQ_DEV = true.
   // Production: omit that file (this load fails silently) and the DEVELOPER button will not appear.
   // v9: only the demo folder (or a local file) even tries to load it, so the official game never shows it.
@@ -440,7 +458,7 @@ html.portrait .track-bar{bottom:max(12px,env(safe-area-inset-bottom))}
 <div id="mq-credit" style="position:fixed;left:0;right:0;bottom:4px;text-align:center;font:600 12px/1.2 system-ui,sans-serif;color:rgba(255,255,255,.75);text-shadow:0 1px 2px rgba(0,0,0,.6);pointer-events:none;z-index:3;direction:ltr"></div>
 <script>
 (function(){var demo=/\/demo\//.test(location.pathname);
-var V="10.2";var el=document.getElementById("mq-credit");
+var V="11";var el=document.getElementById("mq-credit");
 var l1=document.createElement("div");l1.textContent="\u00A9 2026 Amir \u00B7 Englishia \u00B7 All rights reserved \u00B7 "+(demo?"Demo version "+V:"Version "+V);
 var l2=document.createElement("div");l2.dir="rtl";l2.textContent="\u00A9 2026 \u05D0\u05DE\u05D9\u05E8 \u00B7 \u05D0\u05D9\u05E0\u05D2\u05DC\u05D9\u05E9\u05D9\u05D4 \u00B7 \u05DB\u05DC \u05D4\u05D6\u05DB\u05D5\u05D9\u05D5\u05EA \u05E9\u05DE\u05D5\u05E8\u05D5\u05EA \u00B7 "+(demo?"\u05D2\u05E8\u05E1\u05EA \u05D3\u05DE\u05D5 "+V:"\u05D2\u05E8\u05E1\u05D4 "+V);
 el.appendChild(l1);el.appendChild(l2);})();

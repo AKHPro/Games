@@ -2595,6 +2595,7 @@ async function startLevel(wid, st, lost, opt) {
   const bypass = isDev() && opt && opt.bypassLock;
   if (!lost && !bypass && !sOpen(wid - 1, st)) return false;
   hideModal();
+  try { if (window.EnglishiaAuth && EnglishiaAuth.user) EnglishiaAuth.logEvent("stage_reached", GAME_ID, `עולם ${wid} · ${st === BOSS_ST ? "בוס" : "שלב " + (st + 1)}`); } catch (e) {}
   showTurnCue(null);
   showUI("s-load");
   $("load-msg").textContent = "מכינים את המסלול…";
@@ -3308,7 +3309,8 @@ function askPlayerName(onOk, opts) {
     <div class="row" style="margin-top:12px">
       <button class="btn g" id="btn-name-save">שמירה</button>
       ${back ? '<button class="btn s" id="btn-name-back">חזרה</button>' : ""}
-    </div>`);
+    </div>
+    ${window.EnglishiaAuth ? '<p class="note" style="margin-top:14px">יש לכם חשבון באינגלישיה? כך ההתקדמות נשמרת בכל מחשב.</p><button class="btn" id="btn-name-login">👤 כניסה או הרשמה לאינגלישיה</button>' : ""}`);
   const inp = $("player-name-in");
   const err = $("name-err");
   const go = () => {
@@ -3326,6 +3328,7 @@ function askPlayerName(onOk, opts) {
   $("btn-name-save").onclick = go;
   inp.addEventListener("keydown", (e) => { if (e.key === "Enter") go(); });
   if ($("btn-name-back")) $("btn-name-back").onclick = () => openProfilePicker();
+  if ($("btn-name-login")) $("btn-name-login").onclick = () => { hideModal(); window.EnglishiaAuth.openLogin(); };
   setTimeout(() => inp.focus(), 50);
 }
 function profileSummary(p) {

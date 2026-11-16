@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>ניהול · אינגלישיה</title>
+<link rel="icon" href="../../assets/icons/icon-32.png" type="image/png">
+<style>
+  body{margin:0;background:#14181f;color:#1d1a16;font:20px/1.45 'Segoe UI',Arial,'Noto Sans Hebrew',sans-serif}
+  header{background:#1d1a16;color:#ffd43b;padding:14px 22px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  header h1{margin:0;font-size:30px}
+  header a{color:#ffe9a0}
+  main{max-width:1200px;margin:18px auto;padding:0 14px}
+  .card{background:#fffaf0;border-radius:20px;padding:18px 20px;margin-bottom:16px;box-shadow:0 6px 24px rgba(0,0,0,.3)}
+  .card h2{margin:0 0 10px;font-size:26px}
+  .hint{font-size:17px;color:#5b5348;margin:2px 0 8px}
+  .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+  .tabs button,.btn{font-weight:700;font-size:20px;line-height:1.2;font-family:inherit;min-height:50px;padding:10px 18px;border:0;border-radius:14px;background:#e8dcc4;color:#2b2418;cursor:pointer;box-shadow:0 3px 0 #b9a782}
+  .tabs button.on,.btn.main{background:#ef8f1e;color:#fff;box-shadow:0 3px 0 #a85d0b}
+  .btn.red{background:#c9372c;color:#fff;box-shadow:0 3px 0 #7d1f18}
+  .btn.sm{font-size:17px;min-height:40px;padding:6px 12px}
+  table{width:100%;border-collapse:collapse;font-size:18px}
+  th,td{border-bottom:1px solid #eadcbf;padding:8px 6px;text-align:right;vertical-align:top}
+  th{background:#f3e8d2;position:sticky;top:0}
+  tr.click{cursor:pointer}tr.click:hover{background:#fff1d6}
+  input[type=search],input.f{font-size:20px;padding:10px 12px;border:2px solid #d9c9a8;border-radius:12px;width:100%;max-width:420px;box-sizing:border-box}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+  .stat{background:#fff;border:2px solid #eadcbf;border-radius:14px;padding:8px;text-align:center}.stat b{display:block;font-size:26px;color:#c56a00}.stat span{font-size:16px;color:#5b5348}
+  .t{display:inline-block;border-radius:999px;padding:2px 10px;font-size:15px;background:#eee}
+  .t.login,.t.register{background:#d3f9d8}.t.logout{background:#e9ecef}.t.score{background:#fff3bf}.t.stage_completed,.t.stage_reached{background:#d0ebff}
+  .t.name_change,.t.password_change,.t.username_change,.t.admin_password_reset,.t.admin_edit,.t.admin_reset_progress{background:#ffe3e3}
+  #gate{text-align:center}
+  .msg{border-radius:12px;padding:10px 14px;margin-top:10px;font-weight:700}.msg.ok{background:#ddf5e1;color:#14532d}.msg.err{background:#ffe1dc;color:#8a1c12}
+  .hidden{display:none}
+  .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}
+</style>
+</head>
+<body>
+<header>
+  <h1>🛠️ ניהול אינגלישיה</h1>
+  <div class="row"><span id="who"></span><a href="../">← לאתר (דמו)</a></div>
+</header>
+<main>
+  <div class="card" id="gate">
+    <h2>כניסת מנהל</h2>
+    <p class="hint" id="gate-msg">טוען…</p>
+    <button class="btn main hidden" id="gate-login">👤 התחברות</button>
+  </div>
+
+  <div id="app" class="hidden">
+    <div class="tabs">
+      <button data-tab="users" class="on">👥 תלמידים</button>
+      <button data-tab="activity">🕒 פעילות (7 ימים)</button>
+      <button data-tab="boards">🏆 טבלאות שיאים</button>
+    </div>
+
+    <section class="card" id="tab-users">
+      <h2>👥 כל התלמידים</h2>
+      <p class="hint">לחצו על תלמיד כדי לראות את ההתקדמות, הפעילות, ולשנות שם או סיסמה.</p>
+      <input type="search" id="user-q" placeholder="חיפוש לפי שם">
+      <div id="users" style="margin-top:10px">טוען…</div>
+    </section>
+
+    <section class="card hidden" id="tab-user"></section>
+
+    <section class="card hidden" id="tab-activity">
+      <h2>🕒 פעילות בשבוע האחרון</h2>
+      <p class="hint">כניסות, יציאות, משחקים, שלבים, ניקוד ושינויים. פעילות ישנה מ-7 ימים נמחקת אוטומטית. שינויי שם וסיסמה נשמרים שנה.</p>
+      <div id="activity">טוען…</div>
+    </section>
+
+    <section class="card hidden" id="tab-boards">
+      <h2>🏆 טבלאות שיאים</h2>
+      <div id="boards">טוען…</div>
+    </section>
+  </div>
+</main>
+<script src="../../js/englishia-auth.js"></script>
+<script>
+(function () {
+  "use strict";
+  var E = window.EnglishiaAuth, A = E.admin;
+  var TYPE_HE = { register: "הרשמה", login: "כניסה", logout: "יציאה", game_start: "פתח/ה משחק", stage_reached: "התחיל/ה שלב",
+    stage_completed: "סיים/ה שלב", score: "ניקוד", name_change: "שינוי שם", password_change: "שינוי סיסמה",
+    username_change: "שינוי שם משתמש", admin_edit: "עריכת מנהל", admin_reset_progress: "איפוס התקדמות", admin_password_reset: "איפוס סיסמה ע״י המנהל" };
+  var users = [], byUid = {};
+  function $(id) { return document.getElementById(id); }
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  var T = E.formatTime, D = E.formatDate;
+  function gname(id) { return E.gameTitles[id] || id || ""; }
+  function num(v) { v = +v; return isFinite(v) && v > 0 ? Math.round(v) : 0; }
+  function msg(el, text, ok) { var m = document.createElement("div"); m.className = "msg " + (ok ? "ok" : "err"); m.textContent = text; el.appendChild(m); setTimeout(function () { m.remove(); }, 6000); }
+  function errText(e) { return (e && e.heb) || (e && (e.code || e.message)) || "שגיאה"; }
+
+  function gate() {
+    var u = E.user;
+    if (!u) { $("gate-msg").textContent = "צריך להתחבר עם חשבון המנהל."; $("gate-login").classList.remove("hidden"); $("app").classList.add("hidden"); $("gate").classList.remove("hidden"); return; }
+    if (!E.isAdmin) { $("gate-msg").textContent = "החשבון " + u.username + " אינו חשבון מנהל."; $("gate-login").classList.add("hidden"); $("app").classList.add("hidden"); $("gate").classList.remove("hidden"); return; }
+    $("gate").classList.add("hidden"); $("app").classList.remove("hidden");
+    $("who").textContent = "מחובר/ת: " + u.displayName;
+    A.cleanupActivity().catch(function () {});
+    loadUsers();
+  }
+  $("gate-login").onclick = function () { E.openLogin(); };
+
+  Array.prototype.forEach.call(document.querySelectorAll("[data-tab]"), function (b) {
+    b.onclick = function () { tab(b.getAttribute("data-tab")); };
+  });
+  function tab(name) {
+    ["users", "user", "activity", "boards"].forEach(function (t) { $("tab-" + t).classList.toggle("hidden", t !== name); });
+    Array.prototype.forEach.call(document.querySelectorAll("[data-tab]"), function (b) { b.classList.toggle("on", b.getAttribute("data-tab") === name || (name === "user" && b.getAttribute("data-tab") === "users")); });
+    if (name === "activity") loadActivity();
+    if (name === "boards") loadBoards();
+  }
+
+  function loadUsers() {
+    return A.listUsers().then(function (list) {
+      users = list; byUid = {}; list.forEach(function (u) { byUid[u.uid] = u; });
+      renderUsers();
+    }).catch(function (e) { $("users").textContent = errText(e); });
+  }
+  function renderUsers() {
+    var qv = ($("user-q").value || "").trim().toLowerCase();
+    var list = users.filter(function (u) { return !qv || String(u.displayName).toLowerCase().indexOf(qv) >= 0 || String(u.username).indexOf(qv) >= 0; });
+    if (!list.length) { $("users").textContent = "אין תלמידים."; return; }
+    var games = {};
+    users.forEach(function (u) { Object.keys(u.games || {}).forEach(function (g) { games[g] = 1; }); });
+    var gl = Object.keys(games);
+    $("users").innerHTML = "<table><tr><th>שם</th><th>שם משתמש</th><th>ניקוד כולל</th><th>זמן משחק</th>" +
+      gl.map(function (g) { return "<th>" + esc(gname(g)) + "<br><small>שיא · זמן</small></th>"; }).join("") + "<th>נראה לאחרונה</th></tr>" +
+      list.map(function (u) {
+        return '<tr class="click" data-uid="' + esc(u.uid) + '"><td><b>' + esc(u.displayName) + "</b></td><td>" + esc(u.username) + "</td><td>" + num(u.totalScore) +
+          "</td><td>" + esc(T(u.totalSeconds)) + "</td>" + gl.map(function (g) {
+            var s = (u.games || {})[g]; return "<td>" + (s ? num(s.best) + " · " + esc(T(s.seconds)) : "—") + "</td>";
+          }).join("") + "<td>" + esc(D(u.lastSeen)) + "</td></tr>";
+      }).join("") + "</table>";
+    Array.prototype.forEach.call($("users").querySelectorAll("[data-uid]"), function (tr) { tr.onclick = function () { openUser(tr.getAttribute("data-uid")); }; });
+  }
+  $("user-q").oninput = renderUsers;
+
+  function actRows(list, showName) {
+    if (!list.length) return "<p>אין פעילות.</p>";
+    return "<table><tr><th>מתי</th>" + (showName ? "<th>תלמיד</th>" : "") + "<th>מה</th><th>משחק</th><th>פרטים</th></tr>" + list.map(function (a) {
+      return "<tr><td>" + esc(D(a.at)) + "</td>" + (showName ? "<td>" + esc(a.name) + "</td>" : "") + '<td><span class="t ' + esc(a.type) + '">' + esc(TYPE_HE[a.type] || a.type) +
+        "</span></td><td>" + esc(gname(a.gameId)) + "</td><td>" + esc(a.detail) + (a.by && a.by !== a.uid ? " <small>(ע״י מנהל)</small>" : "") + "</td></tr>";
+    }).join("") + "</table>";
+  }
+
+  function openUser(uid) {
+    tab("user");
+    var box = $("tab-user");
+    box.innerHTML = "טוען…";
+    Promise.all([A.getUser(uid), A.listActivity({ uid: uid }), A.listChanges(uid)]).then(function (r) {
+      var u = r[0], acts = r[1], changes = r[2];
+      if (!u) { box.textContent = "התלמיד לא נמצא."; return; }
+      var gl = Object.keys(u.games || {});
+      box.innerHTML = '<div class="row"><button class="btn sm" id="u-back">← חזרה לרשימה</button></div>' +
+        "<h2>👤 " + esc(u.displayName) + "</h2><p class=\"hint\">שם משתמש לכניסה: <b>" + esc(u.username) + "</b> · נרשם/ה: " + esc(D(u.createdAt)) + " · נראה/תה לאחרונה: " + esc(D(u.lastSeen)) + "</p>" +
+        '<div class="grid"><div class="stat"><b>' + num(u.totalScore) + '</b><span>ניקוד כולל</span></div><div class="stat"><b>' + esc(T(u.totalSeconds)) +
+        '</b><span>זמן משחק כולל</span></div><div class="stat"><b>' + num(u.plays) + "</b><span>משחקים</span></div></div>" +
+        "<h3>🎮 לפי משחק</h3>" + (gl.length ? "<table><tr><th>משחק</th><th>שיא</th><th>ניקוד</th><th>זמן</th><th>פעמים</th><th>התקדמות</th><th>שיחק/ה לאחרונה</th><th></th></tr>" + gl.map(function (g) {
+          var s = u.games[g];
+          return "<tr><td>" + esc(gname(g)) + "</td><td>" + num(s.best) + "</td><td>" + num(s.totalScore) + "</td><td>" + esc(T(s.seconds)) + "</td><td>" + num(s.plays) +
+            '</td><td id="prog-' + esc(g) + '">…</td><td>' + esc(D(s.lastPlayed)) + '</td><td><button class="btn sm red" data-reset="' + esc(g) + '">איפוס</button></td></tr>';
+        }).join("") + "</table>" : "<p>עוד לא שיחק/ה.</p>") +
+        "<h3>✏️ שינוי שם</h3><p class=\"hint\">השם שמופיע במשחקים ובטבלת השיאים.</p><div class=\"row\"><input class=\"f\" id=\"u-name\" maxlength=\"20\" value=\"" + esc(u.displayName) + '"><button class="btn main" id="u-name-go">שמירה</button></div>' +
+        "<h3>🔑 איפוס סיסמה</h3><p class=\"hint\">כתבו סיסמה חדשה (לפחות 6 תווים) ותנו אותה לתלמיד/ה. בפעם הראשונה ייפתח חלון של גוגל: בחרו את חשבון הגוגל של המורה (בעל הפרויקט) ואשרו.</p>" +
+        '<div class="row"><input class="f" id="u-pass" autocomplete="off"><button class="btn main" id="u-pass-go">איפוס סיסמה</button></div>' +
+        "<h3>🪪 שינוי שם משתמש לכניסה</h3><p class=\"hint\">רק אם צריך. התלמיד/ה ייכנס/תיכנס מעכשיו עם השם החדש.</p>" +
+        '<div class="row"><input class="f" id="u-user" maxlength="15" value="' + esc(u.username) + '"><button class="btn" id="u-user-go">שינוי</button></div>' +
+        '<div id="u-msg"></div>' +
+        "<h3>📝 היסטוריית שינויים (שם, סיסמה, עריכות מנהל)</h3>" + actRows(changes, false) +
+        "<h3>🕒 פעילות ב-7 הימים האחרונים</h3>" + actRows(acts, false);
+      $("u-back").onclick = function () { tab("users"); };
+      gl.forEach(function (g) {
+        A.loadProgress(uid, g).then(function (p) {
+          var el = document.getElementById("prog-" + g); if (!el) return;
+          if (!p) { el.textContent = "—"; return; }
+          var bits = [];
+          if (p.prog) bits.push(Object.keys(p.prog).length + " שלבים");
+          if (p.stars) bits.push("⭐ " + p.stars);
+          if (p.coins) bits.push("מטבעות " + p.coins);
+          el.textContent = bits.join(" · ") || "נשמר";
+        });
+      });
+      Array.prototype.forEach.call(box.querySelectorAll("[data-reset]"), function (b) {
+        b.onclick = function () {
+          var g = b.getAttribute("data-reset");
+          if (!confirm("לאפס את ההתקדמות והניקוד של " + u.displayName + " ב" + gname(g) + "?")) return;
+          b.disabled = true;
+          A.resetGame(uid, g).then(function () { loadUsers(); openUser(uid); }).catch(function (e) { b.disabled = false; msg($("u-msg"), errText(e)); });
+        };
+      });
+      function run(btn, p, ok) { btn.disabled = true; p.then(function () { btn.disabled = false; msg($("u-msg"), ok, true); loadUsers(); }).catch(function (e) { btn.disabled = false; msg($("u-msg"), errText(e)); }); }
+      $("u-name-go").onclick = function () { run(this, A.rename(uid, $("u-name").value), "השם שונה."); };
+      $("u-pass-go").onclick = function () { run(this, A.resetPassword(uid, $("u-pass").value), "הסיסמה החדשה נשמרה. תנו אותה לתלמיד/ה."); };
+      $("u-user-go").onclick = function () { run(this, A.changeUsername(uid, $("u-user").value), "שם המשתמש לכניסה שונה."); };
+    }).catch(function (e) { box.textContent = errText(e); });
+  }
+
+  function loadActivity() {
+    $("activity").textContent = "טוען…";
+    A.listActivity({ days: 7 }).then(function (list) { $("activity").innerHTML = actRows(list, true); })
+      .catch(function (e) { $("activity").textContent = errText(e); });
+  }
+  function loadBoards() {
+    var ids = Object.keys(E.gameTitles);
+    $("boards").innerHTML = ids.map(function (g) { return "<h3>" + esc(gname(g)) + '</h3><div id="lb-' + esc(g) + '">טוען…</div>'; }).join("");
+    ids.forEach(function (g) {
+      E.getLeaderboard(g, 10).then(function (l) {
+        $("lb-" + g).innerHTML = l.length ? "<table><tr><th>#</th><th>שם</th><th>שיא</th></tr>" + l.map(function (e) {
+          return "<tr" + (e.rank === 1 ? ' style="background:#ffe066;font-weight:800"' : "") + "><td>" + e.rank + "</td><td>" + esc(e.name) + "</td><td>" + e.score + "</td></tr>";
+        }).join("") + "</table>" : "<p>עוד אין שיאים.</p>";
+      });
+    });
+  }
+
+  E.init({ mount: "header .row" }).then(gate);
+  E.onChange(gate);
+})();
+</script>
+</body>
+</html>
