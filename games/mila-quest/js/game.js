@@ -9,7 +9,7 @@ import { GFX, setGfxLevel, N } from "./gfx.js";
 import { mergeStatic } from "./merge.js";
 import { NEW_THEMES, buildWorld2Course, buildWorld2Ambience, world2Decor, world2Hazard } from "./worlds2.js";
 import { PROPS, stagePlan, stageSceneName, stageLook, stageDecorSpec, buildStageScatter, buildStageAtmos } from "./stages.js";
-import { normSettings, difficultyFor, stageModes, MODE_LABEL, QTYPES, DIFFS, SPEEDS, GFX_OPTS, DEFAULT_SETTINGS } from "./settings.js";
+import { normSettings, difficultyFor, stageModes, worldMode, isListenMode, MODE_LABEL, MODE_DESC, QTYPES, DIFFS, SPEEDS, GFX_OPTS, DEFAULT_SETTINGS } from "./settings.js";
 
 let GPU_INFO = "";
 function hasWebGL() {
@@ -76,17 +76,28 @@ const sfx = {
   coin: () => { tone(980, .06); setTimeout(() => tone(1320, .08), 60); },
   jump: () => tone(620, .07, "square", .03)
 };
-function say(w) {
-  const vol = S.settings ? S.settings.voice : 1;
-  if (muted || vol <= 0 || !window.speechSynthesis) return;
+function say(w, rate, force) {
+  let vol = S.settings ? S.settings.voice : 1;
+  if (force) vol = Math.max(vol, 0.7);           // v9: the listening replay button always speaks
+  else if (muted || vol <= 0) return;
+  if (!window.speechSynthesis) return;
   try {
     const u = new SpeechSynthesisUtterance(w);
-    u.lang = "en-US"; u.rate = .82; u.volume = vol;
+    u.lang = "en-US"; u.rate = rate || .82; u.volume = vol;
     speechSynthesis.cancel(); speechSynthesis.speak(u);
   } catch (e) {}
 }
+/* v9 listening stages: speak the current word (never shown as text) */
+function sayCurrent(slow, force) {
+  if (!run || !run.cur) return;
+  const D = run.layout && run.layout.diff;
+  const r = (D && D.rate) || .82;
+  say(run.cur.en, slow ? Math.max(0.55, r - 0.22) : r, force);
+}
 $("mute").textContent = muted ? "🔇" : "🔊";
-$("mute").onclick = () => { muted = !muted; S.muted = muted; save(); $("mute").textContent = muted ? "🔇" : "🔊"; };
+function toggleMute() { muted = !muted; S.muted = muted; save(); $("mute").textContent = muted ? "🔇" : "🔊"; if ($("btn-hud-mute")) $("btn-hud-mute").textContent = muted ? "🔇" : "🔊"; }
+$("mute").onclick = toggleMute;
+if ($("btn-hud-mute")) { $("btn-hud-mute").textContent = muted ? "🔇" : "🔊"; $("btn-hud-mute").onclick = toggleMute; }
 
 /* ===== PROGRESS HELPERS ===== */
 const starSum = () => Object.values(S.prog).reduce((a, b) => a + b, 0);
@@ -133,7 +144,7 @@ function syncDevButton(id) {
   const menu = isDev() && (id === "s-title" || id === "s-map" || id === "s-help" || id === "s-jr" || id === "s-nb");
   btn.classList.toggle("hidden", !menu);
 }
-function showUI(id) { hideAll(); $(id).classList.remove("hidden"); syncDevButton(id); }
+function showUI(id) { hideAll(); $(id).classList.remove("hidden"); syncDevButton(id); document.body.dataset.ui = id; }
 function showModal(html) {
   $("modal-box").innerHTML = html;
   $("modal").classList.remove("hidden");
@@ -157,17 +168,27 @@ function refreshMapStats() {
 function stageLabel(i, k) {
   const t = ST[i][k];
   if (t[1] === "boss") return t[0];
-  const ms = stageModes(runnerModeOf(t[1]), k, false, S.settings);
-  if (t[1] === "tr" && ms.length === 1 && (ms[0] === "en2he" || ms[0] === "tr")) return MODE_LABEL[ms[0]];
-  if (ms.length === 1 && ms[0] !== runnerModeOf(t[1])) return MODE_LABEL[ms[0]] || t[0];
-  return t[0];
+  return MODE_LABEL[worldMode(i + 1, S.settings)] || t[0];
 }
+/* v9: what changes inside a world (shown under the stage tile) */
+function stageTwist(i, k) {
+  const m = worldMode(i + 1, S.settings);
+  const D = difficultyFor(i + 1, k, k === BOSS_ST, S.settings);
+  let t = "";
+  if (m === "picw") t = D.picRiddle ? "תמונה + חידה" : "תמונה בלבד";
+  else if (m === "let") t = D.letMissing >= 2 ? "שתי אותיות" : "אות אחת";
+  else if (m === "build") t = D.spellModel ? "עם דוגמה" : "בלי דוגמה";
+  const fire = "⚡".repeat(Math.min(5, 1 + Math.floor((i * 6 + Math.min(k, 6)) / 10)));
+  return `<div class="t-twist">${t ? esc(t) + " · " : ""}${fire}</div>`;
+}
+/* v9: the exercise type of world i (0-based), in Hebrew, after the settings toggles */
+function worldTypeLabel(i) { return MODE_LABEL[worldMode(i + 1, S.settings)] || ""; }
 function renderWorldChips() {
   const box = $("world-chips");
   if (!box) return;
   box.innerHTML = WORLDS.map((w, i) => {
     const done = ST[i].filter((_, k) => stDone(w.id, k)).length;
-    return `<button class="wchip${i === selectedWorld ? " sel" : ""}${wOpen(i) ? "" : " lock"}" data-w="${i}">${w.icon} ${esc(w.name)} ${wOpen(i) ? done + "/" + NSTAGES : "🔒"}</button>`;
+    return `<button class="wchip${i === selectedWorld ? " sel" : ""}${wOpen(i) ? "" : " lock"}" data-w="${i}">${w.icon} ${esc(w.name)} <span class="wtype">${esc(worldTypeLabel(i))}</span> ${wOpen(i) ? done + "/" + NSTAGES : "🔒"}</button>`;
   }).join("");
   box.onclick = (e) => {
     const b = e.target.closest("[data-w]");
@@ -181,11 +202,13 @@ function renderWorldChips() {
 function renderStages() {
   const i = selectedWorld;
   const w = WORLDS[i];
+  const wt = $("world-type");
+  if (wt) wt.innerHTML = `${w.icon} <b>${esc(w.name)}</b> · ${esc(worldTypeLabel(i))}: ${esc(MODE_DESC[worldMode(i + 1, S.settings)] || "")}`;
   $("stage-bar").innerHTML = ST[i].map((t, k) => {
     const op = sOpen(i, k);
     const n = S.prog[w.id + "-" + k] || 0;
     return `<button class="tile${k === BOSS_ST ? " boss" : ""}" data-st="${k}" ${op ? "" : "disabled"}>
-      <small>${k === BOSS_ST ? "⚔️ בוס" : "שלב " + (k + 1)}</small><div class="t-mode">${stageLabel(i, k)}</div>
+      <small>${k === BOSS_ST ? "⚔️ בוס" : "שלב " + (k + 1)}</small><div class="t-mode">${stageLabel(i, k)}</div>${stageTwist(i, k)}
       <div class="t-scene">${esc(stageSceneName(w.id, k))}</div>
       <div>${op ? (n ? "⭐".repeat(n) : "▶") : "🔒"}</div>
     </button>`;
@@ -370,11 +393,30 @@ runLights.key = playerKey;
 lightsReady = true;
 applyLightTier();
 
-addEventListener("resize", () => {
-  camera.aspect = innerWidth / innerHeight;
+/* v9: portrait + landscape on phones / tablets. The vertical FOV widens on narrow (portrait) screens so
+   all three lanes stay visible; sizes are re-read on resize, orientationchange and visualViewport changes
+   (iOS reports the new size late, so we re-check a few times and once per frame). */
+const BASE_FOV = 52;
+let viewW = 0, viewH = 0;
+function fitView(force) {
+  const w = Math.max(1, innerWidth), h = Math.max(1, innerHeight);
+  if (!force && w === viewW && h === viewH) return false;
+  viewW = w; viewH = h;
+  const a = w / h;
+  camera.aspect = a;
+  const minA = 1.25; // below this aspect keep the horizontal view of a 1.25:1 screen
+  camera.fov = a >= minA ? BASE_FOV : Math.min(80, 2 * Math.atan(Math.tan(BASE_FOV * Math.PI / 360) * minA / a) * 180 / Math.PI);
   camera.updateProjectionMatrix();
+  document.documentElement.classList.toggle("portrait", a < 0.9);
+  document.documentElement.classList.toggle("short", h <= 520);
   applyQuality();
-});
+  return true;
+}
+const refit = () => { fitView(); setTimeout(fitView, 120); setTimeout(fitView, 450); };
+addEventListener("resize", refit);
+addEventListener("orientationchange", refit);
+if (window.visualViewport) visualViewport.addEventListener("resize", refit);
+fitView(true);
 
 /* ===== LOADER ===== */
 function normAsset(u) {
@@ -1494,6 +1536,7 @@ function buildGate(options) {
     sign.position.set(xs[i], 2.32, 0.2);
     sign.name = "laneSign";
     sign.userData.lane = i;
+    if (opt === CLOSED && sign.children[0] && sign.children[0].material) sign.children[0].material.color.setHex(0x8a8a8a);
     g.add(sign);
   });
   if (!run || run.i % 2 === 0) {
@@ -1652,6 +1695,7 @@ function setLaneOpts(opts) {
     const el = $("lane-opt-" + i);
     if (!el) return;
     el.textContent = o;
+    el.classList.toggle("closed", o === CLOSED);
     const n = String(o).length;
     el.style.fontSize = n >= 12 ? "18px" : n >= 10 ? "22px" : n >= 8 ? "26px" : n >= 6 ? "30px" : "";
   });
@@ -1679,6 +1723,24 @@ function clearLetters() {
 }
 const PIC_COUNT = (() => { const c = {}; WORDS.forEach((w) => { if (w.pic) c[w.pic] = (c[w.pic] || 0) + 1; }); return c; })();
 const picOK = (w) => !!(w && w.pic && PIC_COUNT[w.pic] === 1);
+const CLOSED = "✖";                       // v9 easy: the third lane is closed (only 2 answers)
+function laneOptions(answer, wrong, nOpts) {
+  const list = shuffle([answer, ...wrong.slice(0, Math.max(1, nOpts - 1))]);
+  while (list.length < 3) list.splice(Math.floor(Math.random() * (list.length + 1)), 0, CLOSED);
+  return list.slice(0, 3);
+}
+function pairDistractors(pair, k, sim) {
+  const out = new Set();
+  let guard = 0;
+  while (out.size < k && guard++ < 60) {
+    const which = guard % 3;
+    const a = which === 1 ? pair[0] : letterDistractors(pair[0], 1, sim)[0];
+    const b = which === 2 ? pair[1] : letterDistractors(pair[1], 1, sim)[0];
+    const c = a + b;
+    if (c !== pair) out.add(c);
+  }
+  return [...out];
+}
 function setupQuestion() {
   if (!run || run.i >= run.queue.length) return;
   clearLetters();
@@ -1689,53 +1751,70 @@ function setupQuestion() {
   if (isSpellMode(mode) && !spellOK(w)) mode = modes.find((m) => !isSpellMode(m)) || "en2he";
   if (mode === "picw" && !picOK(w)) mode = modes.find((m) => m !== "picw" && !isSpellMode(m)) || "tr";
   run.activeMode = mode;
-  const sim = (run.layout && run.layout.diff && run.layout.diff.similarity) || 0;
+  const D = (run.layout && run.layout.diff) || {};
+  const sim = D.similarity || 0;
+  const nOpts = D.options || 3;
+  $("prompt").classList.toggle("listen", isListenMode(mode));
   if (mode === "build") {
     setLaneOpts(null);
     setPrompt("אספו את האותיות לפי הסדר", w.he, w.pic);
     spawnLetterWord(w);
     return;
   }
-  let opts, ans, sub, q, emoji = "";
+  let opts, sub, q, emoji = "", answer, extraT = 0;
   if (mode === "let") {
     const E = w.en.toUpperCase();
-    const k = E.length <= 3 ? 1 : 1 + Math.floor(Math.random() * (E.length - 2));
-    const c = E[k];
-    opts = shuffle([c, ...letterDistractors(c, 2, sim)]);
-    ans = opts.indexOf(c);
-    sub = "איזו אות חסרה?";
-    q = `<span class="en">${esc(E.slice(0, k))}_${esc(E.slice(k + 1))}</span>`;
-    emoji = w.pic;
+    const two = (D.letMissing || 1) >= 2 && E.length >= 5;
+    const span = two ? 2 : 1;
+    const lo = D.letAny ? 0 : 1, hi = D.letAny ? E.length - span : E.length - span - 1;
+    const kk = E.length <= 3 ? 1 : lo + Math.floor(Math.random() * Math.max(1, hi - lo + 1));
+    answer = E.slice(kk, kk + span);
+    opts = laneOptions(answer, two ? pairDistractors(answer, 2, sim) : letterDistractors(answer, 2, sim), nOpts);
+    sub = two ? "אילו שתי אותיות חסרות?" : "איזו אות חסרה?";
+    q = `<span class="en">${esc(E.slice(0, kk))}${two ? "__" : "_"}${esc(E.slice(kk + span))}</span>`;
+    emoji = D.picRiddle ? w.pic : "";
+    if (!D.picRiddle) q += `<div class="riddle">${esc(w.he)}</div>`;
   } else if (mode === "en2he") {
-    opts = shuffle([w.he, ...distractors(w, "he", 2, sim)]);
-    ans = opts.indexOf(w.he);
+    answer = w.he;
+    opts = laneOptions(answer, distractors(w, "he", 2, sim), nOpts);
     sub = "מה הפירוש בעברית? רצו אל השער";
     q = `<span class="en">${esc(w.en)}</span>`;
   } else if (mode === "picw") {
-    // v8b picture riddle: emoji + Hebrew riddle -> pick the English word (distractors never share the picture)
+    // picture -> pick the English word (distractors never share the picture); late stages: no riddle text
     const ds = distractors(w, "en", 5, sim).filter((d) => { const x = WORDS.find((y) => y.en === d); return !x || x.pic !== w.pic; }).slice(0, 2);
     while (ds.length < 2) { const x = WORDS[Math.floor(Math.random() * WORDS.length)]; if (x.pic !== w.pic && x.en !== w.en && !ds.includes(x.en)) ds.push(x.en); }
-    opts = shuffle([w.en, ...ds]);
-    ans = opts.indexOf(w.en);
-    sub = "תמונה וחידה — רצו אל המילה באנגלית";
-    q = `<span class="pic-big">${w.pic}</span><div class="riddle">${esc(w.clue || "מה רואים בתמונה?")}</div>`;
-  } else if (mode === "rev") {
-    opts = shuffle([w.he, ...distractors(w, "he", 2, sim)]);
-    ans = opts.indexOf(w.he);
-    sub = "הקשיבו למילה באנגלית — רצו אל הפירוש בעברית";
-    q = `<span class="en">${esc(w.en)}</span>`;
-    say(w.en);
+    answer = w.en;
+    opts = laneOptions(answer, ds, nOpts);
+    sub = D.picRiddle ? "מה בתמונה? רצו אל המילה באנגלית" : "מה בתמונה? (בלי חידה!) רצו אל המילה באנגלית";
+    q = `<span class="pic-big">${w.pic}</span>${D.picRiddle ? `<div class="riddle">${esc(w.clue || "מה רואים בתמונה?")}</div>` : ""}`;
+    extraT = D.picRiddle ? 0.4 : 0.2;
+  } else if (mode === "rev" || mode === "hear") {
+    // v9 listening: the word is ONLY spoken. Nothing on screen shows it (no text, no picture, no clue).
+    const field = mode === "rev" ? "he" : "en";
+    answer = w[field];
+    opts = laneOptions(answer, distractors(w, field, 2, sim), nOpts);
+    sub = mode === "rev" ? "🎧 הקשיבו למילה באנגלית – מה הפירוש בעברית?" : "🎧 הקשיבו – איזו מילה באנגלית שמעתם?";
+    q = `<span class="listen-ico" aria-hidden="true">🎧</span><button type="button" class="btn p replay-btn" id="btn-replay">🔊 שמעו שוב <small>(R)</small></button>`
+      + (muted ? `<div class="riddle">🔇 הצליל כבוי – לחצו על «שמעו שוב» כדי לשמוע</div>` : "");
+    extraT = 0.8;
+    run.listenAt = performance.now();
+    setTimeout(() => { if (run && run.cur === w && !paused) sayCurrent(false); }, 120);
   } else {
-    opts = shuffle([w.en, ...distractors(w, "en", 2, sim)]);
-    ans = opts.indexOf(w.en);
+    answer = w.en;
+    opts = laneOptions(answer, distractors(w, "en", 2, sim), nOpts);
     sub = "איך אומרים באנגלית? רצו אל השער";
     q = esc(w.he);
   }
+  const ans = opts.indexOf(answer);
   run.opts = opts; run.ans = ans;
   setLaneOpts(opts);
   setPrompt(sub, q, emoji);
-  const lead = (run.layout && run.layout.diff && run.layout.diff.lead) || 20;
-  const s = player.s + (gates.length ? lead : Math.max(12, lead * 0.6));
+  const rb = $("btn-replay");
+  if (rb) rb.onclick = (e) => { e.stopPropagation(); sayCurrent(false, true); };
+  // v9: the gate distance comes from the answer time (seconds) x the current base speed
+  const baseSpeed = ((run.layout && run.layout.speed) || 8) * (S.settings.speed || 1);
+  const lead = D.answerTime ? Math.max(14, (D.answerTime + extraT) * baseSpeed) : (D.lead || 20);
+  const s = player.s + (gates.length ? lead : Math.max(12, lead * 0.75));
   const group = buildGate(opts);
   placeOnCourse(group, s, null, true);
   runScene.add(group);
@@ -1792,7 +1871,7 @@ function updateSpellHud() {
   const sp = run.spell;
   const row = letters.filter((l) => l.index === sp.idx && !l.taken).sort((a, b) => a.lane - b.lane);
   setLaneOpts(row.length === 3 ? row.map((l) => l.ch) : null);
-  const reveal = S.settings.difficulty === "easy" || run.world === 1;
+  const reveal = !!(run.layout && run.layout.diff && run.layout.diff.spellModel);
   const slots = sp.rest.split("").map((c, i) => i < sp.idx ? `<b class="sp-ok">${c}</b>`
     : i === sp.idx ? `<b class="sp-next">${reveal ? c : "?"}</b>` : `<span class="sp-rest">${reveal ? c : "_"}</span>`).join("");
   $("prompt-sub").textContent = "אספו את האותיות לפי הסדר";
@@ -1896,6 +1975,8 @@ function spawnObstacle(s) {
   const L = (run && run.layout) || stageProfile(run ? run.st : 0, run && run.boss, run && run.world);
   if (Math.random() > L.density) return;
   if (!letterObstacleOK(s)) return;
+  // v9 fairness: never put an obstacle right in front of (or inside) an answer gate
+  if (gates.some((g) => !g.resolved && s > g.s - 7 && s < g.s + 2.5)) return;
   const type = L.types[Math.floor(Math.random() * L.types.length)];
   const dbl = L.diff ? L.diff.doubleBlock : 0.28;
   const blocked = type === "beam" ? [0, 1, 2] : shuffle([0, 1, 2]).slice(0, (Math.random() < dbl && L.density > 0.35) ? 2 : 1);
@@ -1941,7 +2022,7 @@ function onCorrect() {
   burst(bp.clone().add(new THREE.Vector3(0.4, 0.3, 0)));
   popEl("prompt");
   popEl("hud-combo");
-  say(w.en);
+  if (!isListenMode(run.activeMode)) say(w.en);
   nextAfterResolve();
 }
 function onWrong() {
@@ -1951,7 +2032,12 @@ function onWrong() {
   sfx.bad(); shakeT = 0.28;
   playAnim(player, "fall", 0.08, true);
   run.stumbleT = 0.7;
-  if (S.settings.showAnswer) {
+  const D = (run.layout && run.layout.diff) || {};
+  if (isListenMode(run.activeMode) && !(D.reveal && S.settings.showAnswer)) {
+    // v9: listening stages never show the word (only EASY reveals it after a miss)
+    setPrompt("לא הפעם – הקשיבו שוב", `<span class="listen-ico">🎧</span><div class="riddle">המילה תחזור שוב בהמשך</div>`);
+    say(w.en, D.rate);
+  } else if (S.settings.showAnswer) {
     setPrompt("כמעט! התשובה היא", `<span class="en">${esc(w.en)}</span> — ${esc(w.he)}`, w.pic);
     say(w.en);
   } else {
@@ -2078,7 +2164,9 @@ async function startLevel(wid, st, lost, opt) {
 
   const stageMode = lost ? "tr" : ST[wid - 1][st][1];
   const boss = stageMode === "boss";
-  const modes = stageModes(runnerModeOf(boss ? "tr" : stageMode), st, boss, S.settings);
+  // v9: every stage (and the boss) of a world uses the world's exercise type; the library mixes translation
+  let modes = stageModes(wid, st, boss, S.settings);
+  if (lost) { const tr = [S.settings.types.en2he ? "en2he" : null, S.settings.types.he2en ? "tr" : null].filter(Boolean); modes = tr.length ? tr : modes; }
   const mode = modes[0];
   const layout = stageProfile(st, boss, wid);
   const D = layout.diff;
@@ -2094,9 +2182,9 @@ async function startLevel(wid, st, lost, opt) {
     const sp = spellable(queue);
     if (sp.length >= 4) queue = sp;
   }
-  if (boss) queue = pickWords(wid, BOSS_ST, false, Math.max(10, D.bossHP + 2), D.lvlMix);
+  if (boss) queue = pickWords(wid, BOSS_ST, false, Math.max(10, D.bossHP + 2), D.lvlMix, allSpell ? spellOK : (modes.length === 1 && modes[0] === "picw" ? picOK : null));
   else if (!lost && modes.length === 1 && modes[0] === "picw") queue = pickWords(wid, st, false, 8, D.lvlMix, picOK);
-  else if (!lost && stageMode === "mix") queue = pickWords(wid, st, false, 10, D.lvlMix);
+  else if (!lost && modes.length > 2) queue = pickWords(wid, st, false, 10, D.lvlMix);
 
   run = {
     world: wid, st, lost, mode, qmode: mode, modes, boss, queue, i: 0, score: 0, coins: 0,
@@ -2109,7 +2197,7 @@ async function startLevel(wid, st, lost, opt) {
   const spellLen = queue.reduce((a, w) => a + w.en.replace(/[^A-Za-z]/g, "").length, 0);
   const needLen = modes.includes("build")
     ? (D.letterFirst + 10) * queue.length + spellLen * D.letterGap * 1.25 + 200
-    : queue.length * D.lead * (boss ? 3.4 : 2.2) + 260;
+    : queue.length * (D.lead + 0.8 * D.speed) * (boss ? 3.4 : 2.2) + 260;
   run.course = buildCourse({
     curve: run.layout.curve,
     hillAmp: run.layout.hillAmp,
@@ -2202,11 +2290,26 @@ async function startLevel(wid, st, lost, opt) {
   const title = lost ? "📚 ספריית המילים האבודות" : (boss ? "⚔️ " + BOSSES[wid - 1].name : stageLabel(wid - 1, st));
   const scene = lost ? "" : `<p class="scene-name">${esc(stageSceneName(wid, st))}</p>`;
   showUI("hud");
-  $("btn-hint").classList.toggle("hidden", !S.settings.hints);
-  showModal(`<h2>${title}</h2>${scene}<p>${boss ? "הבוס רץ מאחוריכם! ענו נכון כדי להחליש אותו!" : (st === 0 && !lost ? INTRO[wid - 1] : "קדימה, אתם יכולים!")}</p>
-    <button class="btn g" id="mgo">יוצאים לדרך ▶</button>`);
+  $("btn-hint").classList.toggle("hidden", !(S.settings.hints && D.hints));
+  const how = lost ? "" : `<p class="mode-how">${esc(MODE_DESC[worldMode(wid, S.settings)] || "")}</p>`;
+  const lvl = `<p class="lvl-line">רמת קושי: <b>${esc(DIFFS[D.level].label)}</b> · ❤️ ${D.hearts} · ${D.options === 2 ? "2 תשובות" : "3 תשובות"}${boss ? "" : " · שלב " + (st + 1) + " מתוך 6"}</p>`;
+  showModal(`<h2>${title}</h2>${scene}${how}<p>${boss ? "הבוס רץ מאחוריכם! ענו נכון כדי להחליש אותו!" : (st === 0 && !lost ? INTRO[wid - 1] : "כל שלב קשה יותר מהקודם. קדימה, אתם יכולים!")}</p>${lvl}
+    <button class="btn g" id="mgo">יוצאים לדרך ▶</button>${opt && opt.quick ? `<p class="mgo-count" id="mgo-count"></p>` : ""}`);
+  if (opt && opt.quick) {
+    // v9: from «שחקו!» the run starts by itself after a short countdown (no extra click needed)
+    let left = isListenMode(run.activeMode) ? 6 : 4;
+    const tickDown = () => {
+      const c = $("mgo-count"), b = $("mgo");
+      if (!c || !b || appMode !== "run") return;
+      if (left <= 0) { b.click(); return; }
+      c.textContent = `מתחילים לבד בעוד ${left}…`;
+      left--; setTimeout(tickDown, 1000);
+    };
+    tickDown();
+  }
   $("mgo").onclick = () => {
     hideModal(); paused = false; playAnim(player, "sprint");
+    if (run && isListenMode(run.activeMode)) sayCurrent(false);
     // v8b: re-validate the boss shader once the run's light/shadow setup is final (fixes a black jungle boss)
     const touchBoss = () => { if (bossActor && bossActor.model) bossActor.model.traverse((o) => { if (o.isMesh) [].concat(o.material || []).forEach((m) => { if (m) m.needsUpdate = true; }); }); };
     touchBoss(); setTimeout(touchBoss, 400);
@@ -2258,8 +2361,9 @@ function changeLane(dir) {
   player.lane = Math.max(0, Math.min(2, player.lane + dir));
 }
 function jump() {
-  if (!player || paused || appMode !== "run" || player.jumping) return;
-  player.jumping = true; player.vy = 8.4; player.sliding = false;
+  if (!player || paused || appMode !== "run") return;
+  if (player.jumping) { if (player.vy < 0 && player.y < 0.6) player.jumpQ = true; return; }
+  player.jumping = true; player.vy = 9.6; player.sliding = false;
   playAnim(player, "jump", 0.08, true); sfx.jump();
 }
 function slide() {
@@ -2272,6 +2376,7 @@ addEventListener("keydown", (e) => {
   else if (e.key === "ArrowRight" || e.key === "d" || e.key === "D") { e.preventDefault(); changeLane(1); }
   else if (e.key === "ArrowUp" || e.key === " " ) { e.preventDefault(); jump(); }
   else if (e.key === "ArrowDown") { e.preventDefault(); slide(); }
+  else if ((e.code === "KeyR" || e.key === "r" || e.key === "R" || e.key === "ר") && appMode === "run" && run && isListenMode(run.activeMode)) { e.preventDefault(); sayCurrent(false, true); }
   else if ((e.key === "Escape" || e.key === "p" || e.key === "P") && appMode === "run" && run && $("s-settings").classList.contains("hidden")) {
     e.preventDefault();
     if (!$("modal").classList.contains("hidden") && $("pause-box")) { $("p-resume").click(); }
@@ -2316,6 +2421,7 @@ function monitorFps(raw) {
   }
 }
 function tick(now) {
+  if (innerWidth !== viewW || innerHeight !== viewH) fitView();
   requestAnimationFrame(tick);
   const raw = (now - last) / 1000 || 0;
   const dt = Math.min(0.05, raw); last = now;
@@ -2418,7 +2524,8 @@ function updateRunner(dt) {
   const world = WORLDS[run.world - 1];
   let base = ((run.layout && run.layout.speed) || 8.2) * (S.settings.speed || 1);
   if (run.activeMode === "build" && run.layout && run.layout.diff) base *= run.layout.diff.letterSpeed || 1;
-  let speed = base * (1 + Math.min(run.activeMode === "build" ? 0.15 : 0.42, run.combo * 0.028));
+  const cap = (run.layout && run.layout.diff && run.layout.diff.comboCap != null) ? run.layout.diff.comboCap : 0.42;
+  let speed = base * (1 + Math.min(run.activeMode === "build" ? Math.min(0.15, cap) : cap, run.combo * 0.028));
   if (run.stumbleT > 0) { run.stumbleT -= dt; speed *= 0.4; }
   if (run.iFrames > 0) run.iFrames -= dt;
   player.s = (player.s || 0) + speed * dt;
@@ -2427,10 +2534,10 @@ function updateRunner(dt) {
   player.laneShift = (player.laneShift == null ? want : player.laneShift);
   player.laneShift += (want - player.laneShift) * Math.min(1, dt * 11);
   if (player.jumping) {
-    player.vy += -26 * dt;
+    player.vy += -23 * dt;
     player.y += player.vy * dt;
     if (player.y <= 0) {
-      player.y = 0; player.vy = 0; player.jumping = false;
+      player.y = 0; player.vy = 0; player.jumping = false; if (player.jumpQ) { player.jumpQ = false; jump(); }
       playAnim(player, player.sliding ? "crouch" : "sprint");
     }
   }
@@ -2478,7 +2585,7 @@ function updateRunner(dt) {
     run.nextCoinS += 5 + Math.random() * 4;
   }
   if (player.s > run.nextObsS) {
-    spawnObstacle(player.s + 20);
+    spawnObstacle(player.s + Math.max(20, base * 1.9));
     run.nextObsS += ((run.layout && run.layout.diff && run.layout.diff.spacing) || 10.5) + Math.random() * 4;
   }
 
@@ -2496,7 +2603,7 @@ function updateRunner(dt) {
     if (o.spin) o.mesh.rotation.x += dt * o.spin;
     if ((o.s != null ? o.s : 0) < player.s - 4) { o.hit = true; disposeDeep(o.mesh); continue; }
     if (Math.abs((o.s || 0) - player.s) < 0.7 && o.lane === playerLaneNow()) {
-      if ((o.type === "low" || o.type === "hole") && player.y > 0.48) continue;
+      if ((o.type === "low" || o.type === "hole") && player.y > 0.4) continue;
       if (o.type === "beam" && player.sliding) continue;
       hitObstacle(o);
     }
@@ -2597,15 +2704,24 @@ function updateRunCamera(dt) {
 /* ===== HINT / MENUS ===== */
 function openHint() {
   if (!run || !run.cur) return;
+  if (run.layout && run.layout.diff && run.layout.diff.hints === false) return; // v9: no hints on HARD
   grantAch("hint");
   paused = true;
   helpCard(Math.max(run.hint, 1) || 1);
 }
 function helpCard(l) {
   const w = run.cur, e = w.en.toUpperCase();
+  const D = (run.layout && run.layout.diff) || {};
+  const listen = isListenMode(run.activeMode);
+  // v9 listening: hint 1 = hear it again slowly (no text). Letters / answer only on EASY after a miss.
+  const maxL = listen ? ((D.reveal && run.wrongHere) ? 3 : 1) : 3;
+  l = Math.min(l, maxL);
   run.hint = Math.max(run.hint, l);
   let body;
-  if (l === 1) body = `<div style="font-size:64px">${w.pic}</div><p>${esc(w.clue)}</p>`;
+  if (listen && l === 1) {
+    body = `<div style="font-size:64px">🎧</div><p>הקשיבו שוב – הפעם לאט יותר.</p><button class="btn s" id="hsay">🔊 שמעו שוב לאט</button>`;
+    sayCurrent(true, true);
+  } else if (l === 1) body = `<div style="font-size:64px">${w.pic}</div><p>${esc(w.clue)}</p>`;
   else if (l === 2) {
     const sp = e.split("").map((c, i) => (i === 0 || i === e.length - 1) ? c : (i % 2 ? "_" : c)).join(" ");
     body = `<p>${e.replace(/ /g, "").length} אותיות. האות הראשונה: <b class="en">${esc(e[0])}</b></p><div class="en" style="font-size:36px;font-weight:800">${esc(sp)}</div>`;
@@ -2617,11 +2733,11 @@ function helpCard(l) {
   showModal(`<h2>🦉 הינשוף החכם (רמז ${l}/3)</h2>${body}
     <div class="row" style="margin-top:10px">
       <button class="btn g" id="hback">חוזרים לריצה</button>
-      ${l < 3 ? `<button class="btn s" id="hmore">עוד רמז</button>` : ""}
+      ${l < maxL ? `<button class="btn s" id="hmore">עוד רמז</button>` : ""}
     </div>`);
   $("hback").onclick = () => { hideModal(); paused = false; };
   const more = $("hmore"); if (more) more.onclick = () => helpCard(l + 1);
-  const hs = $("hsay"); if (hs) hs.onclick = () => say(w.en);
+  const hs = $("hsay"); if (hs) hs.onclick = () => (listen && l === 1 ? sayCurrent(true, true) : say(w.en, 0, true));
 }
 
 function goMapMode() {
@@ -2638,7 +2754,31 @@ function goMapMode() {
 }
 function goTitle() {
   paused = true; appMode = "title";
-  showUI("s-title"); highlightHero(); focusTitleCam();
+  showUI("s-title"); highlightHero(); focusTitleCam(); refreshPlayNext();
+}
+/* v9 one-click start: the next stage that is open and not finished yet (World 1 · Stage 1 for new players) */
+function nextStage() {
+  for (let i = 0; i < WORLDS.length; i++) {
+    if (!wOpen(i)) break;
+    for (let k = 0; k < NSTAGES; k++) if (sOpen(i, k) && !stDone(WORLDS[i].id, k)) return { wid: WORLDS[i].id, st: k };
+  }
+  // everything open is done: replay the last open world's boss
+  let last = 0;
+  for (let i = 0; i < WORLDS.length; i++) if (wOpen(i)) last = i;
+  return { wid: WORLDS[last].id, st: BOSS_ST };
+}
+function refreshPlayNext() {
+  const el = $("play-next");
+  if (!el) return;
+  const n = nextStage(), w = WORLDS[n.wid - 1];
+  const fresh = !Object.keys(S.prog || {}).length;
+  el.textContent = (fresh ? "מתחילים: " : "ממשיכים: ") + `${w.icon} ${w.name} · ${n.st === BOSS_ST ? "בוס" : "שלב " + (n.st + 1)} · ${worldTypeLabel(n.wid - 1)}`;
+}
+function playNow() {
+  sfx.click();
+  const n = nextStage();
+  selectedWorld = n.wid - 1;
+  startLevel(n.wid, n.st, false, { quick: true });
 }
 
 function drawHeroBtns() {
@@ -2651,6 +2791,8 @@ $("hero-btns").onclick = (e) => {
   S.hero = +b.dataset.h; save(); highlightHero(); drawHeroBtns(); sfx.click();
 };
 $("btn-start").onclick = () => goMapMode();
+$("btn-play").onclick = () => playNow();
+$("btn-title-settings").onclick = () => { sfx.click(); openSettings(); };
 $("btn-help").onclick = () => { showUI("s-help"); appMode = "title"; };
 $("btn-help-back").onclick = () => goTitle();
 initSettingsUI();
@@ -2818,43 +2960,56 @@ function segRow(name, opts, cur) {
 }
 function renderSettings(msg) {
   const st = S.settings;
+  const ex = (t) => `<p class="set-explain">${t}</p>`;
   const autoNow = st.gfx === "auto" ? `כרגע נבחרה: <b>${TIER_HE[tier()]}</b>${autoReason ? " · " + esc(autoReason) : ""}` : "";
   $("set-body").innerHTML = `
     <div class="set-sec"><h3>🎯 רמת קושי</h3>
+      ${ex("כמה המשחק קשה: מהירות הריצה, מספר הלבבות, כמה זמן יש לענות וכמה תשובות יש לבחירה.")}
       ${segRow("difficulty", Object.keys(DIFFS).map((k) => ({ v: k, label: DIFFS[k].label })), st.difficulty)}
-      <p class="set-note">קל: איטי יותר, 4 לבבות ויותר זמן לענות · קשה: מהיר יותר, מילים ותשובות מבלבלות יותר ובוס חזק יותר. בכל רמה העולמות המתקדמים קשים יותר.</p></div>
-    <div class="set-sec"><h3>❓ סוגי שאלות</h3>
+      <ul class="diff-desc">${Object.keys(DIFFS).map((k) => `<li class="${k === st.difficulty ? "on" : ""}"><b>${esc(DIFFS[k].label)}:</b> ${esc(DIFFS[k].desc)}</li>`).join("")}</ul>
+      <p class="set-note">בכל רמה: כל שלב קשה יותר מהקודם, וכל עולם קשה יותר מהעולם שלפניו.</p></div>
+    <div class="set-sec"><h3>❓ סוגי תרגילים</h3>
+      ${ex("אילו תרגילים יופיעו במשחק. מסמנים ✔ את מה שרוצים לתרגל, ומורידים את הסימון ממה שלא.")}
       <div class="set-checks">${QTYPES.map((q) => `<label class="set-check"><input type="checkbox" data-type="${q.key}" ${st.types[q.key] ? "checked" : ""}> ${esc(q.label)}</label>`).join("")}</div>
-      <p class="set-note" id="set-types-msg">${msg ? esc(msg) : "שלבים שהסוג שלהם כבוי יקבלו סוג שאלה אחר מהרשימה."}</p></div>
-    <div class="set-sec"><h3>🏃 מהירות המשחק</h3>${segRow("speed", SPEEDS, st.speed)}</div>
-    <div class="set-sec"><h3>🖥️ איכות גרפיקה</h3>${segRow("gfx", GFX_OPTS, st.gfx)}
+      <p class="set-note" id="set-types-msg">${msg ? esc(msg) : "לכל עולם יש סוג תרגיל משלו. עולם שהסוג שלו כבוי יקבל סוג דומה אחר."}</p></div>
+    <div class="set-sec"><h3>🏃 מהירות המשחק</h3>
+      ${ex("כמה מהר הדמות רצה, בלי קשר לרמת הקושי. «איטי» נותן יותר זמן לקרוא ולחשוב.")}
+      ${segRow("speed", SPEEDS, st.speed)}</div>
+    <div class="set-sec"><h3>🖥️ איכות גרפיקה</h3>
+      ${ex("כמה יפה התמונה. אם המשחק איטי או נתקע – בחרו «נמוכה». «אוטומטי» בוחר לבד לפי המחשב.")}
+      ${segRow("gfx", GFX_OPTS, st.gfx)}
       <p class="set-note">נמוכה: תמונה מפוקסלת ברזולוציה נמוכה, הכי מהירה למחשבים ישנים. ${autoNow}</p></div>
     <div class="set-sec"><h3>🔊 צלילים</h3>
-      <label class="set-range">אפקטים <input type="range" min="0" max="100" step="10" data-range="sfx" value="${Math.round(st.sfx * 100)}"><span>${Math.round(st.sfx * 100)}%</span></label>
-      <label class="set-range">הקראה באנגלית <input type="range" min="0" max="100" step="10" data-range="voice" value="${Math.round(st.voice * 100)}"><span>${Math.round(st.voice * 100)}%</span></label>
-      <button type="button" class="btn s" id="set-test-voice">🔊 בדיקת הקראה</button></div>
+      <div class="set-item">${ex("עוצמת אפקטי הצליל: מטבעות, קפיצות, תשובה נכונה או שגויה.")}
+      <label class="set-range">אפקטים <input type="range" min="0" max="100" step="10" data-range="sfx" value="${Math.round(st.sfx * 100)}"><span>${Math.round(st.sfx * 100)}%</span></label></div>
+      <div class="set-item">${ex("עוצמת הקול שמקריא את המילים באנגלית. בעולמות ההאזנה חייבים לשמוע אותו!")}
+      <label class="set-range">הקראה באנגלית <input type="range" min="0" max="100" step="10" data-range="voice" value="${Math.round(st.voice * 100)}"><span>${Math.round(st.voice * 100)}%</span></label></div>
+      <div class="set-item">${ex("לוחצים כדי לבדוק שהרמקולים עובדים ושומעים את ההקראה.")}
+      <button type="button" class="btn s" id="set-test-voice">🔊 בדיקת הקראה</button></div></div>
     <div class="set-sec"><h3>🦉 עזרה</h3>
-      <div class="set-checks">
-        <label class="set-check"><input type="checkbox" data-flag="hints" ${st.hints ? "checked" : ""}> כפתור רמזים (הינשוף)</label>
-        <label class="set-check"><input type="checkbox" data-flag="showAnswer" ${st.showAnswer ? "checked" : ""}> הצגת התשובה הנכונה אחרי טעות</label>
-      </div></div>
-    <p class="set-note">${appMode === "run" ? "שינוי ברמת הקושי ובסוגי השאלות ייכנס לתוקף מהשלב הבא. מהירות, גרפיקה וצלילים משתנים מיד." : "ההגדרות נשמרות במחשב הזה."}</p>`;
+      <div class="set-item">${ex("מציג את כפתור הינשוף בזמן הריצה – אפשר לבקש רמז כשתקועים. (ברמה «קשה» אין רמזים.)")}
+        <label class="set-check"><input type="checkbox" data-flag="hints" ${st.hints ? "checked" : ""}> כפתור רמזים (הינשוף)</label></div>
+      <div class="set-item">${ex("אחרי טעות מופיעה התשובה הנכונה, כדי ללמוד ממנה. (בעולמות ההאזנה – רק ברמה «קל».)")}
+        <label class="set-check"><input type="checkbox" data-flag="showAnswer" ${st.showAnswer ? "checked" : ""}> הצגת התשובה הנכונה אחרי טעות</label></div></div>
+    <p class="set-note">${appMode === "run" ? "שינוי ברמת הקושי ובסוגי התרגילים ייכנס לתוקף מהשלב הבא. מהירות, גרפיקה וצלילים משתנים מיד." : "ההגדרות נשמרות במחשב הזה."}</p>`;
 }
 function applySettingChange(kind) {
   S.settings = normSettings(S.settings);
   save();
   if (kind === "gfx") { autoTier = null; if (S.settings.gfx === "auto") { S.autoTier = null; fpsMon.drops = 0; save(); } applyQuality(); if (appMode === "run" && run) applyStageLook(WORLDS[run.world - 1]); }
-  if (kind === "types" || kind === "difficulty") { if (appMode === "map") renderStages(); fillDevGrid(); }
-  if (kind === "flag" && appMode === "run") $("btn-hint").classList.toggle("hidden", !S.settings.hints);
+  if (kind === "types" || kind === "difficulty") { if (appMode === "map") renderStages(); fillDevGrid(); refreshPlayNext(); }
+  if (kind === "flag" && appMode === "run") $("btn-hint").classList.toggle("hidden", !(S.settings.hints && !(run && run.layout && run.layout.diff && run.layout.diff.hints === false)));
 }
 function openSettings(back) {
   settingsBack = back || null;
   if (appMode === "run" && !paused) { paused = true; settingsBack = settingsBack || "resume"; }
   renderSettings();
   $("s-settings").classList.remove("hidden");
+  document.body.classList.add("set-open");
 }
 function closeSettings() {
   $("s-settings").classList.add("hidden");
+  document.body.classList.remove("set-open");
   const b = settingsBack; settingsBack = null;
   if (b === "pause") openPause();
   else if (b === "resume" && appMode === "run" && run && $("modal").classList.contains("hidden")) paused = false;
@@ -2953,6 +3108,7 @@ const ready = (async function boot() {
   camera.lookAt(lookGoal);
   appMode = "title";
   showUI("s-title");
+  refreshPlayNext();
   requestAnimationFrame(tick);
 })();
 
@@ -3077,6 +3233,8 @@ window.MQ = {
   openDevPanel,
   checkLaneAlignment,
   getMode: () => appMode,
+  worldMode: (w) => worldMode(w, S.settings),
+  stageModes: (w, st, b) => stageModes(w, st, b, S.settings),
   getRun: () => run,
   getPlayer: () => player,
   getGates: () => gates,
