@@ -159,7 +159,21 @@ const learnedCount = () => activeWords().filter((w) => (S.notebook[w.en] && S.no
 const worldsDone = () => WORLDS.filter((w) => ST[w.id - 1].every((_, t) => stDone(w.id, t))).length;
 function grantAch(id) { if (!S.ach.includes(id)) { S.ach.push(id); save(); } }
 
+// v11.6: Englishia performance report (signed-in players): word, skill, picked vs right answer
+const MQ_SKILL = { en2he: "תרגום לעברית", tr: "תרגום לאנגלית", let: "אות חסרה (איות)", build: "איסוף אותיות (איות)", picw: "תמונה ומילה", rev: "הקשבה: פירוש בעברית", hear: "הקשבה: מילה באנגלית" };
+function mqReport(word, ok) {
+  const A = window.EnglishiaAuth;
+  if (!A || !A.recordAnswer || !A.user || !run || !word) return;
+  const m = run.activeMode === "wait" ? "build" : run.activeMode;
+  const lanes = m !== "build" && run.opts;
+  const given = ok ? "" : (lanes ? String(run.opts[playerLaneNow()] == null ? "" : run.opts[playerLaneNow()]) : "אות לא נכונה");
+  const expected = lanes && run.ans >= 0 ? String(run.opts[run.ans]) : word.en;
+  const wn = WORLDS[run.world - 1];
+  A.recordAnswer("mila-quest", { item: word.en, prompt: word.he, topic: MQ_SKILL[m] || "אוצר מילים",
+    level: (wn ? wn.name : "עולם " + run.world) + " · " + (run.boss ? "בוס" : "שלב " + (run.st + 1)), correct: !!ok, given, expected });
+}
 function record(word, ok, hint, wrongHere) {
+  try { mqReport(word, ok); } catch (e) {}
   S.known = S.known || {};
   if (ok) {
     const clean = !hint && !wrongHere;

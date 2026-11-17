@@ -399,7 +399,7 @@ function setActiveForm(i) { input.active = i; input.val = input.forms[i]; render
 function renderFormLines() { [0, 1, 2].forEach(function (i) { var el = $("#fl" + i); if (!el) return; el.className = "ansline" + (i === input.active ? " act" : ""); el.innerHTML = esc(input.forms[i]) + (i === input.active ? '<span class="cur"></span>' : ""); }); }
 function checkForms() {
   if (!ui.formsMode) return; ui.formsMode = false; var it = G.it, f = formsOf(it), ok = f.map(function (t, i) { return formOk(t, input.forms[i]); }), n = ok.filter(Boolean).length, pts = n * 2;
-  G.score += pts; G.bd.forms += pts; G.formRes = { ok: ok, vals: input.forms.slice(), n: n }; updScore(); beep(n === 3 ? "ok" : n ? "partial" : "wrong");
+  G.score += pts; G.bd.forms += pts; G.formRes = { ok: ok, vals: input.forms.slice(), n: n }; updScore(); wdReport(it, input.forms.join(" / "), n === 3, { item: it.id + " forms " + f.join("/"), topic: "צורות הפועל (V1 V2 V3)", given: input.forms.join(" / "), expected: f.join(" / ") }); beep(n === 3 ? "ok" : n ? "partial" : "wrong");
   [0, 1, 2].forEach(function (i) { var el = $("#fl" + i); el.className = "ansline " + (ok[i] ? "good" : "bad"); el.innerHTML = ok[i] ? esc(f[i]) : (input.forms[i] ? '<s style="opacity:.6">' + esc(input.forms[i]) + "</s>&nbsp; " : "") + esc(f[i]); });
   var kb = $("#kb"); if (kb) kb.remove(); var act = $("#answerArea .actions"); if (act) act.remove();
   $("#fbArea").innerHTML = '<div class="fb ' + (n === 3 ? "ok" : n ? "partial" : "wrong") + '"><h3>' + icon(n === 3 ? "check" : "x") + " " + n + "/3 צורות נכונות" + (pts ? ' <span class="pts">+' + pts + "</span>" : "") + '</h3><div class="en" style="font-size:20px;font-weight:700">' + esc(it.f) + "</div></div>";
@@ -407,6 +407,16 @@ function checkForms() {
 }
 function afterForms() { G.formsDone = true; G.toTense = false; $("#fbArea").innerHTML = ""; $("#nextArea").hidden = true; $("#qPrompt").textContent = promptOf(G.it); renderAnswer(G.it, $("#answerArea"), { hint: G.mode === "practice", onAnswer: check }); }
 
+/* v12.6: Englishia performance report (signed-in players): item, section, level, given vs right answer */
+function wdGiven(it, v) { return v == null || v === "" ? "" : it.t === "pos" ? (POS[v] ? POS[v].en : String(v)) : it.t === "tense" ? (TENSE[v] ? TENSE[v].en : String(v)) : it.t === "mc" ? (it.o[v] != null ? it.o[v] : String(v)) : String(v); }
+function wdReport(it, v, ok, extra) {
+  try {
+    var A = window.EnglishiaAuth; if (!A || !A.recordAnswer || !A.user || !it) return;
+    var sent = String(it.s || "").replace(/\*\*/g, "");
+    A.recordAnswer(GAME_ID, Object.assign({ item: it.id + (boldWords(it) ? " " + boldWords(it) : ""), prompt: sent, topic: it.S ? it.S.name : "מבחן מסכם",
+      level: "רמה " + (it.lv || 1), correct: !!ok, given: wdGiven(it, v), expected: answerText(it) }, extra || {}));
+  } catch (e) {}
+}
 function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
 function check(v, btn) {
   if (G.answered) return; G.answered = true;
@@ -418,7 +428,7 @@ function check(v, btn) {
     else { pts = 10; G.bd.base += 10; }
   } else { G.streak = 0; if (ev.status === "partial") { pts = comp ? 50 : 5; G.bd.partial += pts; } }
   G.best = Math.max(G.best, G.streak); G.score += pts;
-  var rec = { it: it, v: v, status: ev.status, pts: pts, secs: secs, forms: G.formRes || null }; G.results.push(rec); G.rec = rec; G.formRes = null;
+  var rec = { it: it, v: v, status: ev.status, pts: pts, secs: secs, forms: G.formRes || null }; G.results.push(rec); G.rec = rec; G.formRes = null; wdReport(it, v, ev.status === "ok");
   updScore(); beep(ev.status);
   if (it.t !== "type") markOpts(it, v); else { var kb = $("#kb"); if (kb) kb.remove(); var act = $("#answerArea .actions"); if (act) act.remove(); $("#ansLine").className = "ansline " + (ev.status === "ok" ? "" : ""); $("#qSent").innerHTML = sentHTML(it, ev.status === "ok" ? v : it.a[0]); }
   if (it.t !== "type") { var hb = $("#answerArea .actions"); if (hb) hb.remove(); }
