@@ -34,7 +34,7 @@
     messagingSenderId: "62739653603",
     appId: "1:62739653603:web:bb5d73d2a343357aa536d6"
   };
-  var VERSION = "12.6";
+  var VERSION = "12.7";
   var SDK = "https://www.gstatic.com/firebasejs/10.14.1/";
   var EMAIL_DOMAIN = "englishia.app";
   var ACTIVITY_DAYS = 7;
@@ -746,12 +746,17 @@
       '<path d="M20 9.5l2.9 5.9 6.5.9-4.7 4.6 1.1 6.5L20 24.3l-5.8 3.1 1.1-6.5-4.7-4.6 6.5-.9z" fill="#fff6d5" stroke="#1d1a16" stroke-width="1.1"/>' +
       '<text x="20" y="38" text-anchor="middle" font-family="Arial,sans-serif" font-weight="700" font-size="9.5" fill="#fff">' + n + "</text></svg>";
   }
+  // v12.7: a chosen symbol REPLACES the shield. Precedence: per-user icon > tier icon > default shield
+  function rankSymbol(tier, level, size, icon) {
+    var h = icon ? rankIconHTML(icon, size) : "";
+    return h || badgeSVG(tier, level, size);
+  }
   function rankChip(r, size) {
     if (!r || !r.tier) return "";
     var title = r.customName
       ? ("דרגה מותאמת: " + r.customName + (r.manual ? " · תג " + r.tier.name : " · תג לפי ניקוד (" + r.tier.name + ")"))
       : ("דרגה " + r.level + (r.manual ? " (נקבעה ע״י המנהל)" : ""));
-    return '<span class="eng-rank" title="' + esc(title) + '">' + badgeSVG(r.tier, r.level, size) + rankIconHTML(r.icon, size) +
+    return '<span class="eng-rank" title="' + esc(title) + '">' + rankSymbol(r.tier, r.level, size, r.icon) +
       "<span>" + esc(rankLabel(r)) + "</span></span>";
   }
   function readRank(uid) {
@@ -1500,7 +1505,7 @@
     function paint() {
       var r = myRank();
       var pct = r.next ? Math.max(0, Math.min(100, Math.round(100 * (r.total - r.auto.min) / Math.max(1, r.next.min - r.auto.min)))) : 100;
-      card.innerHTML = badgeSVG(r.tier, r.level, 54) + rankIconHTML(r.icon, 40) + '<div><div class="big">' + esc(rankLabel(r)) + "</div><div class=\"eng-hint\">" +
+      card.innerHTML = rankSymbol(r.tier, r.level, 54, r.icon) + '<div><div class="big">' + esc(rankLabel(r)) + "</div><div class=\"eng-hint\">" +
         (r.customName ? "שם דרגה שנקבע ע״י המורה · תג " + esc(r.tier.name) : ("דרגה " + r.level + (r.manual ? " · נקבעה ע״י המורה" : ""))) + "</div></div>" +
         (r.manual ? "" : '<div style="flex:1;min-width:180px"><div class="eng-prog"><i style="width:' + pct + '%"></i></div><div class="eng-hint">' +
           (r.next ? "עוד " + r.toNext + " נקודות לדרגה " + esc(r.next.name) : "הגעת לדרגה הגבוהה ביותר!") + "</div></div>");
@@ -1677,7 +1682,7 @@
       if (!u) { openBox("<p>התלמיד לא נמצא.</p>"); return; }
       var s = statsOf((u.games || {})[gameId]);
       var html = "<h2>🛠️ " + esc(u.displayName) + "</h2><p class=\"eng-hint\" style=\"text-align:center\">שם משתמש: " + esc(u.username) + " · " + esc(opts.gameTitle || gameId) + "</p>" +
-        '<div class="eng-rankbar">' + badgeSVG(u.rank.tier, u.rank.level, 44) + rankIconHTML(u.rank.icon, 34) + '<div><div class="big">' + esc(rankLabel(u.rank)) + '</div><div class="eng-hint">' +
+        '<div class="eng-rankbar">' + rankSymbol(u.rank.tier, u.rank.level, 44, u.rank.icon) + '<div><div class="big">' + esc(rankLabel(u.rank)) + '</div><div class="eng-hint">' +
         (u.rank.customName ? "שם דרגה מותאם · תג " + esc(u.rank.tier.name) : (u.rank.manual ? "דרגה ידנית" : "לפי ניקוד")) + " · ניקוד כולל באינגלישיה: " + num(u.totalScore) + "</div></div></div>";
       if (can("points")) {
         html += '<div class="eng-sec"><h3>ניקוד וזמן במשחק הזה</h3>' +
@@ -2073,9 +2078,9 @@
     ".eng-lbnote{text-align:center;font-size:15px;color:#6b6255;margin:10px 0 0}" +
     "@media (max-width:520px){.eng-box.eng-lbbox{padding:14px 10px 16px;border-radius:18px}.eng-lbbox h2{font-size:24px;margin-top:34px}" +
     ".eng-seg button{font-size:15px;min-height:40px;padding:6px 10px}.eng-seg.sm button{font-size:14px;padding:5px 9px;min-height:38px}" +
-    ".eng-pod .nm{font-size:15px}.eng-pod .val{font-size:15px}.eng-pod .eng-rank{font-size:12px}.eng-pod .eng-rank .eng-badge{width:18px;height:21px}.eng-podium{gap:6px}" +
+    ".eng-pod .nm{font-size:15px}.eng-pod .val{font-size:15px}.eng-pod .eng-rank{font-size:12px}.eng-pod .eng-rank .eng-badge{width:18px;height:21px}.eng-pod .eng-rank svg.eng-rkico{width:18px;height:18px}.eng-pod .eng-rank .eng-emo{font-size:15px !important}.eng-podium{gap:6px}" +
     ".eng-pod.p1 .base{height:70px}.eng-pod.p2 .base{height:52px}.eng-pod.p3 .base{height:38px}.eng-pod .base{font-size:20px}" +
-    ".eng-lbl li{font-size:16px;padding:7px 8px;gap:6px}.eng-lbl li .who .eng-rank{font-size:12px}.eng-lbl li .who .eng-rank .eng-badge{width:18px;height:21px}}" +
+    ".eng-lbl li{font-size:16px;padding:7px 8px;gap:6px}.eng-lbl li .who .eng-rank{font-size:12px}.eng-lbl li .who .eng-rank .eng-badge{width:18px;height:21px}.eng-lbl li .who .eng-rank svg.eng-rkico{width:18px;height:18px}.eng-lbl li .who .eng-rank .eng-emo{font-size:15px !important}}" +
     ".eng-menu button.eng-lbbtn{background:#ffd43b;color:#1d1a16}";
   var lbCssDone = false;
   function injectLbCSS() {
@@ -2628,6 +2633,6 @@
   Object.defineProperty(global.EnglishiaAuth, "roleState", { get: function () { return roleState(); } });
   global.EnglishiaAuth.retryRole = retryRole;
   global.EnglishiaAuth.progressEditor = progressEditor;
-  global.EnglishiaAuth.ranks = { tiers: getTiers, of: rankOf, badge: badgeSVG, chip: rankChip, defaults: DEFAULT_TIERS, mine: function () { return state.user ? myRank() : null; },
+  global.EnglishiaAuth.ranks = { tiers: getTiers, of: rankOf, badge: badgeSVG, symbol: rankSymbol, chip: rankChip, defaults: DEFAULT_TIERS, mine: function () { return state.user ? myRank() : null; },
     icon: rankIconHTML, cleanIcon: cleanIcon, pickIcon: openIconPicker, svgIcons: RANK_SVG_NAMES, customIcon: function (uid) { return rankIcons[uid] || ""; } };
 })(window);

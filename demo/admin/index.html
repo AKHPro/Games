@@ -131,14 +131,14 @@
     </section>
   </div>
 </main>
-<script src="../js/englishia-auth.js?v=12.6"></script>
+<script src="../js/englishia-auth.js?v=12.7"></script>
 <script>
 (function () {
   "use strict";
   var E = window.EnglishiaAuth, A = E.admin, R = E.ranks;
   // v12.6: this page needs englishia-auth.js 12.6+. A stale cached copy silently dropped new fields
   // (that is why the custom rank name "did not save" right after the 12.5 release).
-  var NEED_VER = [12, 6];
+  var NEED_VER = [12, 7];
   function verOk(v) { var p = String(v || "0").split(".").map(Number); return p[0] > NEED_VER[0] || (p[0] === NEED_VER[0] && (p[1] || 0) >= NEED_VER[1]); }
   if (!verOk(E.version)) {
     var st = document.getElementById("stale");
@@ -166,7 +166,7 @@
   function chip(r, size) {
     if (!r || !r.tier) return "";
     var extra = r.customName ? " <small>(מותאם)</small>" : (r.manual ? " <small>(ידני)</small>" : "");
-    return '<span class="rk">' + R.badge(r.tier, r.level, size || 24) + (R.icon ? R.icon(r.icon, size || 24) : "") + esc(rankText(r)) + extra + "</span>";
+    return '<span class="rk">' + (R.symbol ? R.symbol(r.tier, r.level, size || 24, r.icon) : R.badge(r.tier, r.level, size || 24)) + esc(rankText(r)) + extra + "</span>";
   }
   function permsLabel(p) { var l = A.PERMS.filter(function (k) { return p && p[k]; }); return l.length ? l.map(function (k) { return esc(A.PERM_HE[k]); }).join("<br>") : "—"; }
 
@@ -452,21 +452,22 @@
     R.tiers().then(function (t) {
       tiers = t;
       var edit = E.can("rankdefs");
-      var html = "<table id=\"tier-tbl\"><tr><th>#</th><th>תג</th><th>סמל נוסף</th><th>שם הדרגה</th><th>מאיזה ניקוד כולל</th><th>צבע</th>" + (edit ? "<th></th>" : "") + "</tr>" +
+      var html = "<table id=\"tier-tbl\"><tr><th>#</th><th>תג</th><th>סמל</th><th>שם הדרגה</th><th>מאיזה ניקוד כולל</th><th>צבע</th>" + (edit ? "<th></th>" : "") + "</tr>" +
         t.map(function (x, i) { return tierRow(x, i, edit); }).join("") + "</table>";
       if (edit) html += '<div class="row"><button class="btn" id="tier-add">➕ דרגה חדשה</button><button class="btn main" id="tier-save">שמירת הדרגות</button><button class="btn" id="tier-def">החזרה לברירת המחדל</button></div><p class="hint">הדרגה הראשונה תמיד מתחילה מ-0. אפשר עד 12 דרגות. תלמידים עם דרגה ידנית נשארים איתה.</p>';
       else html += '<p class="hint">אין לך הרשאה לערוך את הדרגות.</p>';
       html += '<div id="tier-msg"></div>';
       w.innerHTML = html;
       if (!edit) return;
+      function symCell(tr) { var t = { color: tr.querySelector('[data-k="color"]').value }, n = +tr.getAttribute("data-i") + 1, ic = tr.getAttribute("data-icon") || ""; tr.querySelector(".sym").innerHTML = R.symbol ? R.symbol(t, n, 30, ic) : R.badge(t, n, 30); }
       function bind() {
         Array.prototype.forEach.call(w.querySelectorAll("[data-del]"), function (b) { b.onclick = function () { b.closest("tr").remove(); renum(); }; });
-        Array.prototype.forEach.call(w.querySelectorAll("tr[data-id] input"), function (inp) { inp.oninput = function () { var tr = inp.closest("tr"); tr.querySelector(".sym").innerHTML = R.badge({ color: tr.querySelector('[data-k="color"]').value }, +tr.getAttribute("data-i") + 1, 30); }; });
+        Array.prototype.forEach.call(w.querySelectorAll("tr[data-id] input"), function (inp) { inp.oninput = function () { var tr = inp.closest("tr"); symCell(tr); }; });
         Array.prototype.forEach.call(w.querySelectorAll("[data-icon-pick]"), function (b) {
           b.onclick = function () {
             var tr = b.closest("tr");
             R.pickIcon({ current: tr.getAttribute("data-icon") || "", title: "סמל לדרגה " + (tr.querySelector('[data-k="name"]').value || ""), onPick: function (v) {
-              tr.setAttribute("data-icon", v); b.innerHTML = v ? R.icon(v, 30) : "בחירה";
+              tr.setAttribute("data-icon", v); b.innerHTML = v ? R.icon(v, 30) : "בחירה"; symCell(tr);
               msg($("tier-msg"), "הסמל נבחר. לחצו \"שמירת הדרגות\" כדי לשמור.", true);
             } });
           };
@@ -475,7 +476,7 @@
       function renum() { Array.prototype.forEach.call(w.querySelectorAll("tr[data-id]"), function (tr, i) { tr.setAttribute("data-i", i); tr.firstChild.textContent = i + 1; }); }
       bind();
       $("tier-add").onclick = function () { var n = w.querySelectorAll("tr[data-id]").length; if (n >= 12) return; $("tier-tbl").insertAdjacentHTML("beforeend", tierRow({ id: "", name: "", min: 0, color: "#495057" }, n, true)); bind(); };
-      $("tier-def").onclick = function () { $("tier-tbl").innerHTML = "<tr><th>#</th><th>תג</th><th>סמל נוסף</th><th>שם הדרגה</th><th>מאיזה ניקוד כולל</th><th>צבע</th><th></th></tr>" + R.defaults.map(function (x, i) { return tierRow(x, i, true); }).join(""); bind(); };
+      $("tier-def").onclick = function () { $("tier-tbl").innerHTML = "<tr><th>#</th><th>תג</th><th>סמל</th><th>שם הדרגה</th><th>מאיזה ניקוד כולל</th><th>צבע</th><th></th></tr>" + R.defaults.map(function (x, i) { return tierRow(x, i, true); }).join(""); bind(); };
       $("tier-save").onclick = function () {
         var b = this, list = Array.prototype.map.call(w.querySelectorAll("tr[data-id]"), function (tr) {
           return { id: tr.getAttribute("data-id"), name: tr.querySelector('[data-k="name"]').value, min: tr.querySelector('[data-k="min"]').value, color: tr.querySelector('[data-k="color"]').value, icon: tr.getAttribute("data-icon") || "" };
@@ -486,7 +487,7 @@
     });
   }
   function tierRow(x, i, edit) {
-    return '<tr data-id="' + esc(x.id) + '" data-i="' + i + '" data-icon="' + esc(x.icon || "") + '"><td>' + (i + 1) + '</td><td class="sym">' + R.badge(x, i + 1, 30) + "</td>" +
+    return '<tr data-id="' + esc(x.id) + '" data-i="' + i + '" data-icon="' + esc(x.icon || "") + '"><td>' + (i + 1) + '</td><td class="sym">' + (R.symbol ? R.symbol(x, i + 1, 30, x.icon) : R.badge(x, i + 1, 30)) + "</td>" +
       "<td>" + (edit ? '<button class="btn sm rkico-btn" data-icon-pick>' + (x.icon ? R.icon(x.icon, 30) : "בחירה") + "</button>" : (x.icon ? R.icon(x.icon, 30) : "—")) + "</td>" +
       (edit ? '<td><input class="f" data-k="name" maxlength="20" value="' + esc(x.name) + '"></td><td><input class="n" type="number" min="0" data-k="min" value="' + num(x.min) + '"' + (i === 0 ? " disabled" : "") + '></td><td><input type="color" data-k="color" value="' + esc(x.color) + '" style="width:60px;height:44px"></td><td><button class="btn sm red" data-del>מחיקה</button></td>'
         : "<td><b>" + esc(x.name) + "</b></td><td>" + num(x.min) + "</td><td></td>") + "</tr>";
