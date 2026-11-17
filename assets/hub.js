@@ -456,3 +456,52 @@ syncViewport();
 state.catalog = readFallback();
 render();
 loadCatalog();
+
+
+/* Official-hub "דמו" button: visible only to the owner or a Tester.
+   Relative href "demo/" works at englishia.app/ and amirk390.github.io/Games/.
+   Hidden on the demo hub itself. The demo URL stays public; hiding is UI only. */
+const DEMO_ICON = '<svg class="hub-demo-ico" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 3h6M10 3v5.2L5.8 19.2A2.2 2.2 0 0 0 7.8 22h8.4a2.2 2.2 0 0 0 2-2.8L14 8.2V3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/><path d="M8.2 14h7.6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+
+function onDemoHub() {
+  const path = (location.pathname || "").replace(/\/+$/, "") + "/";
+  return /\/demo\//.test(path);
+}
+
+function syncDemoButton() {
+  const Auth = window.EnglishiaAuth;
+  const existing = document.getElementById("hub-demo-btn");
+  if (onDemoHub() || !Auth || !(Auth.isOwner || Auth.isTester || Auth.canSeeDemo)) {
+    if (existing) existing.remove();
+    return;
+  }
+  if (existing) return;
+  const btn = document.createElement("a");
+  btn.id = "hub-demo-btn";
+  btn.className = "hub-demo-btn";
+  btn.href = "demo/";
+  btn.setAttribute("title", "מעבר לאינגלישיה דמו");
+  btn.setAttribute("aria-label", "דמו — מעבר לאינגלישיה דמו");
+  btn.innerHTML = DEMO_ICON + '<span lang="he" dir="rtl">דמו</span>';
+  const inner = document.querySelector(".topbar .bar-inner");
+  if (!inner) return;
+  const menu = inner.querySelector(".eng-menu");
+  if (menu) inner.insertBefore(btn, menu);
+  else inner.appendChild(btn);
+}
+
+function mountEnglishiaDemoButton() {
+  if (onDemoHub() || !window.EnglishiaAuth) return;
+  const Auth = window.EnglishiaAuth;
+  const go = () => syncDemoButton();
+  Auth.ready().then(go).catch(go);
+  Auth.onChange(go);
+  go();
+}
+
+window.mountEnglishiaDemoButton = mountEnglishiaDemoButton;
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", mountEnglishiaDemoButton);
+} else {
+  mountEnglishiaDemoButton();
+}

@@ -9,17 +9,19 @@
 <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+<a id="engHubBtn" class="eng-hub-btn" href="../../" dir="ltr" aria-label="חזרה לאנגלישיה"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M3 11l9-7 9 7"/><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M5 10v10h14V10"/></svg><span>אנגלישיה</span></a>
+
 <div id="app"><div class="wrap">
 
 <!-- HOME -->
 <section id="home" class="screen on">
-  <div class="hdr"><div class="slot" id="engSlot"></div><button class="iconbtn" id="soundBtn" aria-label="צליל"></button></div>
+  <div class="hdr"><div class="hdr-tools"><div class="slot" id="engSlot"></div><button class="iconbtn" id="soundBtn" aria-label="צליל"></button></div></div>
   <div class="title">
     <svg class="logo" viewBox="0 0 64 64" aria-hidden="true"><circle cx="26" cy="26" r="17" fill="#ffd34d" stroke="#20356e" stroke-width="5"/><path d="M39 39l16 16" stroke="#20356e" stroke-width="8" stroke-linecap="round"/><text x="26" y="32" text-anchor="middle" font-family="Arial" font-weight="800" font-size="17" fill="#20356e">Aa</text></svg>
     <div><h1 class="en">Word Detective</h1><div class="he">בלש המילים</div><div class="sub">חלקי דיבר · צורות מילים · זמנים – לכיתות י׳–י״ב</div></div>
   </div>
   <div class="levels" id="levels"><span class="lbl">רמה:</span>
-    <button class="chip" data-lv="1">בסיסית</button><button class="chip" data-lv="2">בינונית</button><button class="chip" data-lv="3">מתקדמת</button></div>
+    <button class="chip" data-lv="1">מתחילים</button><button class="chip" data-lv="2">קלה</button><button class="chip" data-lv="3">בסיסית</button><button class="chip" data-lv="4">בינונית</button><button class="chip" data-lv="5">מתקדמת</button></div>
   <div class="modes" id="modes"></div>
   <p class="muted center" style="margin-top:12px">אפשר לענות במקלדת שעל המסך או במקלדת רגילה. Enter = בדיקה.</p>
 </section>
@@ -178,7 +180,7 @@
     </div>
     <div>
       <label class="field"><span>נושא</span><select id="hsTopic"><option value="all">כל הנושאים</option><option value="pos">חלקי דיבר</option><option value="forms">צורות מילים ותחיליות</option><option value="tenses">זמנים, סביל ותנאי</option><option value="exam">שאלות המבחן המסכם</option></select></label>
-      <label class="field"><span>רמה</span><select id="hsLv"><option value="1">בסיסית</option><option value="2" selected>בינונית</option><option value="3">מתקדמת</option></select></label>
+      <label class="field"><span>רמה</span><select id="hsLv"><option value="1">מתחילים</option><option value="2">קלה</option><option value="3">בסיסית</option><option value="4" selected>בינונית</option><option value="5">מתקדמת</option></select></label>
       <label class="field"><span>מספר שאלות</span><select id="hsQ"><option>5</option><option selected>10</option><option>15</option><option>20</option></select></label>
       <label class="field"><span>זמן לכל שאלה</span><select id="hsT"><option value="15">15 שניות</option><option value="20">20 שניות</option><option value="30" selected>30 שניות</option><option value="45">45 שניות</option><option value="60">60 שניות</option></select></label>
       <div class="muted" id="hsNote"></div>
@@ -244,8 +246,19 @@
 <script src="js/app.js"></script>
 <script src="js/teams.js"></script>
 <script>
+(function(){
+  var a=document.getElementById("engHubBtn"); if(!a) return;
+  var p=location.pathname||"/";
+  var demo=p.indexOf("/demo/");
+  if(demo!==-1){ a.href=p.slice(0,demo+6); return; }
+  var games=p.toLowerCase().indexOf("/games/");
+  if(games!==-1){ a.href=(p.slice(0,games)||"")+"/"; return; }
+  a.href="../../";
+})();
+</script>
+<script>
 (function(){var demo=true;
-var V="1.0";var el=document.getElementById("wd-credit");
+var V="1.1";var el=document.getElementById("wd-credit");
 var l1=document.createElement("div");l1.dir="ltr";l1.textContent="\u00A9 2026 Amir \u00B7 Englishia \u00B7 All rights reserved \u00B7 "+(demo?"Demo version "+V:"Version "+V);
 var l2=document.createElement("div");l2.dir="rtl";l2.textContent="\u00A9 2026 \u05D0\u05DE\u05D9\u05E8 \u00B7 \u05D0\u05D9\u05E0\u05D2\u05DC\u05D9\u05E9\u05D9\u05D4 \u00B7 \u05DB\u05DC \u05D4\u05D6\u05DB\u05D5\u05D9\u05D5\u05EA \u05E9\u05DE\u05D5\u05E8\u05D5\u05EA \u00B7 "+(demo?"\u05D2\u05E8\u05E1\u05EA \u05D3\u05DE\u05D5 "+V:"\u05D2\u05E8\u05E1\u05D4 "+V);
 el.appendChild(l1);el.appendChild(l2);})();

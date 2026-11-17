@@ -42551,6 +42551,7 @@
     <div class="mq-acc-actions">
       <button type="button" class="btn s" id="mq-account-profile" role="menuitem">\u05D4\u05E4\u05E8\u05D5\u05E4\u05D9\u05DC \u05E9\u05DC\u05D9</button>
       <button type="button" class="btn s" id="mq-account-summary" role="menuitem">\u05E1\u05D9\u05DB\u05D5\u05DD \u05D0\u05D9\u05E0\u05D2\u05DC\u05D9\u05E9\u05D9\u05D4</button>
+      <button type="button" class="btn s mq-lb-btn" id="mq-account-lb" role="menuitem"><svg class="mq-ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 3.5h10v4.2a5 5 0 0 1-10 0z" fill="#ffd43b" stroke="#5b3a00" stroke-width="1.6" stroke-linejoin="round"/><path d="M7 5.5H4.2a3 3 0 0 0 3.3 4.2M17 5.5h2.8a3 3 0 0 1-3.3 4.2" fill="none" stroke="#5b3a00" stroke-width="1.6" stroke-linecap="round"/><path d="M12 12.7v3.3" stroke="#5b3a00" stroke-width="1.8"/><path d="M8.5 20.5h7l-.8-3.6H9.3z" fill="#ffd43b" stroke="#5b3a00" stroke-width="1.6" stroke-linejoin="round"/></svg><span>\u05D8\u05D1\u05DC\u05EA \u05D3\u05D9\u05E8\u05D5\u05D2</span></button>
       ${u.isAdmin ? '<button type="button" class="btn s p" id="mq-account-admin" role="menuitem">\u05E0\u05D9\u05D4\u05D5\u05DC</button>' : ""}
       <button type="button" class="btn s mq-acc-out" id="mq-account-logout" role="menuitem">\u05D4\u05EA\u05E0\u05EA\u05E7\u05D5\u05EA</button>
     </div>`;
@@ -42561,6 +42562,10 @@
     if ($("mq-account-summary")) $("mq-account-summary").onclick = () => {
       closeAccountMenu();
       if (window.EnglishiaAuth) EnglishiaAuth.openProfile();
+    };
+    if ($("mq-account-lb")) $("mq-account-lb").onclick = () => {
+      closeAccountMenu();
+      if (window.EnglishiaAuth) EnglishiaAuth.openLeaderboard(GAME_ID);
     };
     if ($("mq-account-admin")) $("mq-account-admin").onclick = () => {
       closeAccountMenu();

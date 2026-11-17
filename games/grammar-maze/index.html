@@ -287,11 +287,38 @@ body.pseudo-full #app{height:100%; height:100svh; height:100dvh; padding-left:en
   #mpScreen .mp-place,#mpScreen .mp-row.bump{animation:none}
 }
 
+
+/* Back to Englishia – always visible, physical top-left */
+.eng-hub-btn{position:fixed;top:max(8px,env(safe-area-inset-top,0px));left:max(8px,env(safe-area-inset-left,0px));z-index:70;display:inline-flex;align-items:center;gap:7px;min-height:44px;padding:8px 14px;border-radius:999px;text-decoration:none;font-weight:800;font-size:clamp(15px,1.6vw,18px);line-height:1;background:var(--parch);color:#1e1406;border:1px solid var(--line);box-shadow:0 2px 8px rgba(0,0,0,.35);font-family:inherit;direction:ltr}
+.eng-hub-btn svg{width:20px;height:20px;flex:none}
+.eng-hub-btn:hover{border-color:var(--torch)}
+.eng-hub-btn:focus-visible{outline:3px solid var(--torch);outline-offset:2px}
+.eng-hub-spacer{flex:none;width:138px;height:44px;pointer-events:none}
+.overlay{padding-top:calc(60px + env(safe-area-inset-top,0px))}
+@media (max-width:600px){
+  .eng-hub-btn{padding:7px 11px;font-size:15px}
+  .eng-hub-spacer{width:124px}
+}
+
 </style>
 </head>
 <body>
+<a id="engHubBtn" class="eng-hub-btn" href="../../" dir="ltr" aria-label="חזרה לאנגלישיה"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M3 11l9-7 9 7"/><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M5 10v10h14V10"/></svg><span>אנגלישיה</span></a>
+<script>
+(function(){
+  var a=document.getElementById("engHubBtn"); if(!a) return;
+  var p=location.pathname||"/";
+  var demo=p.indexOf("/demo/");
+  if(demo!==-1){ a.href=p.slice(0,demo+6); return; }
+  var games=p.toLowerCase().indexOf("/games/");
+  if(games!==-1){ a.href=(p.slice(0,games)||"")+"/"; return; }
+  a.href="../../";
+})();
+</script>
+
 <div id="app">
   <header>
+    <span class="eng-hub-spacer" aria-hidden="true"></span>
     <h1>Grammar Maze <small>CLASSROOM EDITION</small></h1>
     <div class="hud">
       <span id="forkLabel">Fork 1 of 10</span>

@@ -36,7 +36,7 @@
   var ACTIVITY_DAYS = 7;
   var CHANGE_DAYS = 365;
   var LONG_TYPES = ["name_change", "password_change", "username_change", "admin_edit", "admin_reset_progress", "admin_password_reset", "admin_points", "admin_rank", "admin_perms", "admin_delete", "admin_restore", "admin_rankdefs"];
-  var GAME_TITLES = { "mila-quest": "מילה קווסט", "grammar-maze": "מבוך הדקדוק" };
+  var GAME_TITLES = { "mila-quest": "מילה קווסט", "grammar-maze": "מבוך הדקדוק", "word-detective": "בלש המילים" };
 
   var script = document.currentScript;
   var ROOT = (function () {
@@ -152,6 +152,19 @@
     n = String(n == null ? "" : n).replace(/\s+/g, " ").trim();
     return n.length > 20 ? n.slice(0, 20).trim() : n;
   }
+  // free-text rank label: Hebrew/English letters, digits, spaces and a few punctuation marks, up to 24 chars
+  function cleanCustomName(n) {
+    n = String(n == null ? "" : n).replace(/\s+/g, " ").trim();
+    n = n.replace(/[^\u0590-\u05FFa-zA-Z0-9 \-'׳״·.]/g, "");
+    n = n.replace(/\s+/g, " ").trim();
+    return n.length > 24 ? n.slice(0, 24).trim() : n;
+  }
+  function rankFields(rankDoc, total, manual, customName) {
+    var man = manual != null ? String(manual) : ((rankDoc && rankDoc.manual) || "");
+    var custom = customName != null ? cleanCustomName(customName) : cleanCustomName(rankDoc && rankDoc.customName);
+    return { total: num(total), manual: man, customName: custom, updatedAt: fb.F.serverTimestamp() };
+  }
+  function rankLabel(r) { return (r && r.customName) || (r && r.tier && r.tier.name) || ""; }
 
   /* ---------- helpers ---------- */
   var HINTKEY = "englishia.session.v1";
@@ -547,10 +560,13 @@
   var ACTION_HE = {
     points: "עריכת נקודות", reset_game: "מחיקת ניקוד במשחק", rename: "שינוי שם", rank: "שינוי דרגה",
     rankdefs: "עריכת הדרגות", delete_user: "מחיקת תלמיד", restore_user: "שחזור תלמיד", perms: "הרשאות מנהל",
-    password_reset: "איפוס סיסמה", username_change: "שינוי שם משתמש"
+    password_reset: "איפוס סיסמה", username_change: "שינוי שם משתמש", tester: "הרשאת בודק"
   };
   var staff = { uid: null, owner: false, perms: null, loading: null };
   function isOwner() { return !!(state.user && staff.uid === state.user.uid && staff.owner); }
+  function isTester() { return !!(state.user && staff.uid === state.user.uid && staff.tester); }
+  // owner always sees the official-hub Demo button; testers do too. Testers are not staff.
+  function canSeeDemo() { return isOwner() || isTester(); }
   function can(p) {
     if (!state.user || staff.uid !== state.user.uid) return false;
     return staff.owner || !!(staff.perms && staff.perms[p] === true);
@@ -571,9 +587,11 @@
       F.getDoc(F.doc(fb.db, "managers", uid)).then(function (x) { return x.exists() ? x.data() : null; }).catch(function (e) { soft(e); return null; }),
       F.getDoc(F.doc(fb.db, "ranks", uid)).then(function (x) { return x.exists() ? x.data() : null; }).catch(function () { return null; }),
       getTiers(),
-      F.getDoc(F.doc(fb.db, "tombstones", uid)).then(function (x) { return x.exists(); }).catch(function () { return false; })
+      F.getDoc(F.doc(fb.db, "tombstones", uid)).then(function (x) { return x.exists(); }).catch(function () { return false; }),
+      F.getDoc(F.doc(fb.db, "testers", uid)).then(function (x) { return x.exists(); }).catch(function () { return false; })
     ]).then(function (r) {
       s.deleted = !!r[4];
+      s.tester = !!r[5];
       s.owner = !!r[0];
       s.done = true;
       if (s.failed) console.warn("englishia role check failed", s.error);
@@ -591,7 +609,7 @@
   }
   // keep state.admin = owner OR manager with a permission, after every auth/profile event
   var roleSig = "";
-  function roleSignature() { return [staff.uid, staff.done, staff.failed, staff.owner, JSON.stringify(staff.perms), state.admin].join("|"); }
+  function roleSignature() { return [staff.uid, staff.done, staff.failed, staff.owner, staff.tester, JSON.stringify(staff.perms), state.admin].join("|"); }
   function afterStaff() {
     var want = isStaff();
     if (want || !staff.failed) state.admin = want || (state.admin && staff.failed);
@@ -661,9 +679,13 @@
       return tiersCache;
     }).catch(function () { return tiersCache || DEFAULT_TIERS.slice(); });
   }
-  function rankOf(total, manual, tiers) {
+  function rankOf(total, manual, tiers, customName) {
     tiers = tiers || tiersCache || DEFAULT_TIERS;
     total = num(total);
+    if (manual && typeof manual === "object") {
+      if (customName == null) customName = manual.customName;
+      manual = manual.manual;
+    }
     var idx = 0;
     tiers.forEach(function (t, i) { if (total >= t.min) idx = i; });
     var auto = idx, isManual = false;
@@ -671,7 +693,7 @@
       for (var i = 0; i < tiers.length; i++) if (tiers[i].id === manual) { idx = i; isManual = true; break; }
     }
     var next = auto + 1 < tiers.length ? tiers[auto + 1] : null;
-    return { tier: tiers[idx], index: idx, level: idx + 1, manual: isManual, auto: tiers[auto], next: next, toNext: next ? next.min - total : 0, total: total };
+    return { tier: tiers[idx], index: idx, level: idx + 1, manual: isManual, auto: tiers[auto], next: next, toNext: next ? next.min - total : 0, total: total, customName: cleanCustomName(customName) };
   }
   // drawn badge (SVG shield with a star and the level number); no emoji
   function badgeSVG(tier, level, size) {
@@ -686,22 +708,25 @@
   }
   function rankChip(r, size) {
     if (!r || !r.tier) return "";
-    return '<span class="eng-rank" title="' + esc("דרגה " + r.level + (r.manual ? " (נקבעה ע״י המנהל)" : "")) + '">' + badgeSVG(r.tier, r.level, size) +
-      "<span>" + esc(r.tier.name) + "</span></span>";
+    var title = r.customName
+      ? ("דרגה מותאמת: " + r.customName + (r.manual ? " · תג " + r.tier.name : " · תג לפי ניקוד (" + r.tier.name + ")"))
+      : ("דרגה " + r.level + (r.manual ? " (נקבעה ע״י המנהל)" : ""));
+    return '<span class="eng-rank" title="' + esc(title) + '">' + badgeSVG(r.tier, r.level, size) +
+      "<span>" + esc(rankLabel(r)) + "</span></span>";
   }
   function readRank(uid) {
     return fb.F.getDoc(fb.F.doc(fb.db, "ranks", uid)).then(function (s) { return s.exists() ? s.data() : null; }).catch(function () { return null; });
   }
-  // public ranks/{uid} = {total, manual}; total always equals the profile's totalScore
+  // public ranks/{uid} = {total, manual, customName}; total always equals the profile's totalScore
   function syncRank(uid) {
     if (!fb || !state.user) return Promise.resolve();
     uid = uid || state.user.uid;
     var F = fb.F;
     return Promise.all([F.getDoc(userRef(uid)), readRank(uid)]).then(function (r) {
       if (!r[0].exists()) return;
-      var total = num(r[0].data().totalScore), manual = (r[1] && r[1].manual) || "";
+      var total = num(r[0].data().totalScore);
       if (r[1] && r[1].total === total) return;
-      return F.setDoc(F.doc(fb.db, "ranks", uid), { total: total, manual: manual, updatedAt: F.serverTimestamp() });
+      return F.setDoc(F.doc(fb.db, "ranks", uid), rankFields(r[1], total));
     }).catch(function (e) { console.warn("englishia rank", e); });
   }
   var origRecordSession = recordSession;
@@ -713,7 +738,7 @@
   };
   function myRank() {
     var d = state.doc || {};
-    return rankOf(d.totalScore, staff.rank && staff.rank.manual);
+    return rankOf(d.totalScore, staff.rank && staff.rank.manual, null, staff.rank && staff.rank.customName);
   }
   function ranksFor(uids) {
     return Promise.all(uids.map(function (u) { return readRank(u); }));
@@ -812,23 +837,30 @@
           var m = {}; rs.forEach(function (x) { m[x.id] = x.data(); });
           return uids.map(function (id) { return m[id] || null; });
         }).catch(function () { return ranksFor(uids); });
+        var testers = fb.F.getDocs(fb.F.collection(fb.db, "testers")).then(function (ts) {
+          var m = {}; ts.forEach(function (x) { m[x.id] = true; }); return m;
+        }).catch(function () { return {}; });
         return Promise.all([rk, getTiers(),
-          can("managers") ? admin.listManagers().catch(function () { return []; }) : Promise.resolve([])]).then(function (r) {
+          can("managers") ? admin.listManagers().catch(function () { return []; }) : Promise.resolve([]), testers]).then(function (r) {
           var mg = {}; r[2].forEach(function (m) { mg[m.uid] = m; });
           out.forEach(function (u, i) {
-            u.rankDoc = r[0][i]; u.rank = rankOf(u.totalScore, r[0][i] && r[0][i].manual, r[1]);
+            u.rankDoc = r[0][i]; u.rank = rankOf(u.totalScore, r[0][i] && r[0][i].manual, r[1], r[0][i] && r[0][i].customName);
             u.manager = mg[u.uid] || null;
+            u.tester = !!r[3][u.uid];
           });
           return out;
         });
       });
     },
     getUser: function (uid) {
-      return Promise.resolve().then(function () { needPerm("view"); }).then(function () { return Promise.all([fb.F.getDoc(userRef(uid)), readRank(uid), getTiers()]); })
-        .then(function (r) {
+      return Promise.resolve().then(function () { needPerm("view"); }).then(function () {
+        return Promise.all([fb.F.getDoc(userRef(uid)), readRank(uid), getTiers(),
+          fb.F.getDoc(fb.F.doc(fb.db, "testers", uid)).then(function (x) { return x.exists(); }).catch(function () { return false; })]);
+      }).then(function (r) {
           if (!r[0].exists()) return null;
           var u = Object.assign({ uid: uid }, r[0].data());
-          u.rankDoc = r[1]; u.rank = rankOf(u.totalScore, r[1] && r[1].manual, r[2]);
+          u.rankDoc = r[1]; u.rank = rankOf(u.totalScore, r[1] && r[1].manual, r[2], r[1] && r[1].customName);
+          u.tester = !!r[3];
           return u;
         });
     },
@@ -864,7 +896,7 @@
         b.update(userRef(uid), new F.FieldPath("games", gameId), g, "totalScore", t.totalScore, "totalSeconds", t.totalSeconds, "plays", t.plays);
         var lb = F.doc(fb.db, "leaderboards", gameId, "scores", uid);
         if (g.best > 0) b.set(lb, { name: cleanName(u.displayName) || "?", score: g.best, updatedAt: F.serverTimestamp() }); else b.delete(lb);
-        b.set(F.doc(fb.db, "ranks", uid), { total: t.totalScore, manual: (u.rankDoc && u.rankDoc.manual) || "", updatedAt: F.serverTimestamp() });
+        b.set(F.doc(fb.db, "ranks", uid), rankFields(u.rankDoc, t.totalScore));
         delete lbCache[gameId];
         return b.commit().then(function () {
           if (state.user && uid === state.user.uid && state.doc) { state.doc.games = games; Object.assign(state.doc, t); }
@@ -895,7 +927,7 @@
         b.update(userRef(uid), new F.FieldPath("games", gameId), F.deleteField(), "totalScore", t.totalScore, "totalSeconds", t.totalSeconds, "plays", t.plays);
         b.delete(F.doc(fb.db, "users", uid, "progress", gameId));
         b.delete(F.doc(fb.db, "leaderboards", gameId, "scores", uid));
-        b.set(F.doc(fb.db, "ranks", uid), { total: t.totalScore, manual: (u.rankDoc && u.rankDoc.manual) || "", updatedAt: F.serverTimestamp() });
+        b.set(F.doc(fb.db, "ranks", uid), rankFields(u.rankDoc, t.totalScore));
         delete lbCache[gameId];
         return b.commit().then(function () {
           return logEvent("admin_reset_progress", gameId, "המנהל מחק את הניקוד וההתקדמות במשחק", { uid: uid, name: u.displayName });
@@ -907,9 +939,18 @@
       name = cleanName(name);
       if (!name) return Promise.reject({ heb: "צריך לכתוב שם." });
       var F = fb.F;
+      var statDocs = [];
       return admin.getUser(uid).then(function (u) {
+        if (!u) return u;
+        var scopes = ["all"].concat(Object.keys(u.games || {})).filter(function (g) { return /^[a-z0-9-]{1,40}$/.test(g); });
+        return Promise.all(scopes.map(function (g) {
+          var ref = F.doc(fb.db, "gstats", g, "players", uid);
+          return F.getDoc(ref).then(function (x) { if (x.exists()) statDocs.push(ref); }).catch(function () {});
+        })).then(function () { return u; });
+      }).then(function (u) {
         if (!u) throw { heb: "התלמיד לא נמצא." };
         var b = auditBatch("rename", uid, name, u.displayName, name, "");
+        statDocs.forEach(function (ref) { b.update(ref, { name: name, updatedAt: F.serverTimestamp() }); });
         b.update(userRef(uid), { displayName: name });
         Object.keys(u.games || {}).forEach(function (g) {
           var best = num(u.games[g] && u.games[g].best);
@@ -921,21 +962,30 @@
         });
       });
     },
-    // tierId '' = back to automatic (by score)
-    setRank: function (uid, tierId) {
+    // tierId '' = back to automatic (by score). customName is optional free text; '' clears it.
+    // if the 3rd argument is omitted, an existing custom name is kept (old callers).
+    setRank: function (uid, tierId, customName) {
       needPerm("ranks");
       var F = fb.F;
+      var keepCustom = arguments.length < 3;
       return Promise.all([admin.getUser(uid), getTiers(true)]).then(function (r) {
         var u = r[0], tiers = r[1];
         if (!u) throw { heb: "התלמיד לא נמצא." };
         tierId = String(tierId || "");
         if (tierId && !tiers.some(function (t) { return t.id === tierId; })) throw { heb: "הדרגה לא קיימת." };
-        var oldR = u.rank, newR = rankOf(u.totalScore, tierId, tiers);
-        var label = function (x) { return x.tier.name + (x.manual ? " (ידני)" : " (לפי ניקוד)"); };
-        var b = auditBatch("rank", uid, u.displayName, label(oldR), label(newR), "");
-        b.set(F.doc(fb.db, "ranks", uid), { total: num(u.totalScore), manual: tierId, updatedAt: F.serverTimestamp() });
+        var raw = keepCustom ? ((u.rankDoc && u.rankDoc.customName) || "") : String(customName == null ? "" : customName).replace(/\s+/g, " ").trim();
+        var custom = keepCustom ? cleanCustomName(u.rankDoc && u.rankDoc.customName) : cleanCustomName(raw);
+        if (!keepCustom && raw && !custom) throw { heb: "אפשר לכתוב רק אותיות בעברית או באנגלית, מספרים ורווחים (עד 24 תווים)." };
+        var oldR = u.rank, newR = rankOf(u.totalScore, tierId, tiers, custom);
+        var label = function (x) {
+          var s = (x.customName || x.tier.name) + (x.manual ? " (ידני)" : " (לפי ניקוד)");
+          if (x.customName) s += " · תג " + x.tier.name;
+          return s;
+        };
+        var b = auditBatch("rank", uid, u.displayName, label(oldR), label(newR), custom ? custom : "בלי שם חופשי");
+        b.set(F.doc(fb.db, "ranks", uid), rankFields(null, num(u.totalScore), tierId, custom));
         return b.commit().then(function () {
-          if (state.user && uid === state.user.uid) staff.rank = { total: num(u.totalScore), manual: tierId };
+          if (state.user && uid === state.user.uid) staff.rank = { total: num(u.totalScore), manual: tierId, customName: custom };
           return logEvent("admin_rank", "", "דרגה: " + label(oldR) + " ← " + label(newR), { uid: uid, name: u.displayName });
         });
       });
@@ -968,6 +1018,8 @@
           delete lbCache[g];
         });
         b.delete(F.doc(fb.db, "ranks", uid));
+        b.delete(F.doc(fb.db, "testers", uid));
+        ["all"].concat(knownGames(u)).forEach(function (g) { if (/^[a-z0-9-]{1,40}$/.test(g)) b.delete(F.doc(fb.db, "gstats", g, "players", uid)); });
         b.set(F.doc(fb.db, "tombstones", uid), { by: state.user.uid, at: F.serverTimestamp(), name: cleanName(u.displayName) || "?", username: String(u.username || "").slice(0, 15) });
         return b.commit().then(function () {
           return logEvent("admin_delete", "", "המנהל מחק את התלמיד", { uid: uid, name: u.displayName });
@@ -1025,6 +1077,25 @@
       });
     },
     removeManager: function (uid) { return admin.setManager(uid, {}); },
+    // Tester flag: sees the official-hub "דמו" button. Not a manager permission; not self-assignable.
+    setTester: function (uid, on) {
+      needPerm("managers");
+      if (state.user && uid === state.user.uid) return Promise.reject({ heb: "אי אפשר לתת או להסיר לעצמך את הרשאת הבודק." });
+      var F = fb.F, ref = F.doc(fb.db, "testers", uid);
+      return Promise.all([F.getDoc(ref), admin.getUser(uid).catch(function () { return null; })]).then(function (r) {
+        var was = r[0].exists(), u = r[1];
+        if (!u) throw { heb: "התלמיד לא נמצא." };
+        if (!!on === was) return;
+        var nm = cleanName(u.displayName) || "?";
+        var b = auditBatch("tester", uid, nm, was ? "בודק" : "לא בודק", on ? "בודק" : "לא בודק", on ? "מינוי בודק" : "הסרת בודק");
+        if (on) b.set(ref, { name: nm.slice(0, 20), grantedBy: state.user.uid, updatedAt: F.serverTimestamp() });
+        else b.delete(ref);
+        return b.commit().then(function () {
+          if (state.user && uid === state.user.uid) staff.tester = !!on;
+          return logEvent("admin_tester", "", on ? "מונה/תה כבודק/ת" : "הוסר/ה מהרשאת בודק", { uid: uid, name: nm });
+        });
+      });
+    },
     // owner / audit permission: everything; other managers: their own entries only
     listAudit: function (o) {
       o = o || {};
@@ -1146,7 +1217,7 @@
     ".eng-menu{display:inline-flex;gap:8px;align-items:center;direction:rtl;z-index:2147482000}" +
     ".eng-menu.float{position:fixed;top:10px;left:10px}" +
     ".eng-menu button{font:700 20px/1.1 'Segoe UI',Arial,sans-serif;min-height:48px;padding:10px 16px;border-radius:999px;border:0;cursor:pointer;background:#fffaf0;color:#1d1a16;box-shadow:0 3px 0 rgba(0,0,0,.25)}" +
-    ".eng-menu button.adm{background:#1d1a16;color:#ffd43b}" +
+    ".eng-menu button.adm{background:#1d1a16;color:#ffd43b}" +    ".eng-menu button{display:inline-flex;align-items:center;justify-content:center;gap:.35em}" +    ".eng-ico{width:1.15em;height:1.15em;display:inline-block;vertical-align:-.2em;flex:none}" +    ".eng-has-ico{display:inline-flex;align-items:center;justify-content:center;gap:.35em}" +
     ".eng-x{float:left;font-size:22px;min-height:44px;margin:0 !important}" +
     // v12.2: the in-game students table fits narrow phones (iPhone portrait): scrolls inside the box, never cut off
     ".eng-users{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}" +
@@ -1184,6 +1255,21 @@
   }
   function busy(btn, on) { if (btn) btn.disabled = !!on; }
   function errText(e) { return (e && e.heb) || authError(e); }
+
+  /* ui icons (no emoji — classroom PCs render them as squares).
+     used by the login/account button and the profile-box actions. */
+  function ico(name) {
+    var p = {
+      user: '<circle cx="12" cy="8" r="3.3" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M5 19.2c.4-3.2 3.2-5.2 7-5.2s6.6 2 7 5.2" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>',
+      trophy: '<path d="M8 4h8v3a4 4 0 0 1-8 0V4z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M8 6.5H5.5A2.5 2.5 0 0 0 8 9M16 6.5h2.5A2.5 2.5 0 0 1 16 9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M12 11v3M9 20h6M10.5 20l.5-6h2l.5 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>',
+      tools: '<path d="M15.2 14.2 20 19a1.4 1.4 0 0 1-2 2l-4.8-4.8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M9.2 4.5 7 6.7l2.8 2.8-2.1 2.1 1.7 1.7 2.1-2.1 2.8 2.8 2.2-2.2-5.3-7.3z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>',
+      pencil: '<path d="M4 20l1.2-5.2L16.5 3.5a2 2 0 0 1 2.8 0l1.2 1.2a2 2 0 0 1 0 2.8L9.2 18.8 4 20z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M14.8 5.2l4 4" fill="none" stroke="currentColor" stroke-width="1.8"/>',
+      lock: '<rect x="6" y="11" width="12" height="9" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8.5 11V8.2a3.5 3.5 0 0 1 7 0V11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="15.5" r="1.1" fill="currentColor"/>'
+    };
+    return '<svg class="eng-ico" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">' + (p[name] || "") + "</svg>";
+  }
+  function icoLabel(name, text) { return ico(name) + esc(text); }
+  function setIcoBtn(el, name, text) { el.innerHTML = text ? icoLabel(name, text) : ico(name); }
 
   function openLogin(mode) {
     mode = mode || "login";
@@ -1230,7 +1316,7 @@
     gameId = gameId || opts.gameId;
     if (!state.user) return openLogin();
     var d = state.doc || {}, g = statsOf((d.games || {})[gameId]);
-    var html = "<h2>👤 " + esc(d.displayName) + "</h2>" +
+    var html = "<h2>" + ico("user") + " " + esc(d.displayName) + "</h2>" +
       '<p class="eng-hint" style="text-align:center">שם משתמש: ' + esc(d.username) + "</p>";
     if (gameId) {
       html += "<h3>🎮 " + esc(opts.gameTitle || GAME_TITLES[gameId] || gameId) + "</h3><div class=\"eng-stats\">" +
@@ -1245,9 +1331,10 @@
         return "<tr><td>" + esc(GAME_TITLES[k] || k) + "</td><td>" + s.best + "</td><td>" + s.totalScore + "</td><td>" + esc(fmtTime(s.seconds)) + "</td></tr>";
       }).join("") + "</table>";
     }
-    html += '<div class="eng-row">' + (gameId ? '<button class="eng-btn" data-eng="lb">🏆 טבלת שיאים</button>' : "") +
-      '<button class="eng-btn sec" data-eng="name">✏️ שינוי שם</button><button class="eng-btn sec" data-eng="pass">🔒 שינוי סיסמה</button>' +
-      (state.admin ? '<button class="eng-btn sec" data-eng="adm">🛠️ ניהול</button>' : "") +
+    html += '<div class="eng-row">' + ('<button class="eng-btn eng-has-ico" data-eng="lb">' + icoLabel("trophy", "טבלת דירוג") + "</button>") +
+      '<button class="eng-btn sec eng-has-ico" data-eng="name">' + icoLabel("pencil", "שינוי שם") + "</button>" +
+      '<button class="eng-btn sec eng-has-ico" data-eng="pass">' + icoLabel("lock", "שינוי סיסמה") + "</button>" +
+      (state.admin ? '<button class="eng-btn sec eng-has-ico" data-eng="adm">' + icoLabel("tools", "ניהול") + "</button>" : "") +
       '<button class="eng-btn red" data-eng="out">יציאה מהחשבון</button></div>';
     var box = openBox(html);
     if (q(box, '[data-eng="lb"]')) q(box, '[data-eng="lb"]').onclick = function () { openLeaderboard(gameId); };
@@ -1282,12 +1369,12 @@
   }
   function openLeaderboard(gameId) {
     gameId = gameId || opts.gameId;
-    var box = openBox("<h2>🏆 טבלת שיאים</h2><p class=\"eng-hint\" style=\"text-align:center\">" + esc(opts.gameTitle || GAME_TITLES[gameId] || gameId) + " · 10 השיאים הגבוהים</p><div class=\"eng-lbw\">טוען…</div>");
+    var box = openBox("<h2>" + ico("trophy") + " טבלת שיאים</h2><p class=\"eng-hint\" style=\"text-align:center\">" + esc(opts.gameTitle || GAME_TITLES[gameId] || gameId) + " · 10 השיאים הגבוהים</p><div class=\"eng-lbw\">טוען…</div>");
     getLeaderboard(gameId, 10).then(function (list) {
       var w = q(box, ".eng-lbw");
       if (!list.length) { w.innerHTML = "<p>עוד אין שיאים. היו הראשונים!</p>"; return; }
       w.innerHTML = '<ol class="eng-lb">' + list.map(function (e) {
-        return '<li class="' + (e.rank === 1 ? "first " : "") + (e.isMe ? "me" : "") + '"><span>' + (e.rank === 1 ? "🥇 " : e.rank === 2 ? "🥈 " : e.rank === 3 ? "🥉 " : e.rank + ". ") +
+        return '<li class="' + (e.rank === 1 ? "first " : "") + (e.isMe ? "me" : "") + '"><span>' + (e.rank + ". ") +
           esc(e.name) + (e.isMe ? " (אני)" : "") + "</span><b>" + e.score + "</b></li>";
       }).join("") + "</ol>";
     });
@@ -1295,7 +1382,7 @@
 
   /* in-game admin panel (owner and managers; each part shows only with its permission) */
   var CSS2 = "" +
-    ".eng-rank{display:inline-flex;align-items:center;gap:6px;vertical-align:middle;font-weight:700;white-space:nowrap}" +
+    ".eng-rank{display:inline-flex;align-items:center;gap:6px;vertical-align:middle;font-weight:700;white-space:normal;max-width:100%}" +
     ".eng-badge{flex:none;filter:drop-shadow(0 1px 0 rgba(0,0,0,.25))}" +
     ".eng-rankbar{background:#fff;border:2px solid #eadcbf;border-radius:16px;padding:12px 14px;margin:8px 0;display:flex;align-items:center;gap:14px;flex-wrap:wrap}" +
     ".eng-rankbar .big{font-size:28px;font-weight:800}.eng-prog{flex:1;min-width:160px;height:16px;background:#f1e6cf;border-radius:999px;overflow:hidden}" +
@@ -1336,8 +1423,8 @@
     function paint() {
       var r = myRank();
       var pct = r.next ? Math.max(0, Math.min(100, Math.round(100 * (r.total - r.auto.min) / Math.max(1, r.next.min - r.auto.min)))) : 100;
-      card.innerHTML = badgeSVG(r.tier, r.level, 54) + '<div><div class="big">' + esc(r.tier.name) + "</div><div class=\"eng-hint\">דרגה " + r.level +
-        (r.manual ? " · נקבעה ע״י המורה" : "") + "</div></div>" +
+      card.innerHTML = badgeSVG(r.tier, r.level, 54) + '<div><div class="big">' + esc(rankLabel(r)) + "</div><div class=\"eng-hint\">" +
+        (r.customName ? "שם דרגה שנקבע ע״י המורה · תג " + esc(r.tier.name) : ("דרגה " + r.level + (r.manual ? " · נקבעה ע״י המורה" : ""))) + "</div></div>" +
         (r.manual ? "" : '<div style="flex:1;min-width:180px"><div class="eng-prog"><i style="width:' + pct + '%"></i></div><div class="eng-hint">' +
           (r.next ? "עוד " + r.toNext + " נקודות לדרגה " + esc(r.next.name) : "הגעת לדרגה הגבוהה ביותר!") + "</div></div>");
     }
@@ -1350,7 +1437,7 @@
   openLeaderboard = function (gameId) {
     gameId = gameId || opts.gameId;
     injectCSS2();
-    var box = openBox("<h2>🏆 טבלת שיאים</h2><p class=\"eng-hint\" style=\"text-align:center\">" + esc(opts.gameTitle || GAME_TITLES[gameId] || gameId) + " · 10 השיאים הגבוהים</p><div class=\"eng-lbw\">טוען…</div>");
+    var box = openBox("<h2>" + ico("trophy") + " טבלת שיאים</h2><p class=\"eng-hint\" style=\"text-align:center\">" + esc(opts.gameTitle || GAME_TITLES[gameId] || gameId) + " · 10 השיאים הגבוהים</p><div class=\"eng-lbw\">טוען…</div>");
     loadFirebase().then(function () {
       var F = fb.F;
       return F.getDocs(F.query(F.collection(fb.db, "leaderboards", gameId, "scores"), F.orderBy("score", "desc"), F.limit(10)));
@@ -1359,7 +1446,7 @@
       snap.forEach(function (s) { var v = s.data(); list.push({ uid: s.id, rank: list.length + 1, name: v.name, score: v.score, isMe: s.id === me }); });
       lbCache[gameId] = list.map(function (e) { return { rank: e.rank, name: e.name, score: e.score, isMe: e.isMe }; });
       return Promise.all([ranksFor(list.map(function (e) { return e.uid; })), getTiers()]).then(function (r) {
-        list.forEach(function (e, i) { e.r = r[0][i] ? rankOf(r[0][i].total, r[0][i].manual, r[1]) : null; });
+        list.forEach(function (e, i) { e.r = r[0][i] ? rankOf(r[0][i].total, r[0][i].manual, r[1], r[0][i].customName) : null; });
         return list;
       });
     }).catch(function (e) {
@@ -1370,7 +1457,7 @@
       if (!w) return;
       if (!list.length) { w.innerHTML = "<p>עוד אין שיאים. היו הראשונים!</p>"; return; }
       w.innerHTML = '<ol class="eng-lb">' + list.map(function (e) {
-        return '<li class="' + (e.rank === 1 ? "first " : "") + (e.isMe ? "me" : "") + '"><span>' + (e.rank === 1 ? "🥇 " : e.rank === 2 ? "🥈 " : e.rank === 3 ? "🥉 " : e.rank + ". ") +
+        return '<li class="' + (e.rank === 1 ? "first " : "") + (e.isMe ? "me" : "") + '"><span>' + (e.rank + ". ") +
           esc(e.name) + (e.isMe ? " (אני)" : "") + (e.r ? rankChip(e.r, 24) : "") + "</span><b>" + e.score + "</b></li>";
       }).join("") + "</ol>";
     });
@@ -1511,8 +1598,8 @@
       if (!u) { openBox("<p>התלמיד לא נמצא.</p>"); return; }
       var s = statsOf((u.games || {})[gameId]);
       var html = "<h2>🛠️ " + esc(u.displayName) + "</h2><p class=\"eng-hint\" style=\"text-align:center\">שם משתמש: " + esc(u.username) + " · " + esc(opts.gameTitle || gameId) + "</p>" +
-        '<div class="eng-rankbar">' + badgeSVG(u.rank.tier, u.rank.level, 44) + '<div><div class="big">' + esc(u.rank.tier.name) + '</div><div class="eng-hint">' +
-        (u.rank.manual ? "דרגה ידנית" : "לפי ניקוד") + " · ניקוד כולל באינגלישיה: " + num(u.totalScore) + "</div></div></div>";
+        '<div class="eng-rankbar">' + badgeSVG(u.rank.tier, u.rank.level, 44) + '<div><div class="big">' + esc(rankLabel(u.rank)) + '</div><div class="eng-hint">' +
+        (u.rank.customName ? "שם דרגה מותאם · תג " + esc(u.rank.tier.name) : (u.rank.manual ? "דרגה ידנית" : "לפי ניקוד")) + " · ניקוד כולל באינגלישיה: " + num(u.totalScore) + "</div></div></div>";
       if (can("points")) {
         html += '<div class="eng-sec"><h3>ניקוד וזמן במשחק הזה</h3>' +
           '<label>הוספת נקודות (מספר שלילי מוריד)</label><div class="eng-inline"><input id="eng-a-add" type="number" placeholder="למשל 100"><button class="eng-btn green" data-eng="add">➕ הוספה</button></div>' +
@@ -1523,9 +1610,10 @@
           '<div class="eng-row"><button class="eng-btn green" data-eng="save">✓ שמירת ניקוד</button><button class="eng-btn red" data-eng="reset">מחיקת הניקוד וההתקדמות במשחק</button></div></div>';
       }
       if (can("ranks")) {
-        html += '<div class="eng-sec"><h3>דרגה</h3><p class="eng-hint">דרגה ידנית נשארת עד שמחזירים ל"לפי ניקוד".</p><div class="eng-inline"><select id="eng-a-rank"><option value="">לפי ניקוד (אוטומטי)</option>' +
+        html += '<div class="eng-sec"><h3>דרגה</h3><p class="eng-hint">דרגה ידנית נשארת עד שמחזירים ל"לפי ניקוד". אפשר גם לכתוב שם דרגה חופשי שיופיע בכל המקומות. צבע התג לפי הדרגה שנבחרה (או לפי הניקוד).</p><div class="eng-inline"><select id="eng-a-rank"><option value="">לפי ניקוד (אוטומטי)</option>' +
           tiers.map(function (t, i) { return '<option value="' + esc(t.id) + '"' + (u.rankDoc && u.rankDoc.manual === t.id ? " selected" : "") + ">" + (i + 1) + ". " + esc(t.name) + "</option>"; }).join("") +
-          '</select><button class="eng-btn" data-eng="rank">שמירת דרגה</button></div></div>';
+          '</select></div><label>דרגה בכתב חופשי (לא חובה)</label><div class="eng-inline"><input id="eng-a-rank-custom" maxlength="24" placeholder="למשל מלך המילים" value="' +
+          esc((u.rankDoc && u.rankDoc.customName) || "") + '"><button class="eng-btn" data-eng="rank">שמירת דרגה</button></div></div>';
       }
       if (isOwner()) {
         html += "<div class=\"eng-sec\"><h3>סיסמה</h3><label>סיסמה חדשה לתלמיד/ה</label><p class=\"eng-hint\">לפחות 6 תווים. בפעם הראשונה תתבקשו לאשר עם חשבון הגוגל של המורה.</p>" +
@@ -1561,7 +1649,7 @@
         if (!confirm("למחוק את כל הניקוד וההתקדמות של " + u.displayName + " במשחק הזה?")) return;
         act(this, function () { return admin.resetGame(uid, gameId); }, "הניקוד וההתקדמות נמחקו.", true);
       });
-      on("rank", function () { var v = q(box, "#eng-a-rank").value; act(this, function () { return admin.setRank(uid, v); }, "הדרגה נשמרה.", true); });
+      on("rank", function () { var v = q(box, "#eng-a-rank").value, c = q(box, "#eng-a-rank-custom") ? q(box, "#eng-a-rank-custom").value : ""; act(this, function () { return admin.setRank(uid, v, c); }, "הדרגה נשמרה.", true); });
       on("pass", function () { var p = q(box, "#eng-a-pass").value; act(this, function () { return admin.resetPassword(uid, p); }, "הסיסמה החדשה נשמרה. תנו אותה לתלמיד/ה."); });
       on("name", function () { act(this, function () { return admin.rename(uid, q(box, "#eng-a-name").value); }, "השם שונה."); });
     }).catch(function (e) { openBox("<p>" + esc(errText(e)) + "</p>"); });
@@ -1589,27 +1677,22 @@
       b.className = "eng-login-btn";
       if (state.user) {
         var hintName = (function () { var h = readHint(); return h && (h.displayName || h.username) || ""; })();
-        b.textContent = "👤 " + ((state.doc && state.doc.displayName) || hintName || "החשבון שלי");
+        setIcoBtn(b, "user", (state.doc && state.doc.displayName) || hintName || "החשבון שלי");
         b.onclick = function () { openProfile(); };
       } else if (state.restoring) {
-        b.textContent = "👤 מתחבר...";
+        setIcoBtn(b, "user", "מתחבר...");
         b.className = "eng-login-btn eng-restoring";
         b.setAttribute("aria-busy", "true");
         b.onclick = function () { if (state.resolved) openLogin(); };
       } else {
-        b.textContent = "👤 התחברות";
+        setIcoBtn(b, "user", "התחברות");
         b.onclick = function () { openLogin(); };
       }
       el.appendChild(b);
-      if (state.user && opts.gameId) {
-        var lb = document.createElement("button");
-        lb.type = "button"; lb.textContent = "🏆"; lb.title = "טבלת שיאים"; lb.setAttribute("aria-label", "טבלת שיאים");
-        lb.onclick = function () { openLeaderboard(); };
-        el.appendChild(lb);
-      }
+      el.appendChild(lbButton());
       if (state.admin) {
         var a = document.createElement("button");
-        a.type = "button"; a.className = "adm eng-admin-btn"; a.textContent = "🛠️ ניהול";
+        a.type = "button"; a.className = "adm eng-admin-btn"; setIcoBtn(a, "tools", "ניהול");
         a.onclick = function () { opts.gameId ? openAdmin() : (location.href = ROOT + "admin/"); };
         el.appendChild(a);
       }
@@ -1719,6 +1802,274 @@
     });
   }
 
+
+  /* ---------- period leaderboards (v12.4) ----------
+     gstats/{scope}/players/{uid}, scope = "all" or a game id:
+       {name, dK, wK, mK, d, dt, w, wt, m, mt, t, tt, updatedAt}
+     d/w/m = points today / this week / this month (Israel time, week starts Sunday),
+     dt/wt/mt = seconds, t/tt = all-time totals (= the profile totals).
+     Written right after the profile update (recordSession) as a separate transaction, so the
+     old profile path never depends on it. Growth since the last write is credited to the
+     current periods; the Firestore rules check every number against the profile. */
+  var IL_FMT = null;
+  function ilParts(ms) {
+    try {
+      IL_FMT = IL_FMT || new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jerusalem", year: "numeric", month: "2-digit", day: "2-digit" });
+      var a = IL_FMT.format(new Date(ms)).split("-").map(Number);
+      if (a.length === 3 && a[0] > 2000) return { y: a[0], m: a[1], d: a[2] };
+    } catch (e) {}
+    var t = new Date(ms + 2 * 3600e3); return { y: t.getUTCFullYear(), m: t.getUTCMonth() + 1, d: t.getUTCDate() };
+  }
+  function periodKeys(ms) {
+    var p = ilParts(ms == null ? Date.now() : ms);
+    var dow = new Date(Date.UTC(p.y, p.m - 1, p.d)).getUTCDay();
+    var s = new Date(Date.UTC(p.y, p.m - 1, p.d - dow));
+    return { dK: p.y * 10000 + p.m * 100 + p.d, wK: s.getUTCFullYear() * 10000 + (s.getUTCMonth() + 1) * 100 + s.getUTCDate(), mK: p.y * 100 + p.m };
+  }
+  var STAT_MAX_PTS = 100000, STAT_MAX_SEC = 21600;
+  function scopeTotals(u, scope) {
+    if (scope === "all") return { t: num(u.totalScore), tt: num(u.totalSeconds), plays: num(u.plays) };
+    var g = (u.games || {})[scope] || {};
+    return { t: num(g.totalScore), tt: num(g.seconds), plays: num(g.plays) };
+  }
+  function statsDoc(old, u, scope, k, F) {
+    var x = scopeTotals(u, scope), o = old && typeof old.t === "number" ? old : null;
+    var da = o ? x.t - o.t : (x.plays <= 1 ? x.t : 0), db = o ? x.tt - o.tt : (x.plays <= 1 ? x.tt : 0);
+    if (!(da >= 0 && db >= 0 && da <= STAT_MAX_PTS && db <= STAT_MAX_SEC)) { da = 0; db = 0; }
+    var sd = o && o.dK === k.dK, sw = o && o.wK === k.wK, sm = o && o.mK === k.mK;
+    return { name: u.displayName, dK: k.dK, wK: k.wK, mK: k.mK,
+      d: (sd ? o.d : 0) + da, dt: (sd ? o.dt : 0) + db, w: (sw ? o.w : 0) + da, wt: (sw ? o.wt : 0) + db,
+      m: (sm ? o.m : 0) + da, mt: (sm ? o.mt : 0) + db, t: x.t, tt: x.tt, updatedAt: F.serverTimestamp() };
+  }
+  function statRef(scope, uid) { return fb.F.doc(fb.db, "gstats", scope, "players", uid); }
+  var statsBusy = Promise.resolve();
+  // one transaction per (at most 2) scopes; writes only what changed. Never throws.
+  function syncStats(scopes) {
+    if (!fb || !state.user) return Promise.resolve(false);
+    var uid = state.user.uid, F = fb.F;
+    scopes = scopes.filter(function (s, i) { return s && /^[a-z0-9-]{1,40}$/.test(s) && scopes.indexOf(s) === i; });
+    var chunks = [];
+    for (var i = 0; i < scopes.length; i += 2) chunks.push(scopes.slice(i, i + 2));
+    var run = function () {
+      return chunks.reduce(function (p, chunk) {
+        return p.then(function () {
+          return F.runTransaction(fb.db, function (tx) {
+            var k = periodKeys();
+            return tx.get(userRef(uid)).then(function (us) {
+              if (!us.exists()) return;
+              var u = us.data();
+              return Promise.all(chunk.map(function (s) { return tx.get(statRef(s, uid)); })).then(function (olds) {
+                chunk.forEach(function (s, j) {
+                  var o = olds[j].exists() ? olds[j].data() : null;
+                  var n = statsDoc(o, u, s, k, F);
+                  if (o && o.name === n.name && o.dK === n.dK && o.wK === n.wK && o.mK === n.mK && o.t === n.t && o.tt === n.tt) return;
+                  tx.set(statRef(s, uid), n);
+                });
+              });
+            });
+          });
+        }).catch(function (e) { console.warn("englishia stats", e && (e.code || e.message)); });
+      }, Promise.resolve()).then(function () { lbData = {}; return true; });
+    };
+    statsBusy = statsBusy.then(run, run);
+    return statsBusy;
+  }
+  var recordWithRank = recordSession;
+  recordSession = function (gameId, score, seconds, progress) {
+    return recordWithRank(gameId, score, seconds, progress).then(function (ok) {
+      if (ok) return syncStats(["all", gameId]).then(function () { return ok; });
+      return ok;
+    });
+  };
+  var renameBase = changeDisplayName;
+  changeDisplayName = function (name) {
+    return renameBase(name).then(function (r) {
+      return syncStats(["all"].concat(Object.keys((state.doc && state.doc.games) || {}))).then(function () { return r; });
+    });
+  };
+  // after sign-in: make sure this player's docs exist and roll over to today (cheap no-op otherwise)
+  var statsSeen = "";
+  listeners.push(function (u) {
+    if (!u || statsSeen === u.uid) return;
+    statsSeen = u.uid;
+    setTimeout(function () { if (state.doc) syncStats(["all"].concat(opts.gameId ? [opts.gameId] : [])); }, 1500);
+  });
+
+  /* reading the boards */
+  var lbData = {};
+  var PERIODS = [["d", "היום"], ["w", "השבוע"], ["m", "החודש"], ["t", "כל הזמנים"]];
+  var LB_TOP = 20;
+  function fieldFor(period, metric) { return period === "t" ? (metric === "time" ? "tt" : "t") : period + (metric === "time" ? "t" : ""); }
+  function keyFor(period) { return period === "t" ? "" : period + "K"; }
+  function fetchBoard(scope, period, metric) {
+    var id = [scope, period, metric].join("|"), c = lbData[id];
+    if (c && Date.now() - c.at < 60e3) return Promise.resolve(c.v);
+    return loadFirebase().then(function () {
+      var F = fb.F, k = periodKeys(), field = fieldFor(period, metric), key = keyFor(period);
+      var col = F.collection(fb.db, "gstats", scope, "players");
+      var parts = key ? [F.where(key, "==", k[key])] : [];
+      return F.getDocs(F.query.apply(null, [col].concat(parts, [F.orderBy(field, "desc"), F.limit(LB_TOP)]))).then(function (snap) {
+        var me = state.user && state.user.uid, list = [];
+        snap.forEach(function (s) { var v = s.data(); if (num(v[field]) > 0) list.push({ uid: s.id, name: v.name, value: num(v[field]), isMe: s.id === me }); });
+        list.forEach(function (e, i) { e.rank = i + 1; if (i && e.value === list[i - 1].value) e.rank = list[i - 1].rank; });
+        var mine = null;
+        var mineP = Promise.resolve();
+        if (me && !list.some(function (e) { return e.isMe; })) {
+          mineP = F.getDoc(statRef(scope, me)).then(function (s) {
+            if (!s.exists()) return;
+            var v = s.data(), val = num(v[field]);
+            if (!val || (key && v[key] !== k[key])) return;
+            return F.getCountFromServer(F.query.apply(null, [col].concat(parts, [F.where(field, ">", val), F.orderBy(field, "desc")]))).then(function (cnt) {
+              mine = { uid: me, name: v.name, value: val, isMe: true, rank: cnt.data().count + 1 };
+            }).catch(function () { mine = { uid: me, name: v.name, value: val, isMe: true, rank: 0 }; });
+          }).catch(function () {});
+        }
+        return mineP.then(function () {
+          var all = list.concat(mine ? [mine] : []);
+          return Promise.all([ranksFor(all.map(function (e) { return e.uid; })), getTiers()]).then(function (r) {
+            all.forEach(function (e, i) { var x = r[0][i]; e.r = x ? rankOf(x.total, x.manual, r[1], x.customName) : null; });
+            var out = { list: list, mine: mine };
+            lbData[id] = { at: Date.now(), v: out };
+            return out;
+          });
+        });
+      });
+    });
+  }
+  function fmtClock(sec) {
+    sec = num(sec);
+    var h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+    if (h) return h + ":" + (m < 10 ? "0" : "") + m + " שע׳";
+    if (m) return m + ":" + (s < 10 ? "0" : "") + s + " דק׳";
+    return s + " שנ׳";
+  }
+  // drawn medal: ribbon + disc with the place number (no emoji)
+  function medalSVG(place, size) {
+    var c = [["#ffd43b", "#e0a800", "#7a5200"], ["#e9ecef", "#adb5bd", "#495057"], ["#f4a261", "#c26a2c", "#5c2e0b"]][place - 1] || ["#fff", "#ccc", "#333"];
+    size = size || 44;
+    return '<svg class="eng-medal" width="' + size + '" height="' + Math.round(size * 1.25) + '" viewBox="0 0 40 50" aria-hidden="true" focusable="false">' +
+      '<path d="M10 0h8l6 16h-8z" fill="#c92a2a"/><path d="M30 0h-8l-6 16h8z" fill="#1c7ed6"/>' +
+      '<circle cx="20" cy="31" r="16" fill="' + c[0] + '" stroke="' + c[1] + '" stroke-width="3"/>' +
+      '<circle cx="20" cy="31" r="11.5" fill="none" stroke="rgba(255,255,255,.65)" stroke-width="1.5"/>' +
+      '<text x="20" y="37" text-anchor="middle" font-family="Arial,sans-serif" font-weight="800" font-size="16" fill="' + c[2] + '">' + place + "</text></svg>";
+  }
+  var CSS_LB = "" +
+    ".eng-box.eng-lbbox{max-width:760px;padding:18px 18px 20px}" +
+    ".eng-lbbox h2{display:flex;align-items:center;justify-content:center;gap:10px}" +
+    ".eng-lbbox h2 .eng-ico{width:34px;height:34px;color:#e0a800}" +
+    ".eng-seg{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin:8px 0}" +
+    ".eng-seg button{font:700 18px/1.15 'Segoe UI',Arial,sans-serif;min-height:44px;padding:8px 14px;border-radius:999px;border:2px solid #d9c9a8;background:#fff;color:#2b2418;cursor:pointer}" +
+    ".eng-seg button.on{background:#ef8f1e;border-color:#a85d0b;color:#fff}" +
+    ".eng-seg.sm button{font-size:16px;min-height:40px;padding:6px 12px}" +
+    ".eng-seg.metric button.on{background:#1c7ed6;border-color:#0b4a8a}" +
+    ".eng-podium{display:flex;align-items:flex-end;justify-content:center;gap:10px;margin:14px 0 6px;direction:rtl}" +
+    ".eng-pod{flex:1 1 0;max-width:210px;display:flex;flex-direction:column;align-items:center;text-align:center;min-width:0}" +
+    ".eng-pod .nm{font-weight:800;font-size:20px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}" +
+    ".eng-pod .val{font-weight:800;font-size:19px;color:#1d1a16}" +
+    ".eng-pod .eng-rank{font-size:14px;margin:2px 0 4px;max-width:100%;overflow:hidden}" +
+    ".eng-pod .base{width:100%;border-radius:14px 14px 4px 4px;border:3px solid #1d1a16;display:flex;align-items:flex-start;justify-content:center;font:800 26px/1 Arial,sans-serif;color:#1d1a16;padding-top:8px;box-sizing:border-box}" +
+    ".eng-pod.p1 .base{height:96px;background:linear-gradient(#ffe066,#fab005)}" +
+    ".eng-pod.p2 .base{height:70px;background:linear-gradient(#f1f3f5,#ced4da)}" +
+    ".eng-pod.p3 .base{height:52px;background:linear-gradient(#ffc078,#e8890c)}" +
+    ".eng-pod.me .nm{color:#c2410c;text-decoration:underline}" +
+    ".eng-pod.empty{visibility:hidden}" +
+    ".eng-lbl{list-style:none;padding:0;margin:8px 0}" +
+    ".eng-lbl li{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:14px;margin:5px 0;background:#fff;border:2px solid #eadcbf;font-size:20px}" +
+    ".eng-lbl li .pl{flex:none;min-width:2.2em;font-weight:800;color:#5b5348;text-align:center}" +
+    ".eng-lbl li .who{flex:1 1 auto;min-width:0;display:flex;align-items:center;gap:8px;flex-wrap:wrap}" +
+    ".eng-lbl li .who b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}" +
+    ".eng-lbl li .who .eng-rank{font-size:14px;color:#5b5348}" +
+    ".eng-lbl li .v{flex:none;font-weight:800}" +
+    ".eng-lbl li.me,.eng-lbl li.mine{background:#fff3bf;border-color:#ef8f1e;box-shadow:0 0 0 2px #ef8f1e inset}" +
+    ".eng-lbl li.mine{margin-top:12px}" +
+    ".eng-lbsep{text-align:center;color:#8a7f70;font-size:16px;margin:6px 0 0}" +
+    ".eng-lbnote{text-align:center;font-size:15px;color:#6b6255;margin:10px 0 0}" +
+    "@media (max-width:520px){.eng-box.eng-lbbox{padding:14px 10px 16px;border-radius:18px}.eng-lbbox h2{font-size:24px;margin-top:34px}" +
+    ".eng-seg button{font-size:15px;min-height:40px;padding:6px 10px}.eng-seg.sm button{font-size:14px;padding:5px 9px;min-height:38px}" +
+    ".eng-pod .nm{font-size:15px}.eng-pod .val{font-size:15px}.eng-pod .eng-rank{font-size:12px}.eng-pod .eng-rank .eng-badge{width:18px;height:21px}.eng-podium{gap:6px}" +
+    ".eng-pod.p1 .base{height:70px}.eng-pod.p2 .base{height:52px}.eng-pod.p3 .base{height:38px}.eng-pod .base{font-size:20px}" +
+    ".eng-lbl li{font-size:16px;padding:7px 8px;gap:6px}.eng-lbl li .who .eng-rank{font-size:12px}.eng-lbl li .who .eng-rank .eng-badge{width:18px;height:21px}}" +
+    ".eng-menu button.eng-lbbtn{background:#ffd43b;color:#1d1a16}";
+  var lbCssDone = false;
+  function injectLbCSS() {
+    injectCSS(); injectCSS2();
+    if (lbCssDone) return; lbCssDone = true;
+    var st = document.createElement("style"); st.textContent = CSS_LB; document.head.appendChild(st);
+  }
+  function lbScopes() {
+    var s = [["all", "כל אינגלישיה"]];
+    Object.keys(GAME_TITLES).forEach(function (g) { s.push([g, GAME_TITLES[g]]); });
+    return s;
+  }
+  var lbView = null;
+  openLeaderboard = function (gameId, o) {
+    o = o || {};
+    injectLbCSS();
+    var scope = gameId || opts.gameId || "all";
+    if (!GAME_TITLES[scope] && scope !== "all") scope = "all";
+    lbView = { scope: scope, period: o.period || (lbView && lbView.period) || "d", metric: o.metric || (lbView && lbView.metric) || "score" };
+    var box = openBox('<h2>' + ico("trophy") + "טבלת דירוג</h2>" +
+      '<div class="eng-seg sm" data-eng="scopes" role="tablist" aria-label="משחק"></div>' +
+      '<div class="eng-seg" data-eng="periods" role="tablist" aria-label="תקופה"></div>' +
+      '<div class="eng-seg sm metric" data-eng="metrics" role="tablist" aria-label="מדד"></div>' +
+      '<div class="eng-lbw" aria-live="polite"></div>' +
+      '<p class="eng-lbnote">לפי שעון ישראל · השבוע מתחיל ביום ראשון</p>');
+    box.parentNode.querySelector(".eng-box").classList.add("eng-lbbox");
+    function seg(sel, items, cur, key) {
+      var w = q(box, sel);
+      w.innerHTML = items.map(function (it) {
+        return '<button type="button" role="tab" aria-selected="' + (it[0] === cur) + '" class="' + (it[0] === cur ? "on" : "") + '" data-v="' + esc(it[0]) + '">' + esc(it[1]) + "</button>";
+      }).join("");
+      w.onclick = function (e) { var b = e.target.closest("button[data-v]"); if (!b) return; lbView[key] = b.getAttribute("data-v"); paint(); };
+    }
+    function row(e, cls) {
+      return '<li class="' + (cls || "") + (e.isMe ? " me" : "") + '"><span class="pl">' + (e.rank ? e.rank : "–") + '</span><span class="who"><b>' + esc(e.name) +
+        (e.isMe ? " (אני)" : "") + "</b>" + (e.r ? rankChip(e.r, 20) : "") + '</span><span class="v">' + valTxt(e.value) + "</span></li>";
+    }
+    function valTxt(v) { return lbView.metric === "time" ? esc(fmtClock(v)) : String(v); }
+    function pod(e, place) {
+      if (!e) return '<div class="eng-pod empty p' + place + '"><div class="base"></div></div>';
+      return '<div class="eng-pod p' + place + (e.isMe ? " me" : "") + '">' + medalSVG(e.rank <= 3 ? e.rank : place, place === 1 ? 50 : 42) +
+        '<div class="nm" title="' + esc(e.name) + '">' + esc(e.name) + (e.isMe ? " (אני)" : "") + "</div>" + (e.r ? rankChip(e.r, 20) : "") +
+        '<div class="val">' + valTxt(e.value) + '</div><div class="base">' + place + "</div></div>";
+    }
+    var seq = 0;
+    function paint() {
+      seg('[data-eng="scopes"]', lbScopes(), lbView.scope, "scope");
+      seg('[data-eng="periods"]', PERIODS, lbView.period, "period");
+      seg('[data-eng="metrics"]', [["score", "לפי ניקוד"], ["time", "לפי זמן משחק"]], lbView.metric, "metric");
+      var w = q(box, ".eng-lbw"), my = ++seq;
+      w.innerHTML = '<p style="text-align:center">טוען…</p>';
+      fetchBoard(lbView.scope, lbView.period, lbView.metric).then(function (res) {
+        if (my !== seq || !box.isConnected) return;
+        var list = res.list;
+        if (!list.length) {
+          w.innerHTML = '<p style="text-align:center;font-weight:700">עוד אין כאן שחקנים ' + esc(PERIODS.filter(function (p) { return p[0] === lbView.period; })[0][1]) + ". שחקו וזכו במקום הראשון!</p>";
+          return;
+        }
+        var html = '<div class="eng-podium">' + pod(list[1], 2) + pod(list[0], 1) + pod(list[2], 3) + "</div>";
+        if (list.length > 3) html += '<ol class="eng-lbl">' + list.slice(3).map(function (e) { return row(e); }).join("") + "</ol>";
+        if (res.mine) html += '<p class="eng-lbsep">המקום שלי</p><ol class="eng-lbl">' + row(res.mine, "mine") + "</ol>";
+        else if (!state.user) html += '<p class="eng-lbnote">התחברו לחשבון כדי להופיע בטבלה.</p>';
+        w.innerHTML = html;
+      }).catch(function (e) {
+        if (my !== seq) return;
+        console.warn("englishia leaderboard", e);
+        w.innerHTML = "<p style=\"text-align:center\">" + esc((e && e.heb) || "לא הצלחנו לטעון את הטבלה. נסו שוב בעוד רגע.") + "</p>";
+      });
+    }
+    paint();
+    return box;
+  };
+  function lbButton(cls) {
+    var lb = document.createElement("button");
+    lb.type = "button"; lb.className = "eng-lbbtn" + (cls ? " " + cls : "");
+    setIcoBtn(lb, "trophy", "טבלת דירוג");
+    lb.setAttribute("aria-label", "טבלת דירוג");
+    lb.onclick = function () { openLeaderboard(); };
+    return lb;
+  }
+
   /* ---------- public ---------- */
   var started = false;
   function init(o) {
@@ -1758,6 +2109,8 @@
   };
   /* roles + ranks API (v12) */
   Object.defineProperty(global.EnglishiaAuth, "isOwner", { get: function () { return isOwner(); } });
+  Object.defineProperty(global.EnglishiaAuth, "isTester", { get: function () { return isTester(); } });
+  Object.defineProperty(global.EnglishiaAuth, "canSeeDemo", { get: function () { return canSeeDemo(); } });
   Object.defineProperty(global.EnglishiaAuth, "perms", { get: function () { var o = {}; PERMS.forEach(function (k) { o[k] = can(k); }); return o; } });
   global.EnglishiaAuth.can = can;
   Object.defineProperty(global.EnglishiaAuth, "roleState", { get: function () { return roleState(); } });

@@ -652,3 +652,35 @@ body.locked {
   .card { transition: none; }
   .card:hover { transform: none; }
 }
+
+
+/* Official-hub Demo button (owner / Tester only). Compact on phones, readable on a projector. */
+.hub-demo-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex: none;
+  min-height: 44px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1.5px solid rgba(255, 228, 160, 0.45);
+  background: transparent;
+  color: #ffe9a0;
+  text-decoration: none;
+  font: 700 1.05rem/1 "Segoe UI", Arial, "Noto Sans Hebrew", sans-serif;
+  letter-spacing: 0.02em;
+}
+.hub-demo-btn:hover, .hub-demo-btn:focus-visible {
+  background: rgba(239, 143, 30, 0.22);
+  border-color: #ef8f1e;
+  color: #fff6dc;
+  outline: none;
+}
+.hub-demo-ico { flex: none; display: block; }
+@media (max-width: 700px) {
+  .hub-demo-btn { min-height: 44px; padding: 7px 12px; font-size: 1rem; }
+}
+@media (min-width: 1400px) {
+  .hub-demo-btn { min-height: 48px; padding: 8px 18px; font-size: 1.15rem; }
+}
