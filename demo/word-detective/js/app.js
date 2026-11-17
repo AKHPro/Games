@@ -78,7 +78,7 @@ WD.SECTIONS.forEach(function (S) {
   });
 });
 var EXAM_ITEMS = WD.EXAM.map(function (e, i) {
-  var it = { id: "x-" + (i + 1), sec: 0, S: null, exam: true, lv: 3 };
+  var it = { id: "x-" + (i + 1), sec: 0, S: null, exam: true, lv: 5 };
   Object.keys(e).forEach(function (k) { it[k] = e[k]; });
   if (it.t === "pos") { it.opts = WD.POS8; it.fu = it.suf ? "suf" : "cf"; }
   else if (it.t === "mc") it.fu = it.p ? "need" : null;
@@ -112,7 +112,7 @@ function answerText(it) {
 function answerHTML(it, cls) { return '<span class="ans' + (cls ? " " + cls : "") + '">' + esc(answerText(it)) + "</span>"; }
 function boldWords(it) { var m = it.s.match(/\*\*(.+?)\*\*/g) || []; return m.map(function (x) { return x.slice(2, -2); }).join(" … "); }
 function tenseOptsFor(it, lv) {
-  var max = Math.max(it.lv || 1, lv || 1); if (it.exam || (G && (G.mode === "comp" || G.mode === "team"))) max = 3;
+  var max = Math.max(it.lv || 1, lv || 1); if (it.exam || (G && (G.mode === "comp" || G.mode === "team"))) max = 5;
   var list = WD.TENSE_ORDER.filter(function (k) { return TENSE[k].lv <= max; });
   if (list.indexOf(it.a) < 0) list.push(it.a);
   return list;
@@ -161,7 +161,7 @@ function explain0(it) {
   }
   return it.why || "";
 }
-var SIGNALS = ["every morning", "every day", "every", "right now", "now", "Look!", "Look", "yesterday", "last night", "last weekend", "last month", "last week", "tomorrow", "Next year", "next month", "since", "for ten years", "already", "just", "never", "ever", "while", "While", "when", "When", "By the time", "Before", "before", "ago", "at the moment", "on Friday", "At eight o'clock last night"];
+var SIGNALS = ["every morning", "every evening", "every week", "every day", "every", "right now", "now", "Look!", "Look", "yesterday", "last night", "last weekend", "last month", "last week", "tomorrow", "Next year", "next month", "since", "for ten years", "already", "just", "never", "ever", "while", "While", "when", "When", "By the time", "Before", "before", "ago", "at the moment", "on Friday", "At eight o'clock last night"];
 function findSignal(it) { var s = it.s.replace(/\*\*/g, ""); for (var i = 0; i < SIGNALS.length; i++) { var re = new RegExp("(^|[^A-Za-z])" + SIGNALS[i].replace(/[.*+?^${}()|[\]\\!]/g, "\\$&") + "([^A-Za-z]|$)"); if (re.test(s)) return SIGNALS[i]; } return null; }
 
 /* ---------- follow-up questions (שאלת המשך) ---------- */
@@ -236,10 +236,17 @@ function toast(t, ms) { var el = $("#toast"); el.textContent = t; el.style.displ
 $("#toast").onclick = function () { $("#toast").style.display = "none"; };
 
 /* ---------- level ---------- */
-function level() { return LS.get("wd-level", 2); }
+var LV_HE = { 1: "מתחילים", 2: "קלה", 3: "בסיסית", 4: "בינונית", 5: "מתקדמת" };
+(function migrateLevel() {
+  if (LS.get("wd-lvmap", 0) >= 1) return;
+  var cur = null;
+  try { var raw = localStorage.getItem("wd-level"); if (raw) cur = JSON.parse(raw); } catch (e) {}
+  if (cur === 1 || cur === 2 || cur === 3) LS.set("wd-level", cur + 2);
+  LS.set("wd-lvmap", 1);
+})();
+function level() { var v = +LS.get("wd-level", 4); return (v >= 1 && v <= 5) ? v : 4; }
 function setLevel(v) { LS.set("wd-level", v); $$("#levels .chip").forEach(function (c) { c.classList.toggle("on", +c.dataset.lv === v); }); }
 $$("#levels .chip").forEach(function (c) { c.onclick = function () { setLevel(+c.dataset.lv); }; });
-var LV_HE = { 1: "בסיסית", 2: "בינונית", 3: "מתקדמת" };
 function secItems(S, lv) { return S.list.filter(function (it) { return it.lv <= lv; }); }
 
 /* ---------- home ---------- */
@@ -285,7 +292,7 @@ function startGame(mode, opt) {
   if (mode === "practice") q = shuffle(secItems(WD.SECTIONS[opt.sec - 1], lv));
   else if (mode === "exam") q = EXAM_ITEMS.slice();
   else if (mode === "comp") q = compQueue(opt.code);
-  else if (mode === "forms") { var pool = ITEMS.filter(function (it) { return it.t === "tense" && formsOf(it); }); q = mixed(WD.TENSE_ORDER.map(function (k) { return pool.filter(function (it) { return it.a === k && (it.lv <= Math.max(lv, 2) || it.exam); }); }), 15, Math.random); }
+  else if (mode === "forms") { var pool = ITEMS.filter(function (it) { return it.t === "tense" && formsOf(it); }); q = mixed(WD.TENSE_ORDER.map(function (k) { return pool.filter(function (it) { return it.a === k && (it.lv <= Math.max(lv, 4) || it.exam); }); }), 15, Math.random); }
   G = { mode: mode, opt: opt, q: q, idx: 0, score: 0, streak: 0, best: 0, results: [], start: Date.now(), lv: lv, recorded: false,
     bd: { base: 0, speed: 0, streak: 0, fu: 0, partial: 0, forms: 0 } };
   G.withForms = mode === "forms" || (mode === "practice" && WD.SECTIONS[opt.sec - 1].type === "tense" && LS.get("wd-forms", false));
@@ -330,7 +337,7 @@ function renderAnswer(it, area, o) {
     h = '<div class="ansline empty" id="ansLine">הקלידו את התשובה</div>' + kbHTML() +
       '<div class="actions">' + (o.hint ? '<button class="btn sec" id="hintBtn" style="flex:.6">' + icon("bulb") + " רמז</button>" : "") + '<button class="btn grn" id="checkBtn" disabled>בדיקה ' + icon("check") + "</button></div>";
   } else {
-    var opts = it.t === "pos" ? it.opts : it.t === "tense" ? tenseOptsFor(it, G ? G.lv : 2) : it.o.map(function (_, i) { return i; });
+    var opts = it.t === "pos" ? it.opts : it.t === "tense" ? tenseOptsFor(it, G ? G.lv : 4) : it.o.map(function (_, i) { return i; });
     h = '<div class="opts' + (opts.length > 4 && it.t !== "pos" ? "" : "") + '" id="opts">' + opts.map(function (v, i) {
       var lab = it.t === "pos" ? '<span class="en">' + POS[v].en + "</span><small>" + POS[v].he + "</small>" : it.t === "tense" ? '<span class="en">' + TENSE[v].en + "</span><small>" + TENSE[v].he + "</small>" : '<span class="en">' + esc(it.o[v]) + "</span>";
       return '<button class="opt" data-v="' + v + '" data-n="' + (i + 1) + '">' + lab + "</button>";

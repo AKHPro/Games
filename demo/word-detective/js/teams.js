@@ -237,7 +237,7 @@ function renderStuQ(m, me) {
   $("#scorePill").innerHTML = '<span style="color:' + team[1] + '">' + esc(team[0]) + "</span> " + team[2];
   if (m.qi !== S.qi) {
     S.qi = m.qi; S.answered = false; S.shownRes = 0; S.revShown = false;
-    A.setGame({ mode: "team", it: it, lv: 3, answered: false });
+    A.setGame({ mode: "team", it: it, lv: 5, answered: false });
     $("#playLbl").textContent = "משחק קבוצות · שאלה " + (m.qi + 1) + "/" + m.n; $("#progBar").style.width = (m.qi / m.n * 100) + "%";
     $("#qTag").innerHTML = ""; $("#qPrompt").textContent = A.promptOf(it); $("#qSent").innerHTML = A.sentHTML(it); $("#fbArea").innerHTML = ""; $("#nextArea").hidden = true;
     if (m.phase === "q" && !me[1]) A.renderAnswer(it, $("#answerArea"), { hint: false, onAnswer: function (v) { if (S.answered) return; S.answered = true; S.myAns = v; stuSend({ t: "ans", qi: m.qi, a: v }); $("#fbArea").innerHTML = '<div class="fb partial"><h3>התשובה נשלחה…</h3></div>'; } });
