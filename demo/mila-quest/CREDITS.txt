@@ -60,3 +60,14 @@ https://kaylousberg.com/game-assets/characters-adventurers
 https://kaylousberg.itch.io/kaykit-adventurers
 דגמים: Rogue (ליאם), Mage (מאיה), Rogue Hooded (נובה), Barbarian (קפטן הפיראטים), Knight (חייל החלל).
 הקוסם השומר נשאר מ-Quaternius Ultimate Animated Character Pack (CC0).
+
+גרסה 12.0 – תוספות
+------------------
+  • Quaternius – Animated Animals / Cute Fish / Dinosaurs packs, רישיון CC0 1.0
+      https://quaternius.com  (הקבצים נלקחו מ-github.com/trebeljahr/quaternius-showcase)
+      שועל, צבי, שיבה אינו, האסקי, זאב, אלפקה, חמור, דג ליצן, אבו-נפחא, כריש,
+      טירנוזאורוס, טריצרטופס, ולוסירפטור, סטגוזאורוס — assets/models/animals/
+      (הוסרו אנימציות מיותרות ודוחסו עם gltf-transform)
+  • three.js r160 (MIT) – EffectComposer, UnrealBloomPass, OutputPass, RoomEnvironment
+      assets/lib/jsm/postprocessing, shaders, environments
+  • אייקוני הממשק, ההילות, השובלים והחלקיקים צוירו בקוד (SVG / Canvas / shaders) — ללא אימוג'י.

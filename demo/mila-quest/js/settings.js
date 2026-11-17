@@ -96,7 +96,7 @@ export const normAge = (v) => (AGES.some((a) => a.key === v) ? v : "de");
 
 export const GFX_OPTS = [
   { v: "auto", label: "אוטומטי" },
-  { v: "low", label: "נמוכה (פיקסלים)" },
+  { v: "low", label: "חסכונית" },
   { v: "medium", label: "בינונית" },
   { v: "high", label: "גבוהה" }
 ];
@@ -110,6 +110,7 @@ export const DEFAULT_SETTINGS = () => ({
   voice: 1,
   hints: true,
   showAnswer: true,
+  fx: true,
   age: "de"
 });
 
@@ -130,6 +131,7 @@ export function normSettings(s) {
   o.voice = Math.max(0, Math.min(1, o.voice == null ? 1 : +o.voice));
   if (!QTYPES.some((q) => o.types[q.key])) o.types.en2he = true; // at least one type stays on
   o.age = normAge(o.age);
+  o.fx = o.fx !== false;
   return o;
 }
 export function enabledModes(set) {
