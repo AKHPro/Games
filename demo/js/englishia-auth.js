@@ -560,10 +560,13 @@
   var ACTION_HE = {
     points: "עריכת נקודות", reset_game: "מחיקת ניקוד במשחק", rename: "שינוי שם", rank: "שינוי דרגה",
     rankdefs: "עריכת הדרגות", delete_user: "מחיקת תלמיד", restore_user: "שחזור תלמיד", perms: "הרשאות מנהל",
-    password_reset: "איפוס סיסמה", username_change: "שינוי שם משתמש"
+    password_reset: "איפוס סיסמה", username_change: "שינוי שם משתמש", tester: "הרשאת בודק"
   };
   var staff = { uid: null, owner: false, perms: null, loading: null };
   function isOwner() { return !!(state.user && staff.uid === state.user.uid && staff.owner); }
+  function isTester() { return !!(state.user && staff.uid === state.user.uid && staff.tester); }
+  // owner always sees the official-hub Demo button; testers do too. Testers are not staff.
+  function canSeeDemo() { return isOwner() || isTester(); }
   function can(p) {
     if (!state.user || staff.uid !== state.user.uid) return false;
     return staff.owner || !!(staff.perms && staff.perms[p] === true);
@@ -584,9 +587,11 @@
       F.getDoc(F.doc(fb.db, "managers", uid)).then(function (x) { return x.exists() ? x.data() : null; }).catch(function (e) { soft(e); return null; }),
       F.getDoc(F.doc(fb.db, "ranks", uid)).then(function (x) { return x.exists() ? x.data() : null; }).catch(function () { return null; }),
       getTiers(),
-      F.getDoc(F.doc(fb.db, "tombstones", uid)).then(function (x) { return x.exists(); }).catch(function () { return false; })
+      F.getDoc(F.doc(fb.db, "tombstones", uid)).then(function (x) { return x.exists(); }).catch(function () { return false; }),
+      F.getDoc(F.doc(fb.db, "testers", uid)).then(function (x) { return x.exists(); }).catch(function () { return false; })
     ]).then(function (r) {
       s.deleted = !!r[4];
+      s.tester = !!r[5];
       s.owner = !!r[0];
       s.done = true;
       if (s.failed) console.warn("englishia role check failed", s.error);
@@ -604,7 +609,7 @@
   }
   // keep state.admin = owner OR manager with a permission, after every auth/profile event
   var roleSig = "";
-  function roleSignature() { return [staff.uid, staff.done, staff.failed, staff.owner, JSON.stringify(staff.perms), state.admin].join("|"); }
+  function roleSignature() { return [staff.uid, staff.done, staff.failed, staff.owner, staff.tester, JSON.stringify(staff.perms), state.admin].join("|"); }
   function afterStaff() {
     var want = isStaff();
     if (want || !staff.failed) state.admin = want || (state.admin && staff.failed);
@@ -832,23 +837,30 @@
           var m = {}; rs.forEach(function (x) { m[x.id] = x.data(); });
           return uids.map(function (id) { return m[id] || null; });
         }).catch(function () { return ranksFor(uids); });
+        var testers = fb.F.getDocs(fb.F.collection(fb.db, "testers")).then(function (ts) {
+          var m = {}; ts.forEach(function (x) { m[x.id] = true; }); return m;
+        }).catch(function () { return {}; });
         return Promise.all([rk, getTiers(),
-          can("managers") ? admin.listManagers().catch(function () { return []; }) : Promise.resolve([])]).then(function (r) {
+          can("managers") ? admin.listManagers().catch(function () { return []; }) : Promise.resolve([]), testers]).then(function (r) {
           var mg = {}; r[2].forEach(function (m) { mg[m.uid] = m; });
           out.forEach(function (u, i) {
             u.rankDoc = r[0][i]; u.rank = rankOf(u.totalScore, r[0][i] && r[0][i].manual, r[1], r[0][i] && r[0][i].customName);
             u.manager = mg[u.uid] || null;
+            u.tester = !!r[3][u.uid];
           });
           return out;
         });
       });
     },
     getUser: function (uid) {
-      return Promise.resolve().then(function () { needPerm("view"); }).then(function () { return Promise.all([fb.F.getDoc(userRef(uid)), readRank(uid), getTiers()]); })
-        .then(function (r) {
+      return Promise.resolve().then(function () { needPerm("view"); }).then(function () {
+        return Promise.all([fb.F.getDoc(userRef(uid)), readRank(uid), getTiers(),
+          fb.F.getDoc(fb.F.doc(fb.db, "testers", uid)).then(function (x) { return x.exists(); }).catch(function () { return false; })]);
+      }).then(function (r) {
           if (!r[0].exists()) return null;
           var u = Object.assign({ uid: uid }, r[0].data());
           u.rankDoc = r[1]; u.rank = rankOf(u.totalScore, r[1] && r[1].manual, r[2], r[1] && r[1].customName);
+          u.tester = !!r[3];
           return u;
         });
     },
@@ -1006,6 +1018,7 @@
           delete lbCache[g];
         });
         b.delete(F.doc(fb.db, "ranks", uid));
+        b.delete(F.doc(fb.db, "testers", uid));
         ["all"].concat(knownGames(u)).forEach(function (g) { if (/^[a-z0-9-]{1,40}$/.test(g)) b.delete(F.doc(fb.db, "gstats", g, "players", uid)); });
         b.set(F.doc(fb.db, "tombstones", uid), { by: state.user.uid, at: F.serverTimestamp(), name: cleanName(u.displayName) || "?", username: String(u.username || "").slice(0, 15) });
         return b.commit().then(function () {
@@ -1064,6 +1077,25 @@
       });
     },
     removeManager: function (uid) { return admin.setManager(uid, {}); },
+    // Tester flag: sees the official-hub "דמו" button. Not a manager permission; not self-assignable.
+    setTester: function (uid, on) {
+      needPerm("managers");
+      if (state.user && uid === state.user.uid) return Promise.reject({ heb: "אי אפשר לתת או להסיר לעצמך את הרשאת הבודק." });
+      var F = fb.F, ref = F.doc(fb.db, "testers", uid);
+      return Promise.all([F.getDoc(ref), admin.getUser(uid).catch(function () { return null; })]).then(function (r) {
+        var was = r[0].exists(), u = r[1];
+        if (!u) throw { heb: "התלמיד לא נמצא." };
+        if (!!on === was) return;
+        var nm = cleanName(u.displayName) || "?";
+        var b = auditBatch("tester", uid, nm, was ? "בודק" : "לא בודק", on ? "בודק" : "לא בודק", on ? "מינוי בודק" : "הסרת בודק");
+        if (on) b.set(ref, { name: nm.slice(0, 20), grantedBy: state.user.uid, updatedAt: F.serverTimestamp() });
+        else b.delete(ref);
+        return b.commit().then(function () {
+          if (state.user && uid === state.user.uid) staff.tester = !!on;
+          return logEvent("admin_tester", "", on ? "מונה/תה כבודק/ת" : "הוסר/ה מהרשאת בודק", { uid: uid, name: nm });
+        });
+      });
+    },
     // owner / audit permission: everything; other managers: their own entries only
     listAudit: function (o) {
       o = o || {};
@@ -2077,6 +2109,8 @@
   };
   /* roles + ranks API (v12) */
   Object.defineProperty(global.EnglishiaAuth, "isOwner", { get: function () { return isOwner(); } });
+  Object.defineProperty(global.EnglishiaAuth, "isTester", { get: function () { return isTester(); } });
+  Object.defineProperty(global.EnglishiaAuth, "canSeeDemo", { get: function () { return canSeeDemo(); } });
   Object.defineProperty(global.EnglishiaAuth, "perms", { get: function () { var o = {}; PERMS.forEach(function (k) { o[k] = can(k); }); return o; } });
   global.EnglishiaAuth.can = can;
   Object.defineProperty(global.EnglishiaAuth, "roleState", { get: function () { return roleState(); } });

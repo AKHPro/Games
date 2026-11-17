@@ -40,11 +40,12 @@
   .rk{display:inline-flex;align-items:center;gap:6px;font-weight:700;white-space:normal;max-width:100%}
   .tag{display:inline-block;border-radius:999px;padding:2px 10px;font-size:15px;font-weight:700;background:#1d1a16;color:#ffd43b}
   .tag.mgr{background:#1c7ed6;color:#fff}
+  .tag.tester{background:#0b7285;color:#fff}
   .sec{border-top:2px dashed #eadcbf;margin-top:16px;padding-top:6px}
   select.f{font-size:20px;padding:10px 12px;border:2px solid #d9c9a8;border-radius:12px;background:#fff}
   input.n{font-size:20px;padding:8px 10px;border:2px solid #d9c9a8;border-radius:12px;width:120px;box-sizing:border-box}
-  .t.admin_points,.t.admin_rank,.t.admin_perms,.t.admin_delete,.t.admin_restore,.t.admin_rankdefs{background:#ffe3e3}
-  .a.points,.a.reset_game{background:#fff3bf}.a.rank,.a.rankdefs{background:#e5dbff}.a.perms{background:#d0ebff}.a.delete_user,.a.restore_user{background:#ffe3e3}.a.password_reset,.a.username_change,.a.rename{background:#e9ecef}
+  .t.admin_points,.t.admin_rank,.t.admin_perms,.t.admin_tester,.t.admin_delete,.t.admin_restore,.t.admin_rankdefs{background:#ffe3e3}
+  .a.points,.a.reset_game{background:#fff3bf}.a.rank,.a.rankdefs{background:#e5dbff}.a.perms,.a.tester{background:#d0ebff}.a.delete_user,.a.restore_user{background:#ffe3e3}.a.password_reset,.a.username_change,.a.rename{background:#e9ecef}
   .a{display:inline-block;border-radius:999px;padding:2px 10px;font-size:15px}
   .ba{font-size:16px;color:#3b342a;max-width:360px;word-break:break-word}
 .pe-game{margin:8px 0;background:#fff;border:2px solid #eadcbf;border-radius:14px;padding:6px 12px}
@@ -124,7 +125,7 @@
   var TYPE_HE = { register: "הרשמה", login: "כניסה", logout: "יציאה", game_start: "פתח/ה משחק", stage_reached: "התחיל/ה שלב",
     stage_completed: "סיים/ה שלב", score: "ניקוד", name_change: "שינוי שם", password_change: "שינוי סיסמה",
     username_change: "שינוי שם משתמש", admin_edit: "עריכת מנהל", admin_reset_progress: "מחיקת ניקוד", admin_password_reset: "איפוס סיסמה ע״י המנהל",
-    admin_points: "עריכת נקודות", admin_rank: "שינוי דרגה", admin_perms: "הרשאות", admin_delete: "מחיקה", admin_restore: "שחזור", admin_rankdefs: "עריכת דרגות" };
+    admin_points: "עריכת נקודות", admin_rank: "שינוי דרגה", admin_perms: "הרשאות", admin_tester: "הרשאת בודק", admin_delete: "מחיקה", admin_restore: "שחזור", admin_rankdefs: "עריכת דרגות" };
   var users = [], byUid = {}, tiers = [], managers = [];
   function $(id) { return document.getElementById(id); }
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
@@ -209,7 +210,7 @@
     $("users").innerHTML = "<table><tr><th>שם</th><th>שם משתמש</th><th>דרגה</th><th>ניקוד כולל</th><th>זמן משחק</th>" +
       gl.map(function (g) { return "<th>" + esc(gname(g)) + "<br><small>שיא · זמן</small></th>"; }).join("") + "<th>נראה לאחרונה</th></tr>" +
       list.map(function (u) {
-        return '<tr class="click" data-uid="' + esc(u.uid) + '"><td><b>' + esc(u.displayName) + "</b>" + (u.manager ? ' <span class="tag mgr">מנהל</span>' : "") + "</td><td>" + esc(u.username) + "</td><td>" + chip(u.rank) + "</td><td>" + num(u.totalScore) +
+        return '<tr class="click" data-uid="' + esc(u.uid) + '"><td><b>' + esc(u.displayName) + "</b>" + (u.manager ? ' <span class="tag mgr">מנהל</span>' : "") + (u.tester ? ' <span class="tag tester">בודק</span>' : "") + "</td><td>" + esc(u.username) + "</td><td>" + chip(u.rank) + "</td><td>" + num(u.totalScore) +
           "</td><td>" + esc(T(u.totalSeconds)) + "</td>" + gl.map(function (g) {
             var s = (u.games || {})[g]; return "<td>" + (s ? num(s.best) + " · " + esc(T(s.seconds)) : "—") + "</td>";
           }).join("") + "<td>" + esc(D(u.lastSeen)) + "</td></tr>";
@@ -257,7 +258,7 @@
       var gl = Object.keys(u.games || {});
       var me = E.user && E.user.uid === uid;
       var html = '<div class="row"><button class="btn sm" id="u-back">← חזרה לרשימה</button></div>' +
-        '<h2>👤 ' + esc(u.displayName) + " " + chip(u.rank, 30) + "</h2><p class=\"hint\">שם משתמש לכניסה: <b>" + esc(u.username) + "</b> · נרשם/ה: " + esc(D(u.createdAt)) + " · נראה/תה לאחרונה: " + esc(D(u.lastSeen)) + "</p>" +
+        '<h2>👤 ' + esc(u.displayName) + (u.tester ? ' <span class="tag tester">בודק</span>' : "") + " " + chip(u.rank, 30) + "</h2><p class=\"hint\">שם משתמש לכניסה: <b>" + esc(u.username) + "</b> · נרשם/ה: " + esc(D(u.createdAt)) + " · נראה/תה לאחרונה: " + esc(D(u.lastSeen)) + "</p>" +
         '<div class="grid"><div class="stat"><b>' + num(u.totalScore) + '</b><span>ניקוד כולל</span></div><div class="stat"><b>' + esc(T(u.totalSeconds)) +
         '</b><span>זמן משחק כולל</span></div><div class="stat"><b>' + num(u.plays) + "</b><span>משחקים</span></div></div>" +
         '<div id="u-msg"></div>' +
@@ -295,6 +296,15 @@
           '<div class="row"><input class="f" id="u-pass" autocomplete="off"><button class="btn main" id="u-pass-go">איפוס סיסמה</button></div>' +
           "<h3>🪪 שינוי שם משתמש לכניסה</h3><p class=\"hint\">רק אם צריך. התלמיד/ה ייכנס/תיכנס מעכשיו עם השם החדש.</p>" +
           '<div class="row"><input class="f" id="u-user" maxlength="15" value="' + esc(u.username) + '"><button class="btn" id="u-user-go">שינוי</button></div></div>';
+      }
+      if (u.tester || (E.can("managers") && !me)) {
+        html += '<div class="sec"><h3>בודק (Tester)</h3>';
+        if (u.tester) html += '<p><span class="tag tester">בודק</span> רואה את כפתור דמו באתר הרשמי. זה לא נותן הרשאות ניהול.</p>';
+        else html += '<p class="hint">בודק רואה את כפתור דמו באתר הרשמי (מעבר לגרסת הניסיון). זה לא נותן הרשאות ניהול, ואי אפשר לתת את ההרשאה לעצמך.</p>';
+        if (E.can("managers") && !me) {
+          html += '<div class="row"><button class="btn ' + (u.tester ? "red" : "main") + '" id="u-tester-go">' + (u.tester ? "הסרת הרשאת בודק" : "מינוי כבודק") + "</button></div>";
+        }
+        html += "</div>";
       }
       if (E.can("managers") && !me) {
         html += '<div class="sec"><h3>🔐 הרשאות ניהול</h3><p class="hint">' + (mgr ? "המשתמש הזה מנהל." : "המשתמש הזה לא מנהל. סמנו הרשאות כדי למנות אותו.") + " אפשר לתת רק הרשאות שיש לכם. בלי צפייה בתלמידים, רוב ההרשאות האחרות לא שימושיות.</p>" +
@@ -346,6 +356,7 @@
       if ($("u-name-go")) $("u-name-go").onclick = function () { run(this, A.rename(uid, $("u-name").value), "השם שונה.", true); };
       if ($("u-pass-go")) $("u-pass-go").onclick = function () { run(this, A.resetPassword(uid, $("u-pass").value), "הסיסמה החדשה נשמרה. תנו אותה לתלמיד/ה."); };
       if ($("u-user-go")) $("u-user-go").onclick = function () { run(this, A.changeUsername(uid, $("u-user").value), "שם המשתמש לכניסה שונה.", true); };
+      if ($("u-tester-go")) $("u-tester-go").onclick = function () { run(this, A.setTester(uid, !u.tester), u.tester ? "הרשאת הבודק הוסרה." : "מונה/תה כבודק/ת.", true); };
       if ($("u-perm-go")) { wirePerms("u-perm"); $("u-perm-go").onclick = function () { run(this, A.setManager(uid, readPerms("u-perm"), u.displayName), "ההרשאות נשמרו.", true); }; }
       if ($("u-perm-del")) $("u-perm-del").onclick = function () { if (confirm("להסיר את " + u.displayName + " מניהול?")) run(this, A.removeManager(uid), "הוסר/ה מניהול.", true); };
       if ($("u-del")) $("u-del").onclick = function () {
