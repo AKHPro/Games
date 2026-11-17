@@ -1,5 +1,10 @@
 {
-  "categories": ["Grammar", "Vocabulary", "Reading", "Quiz"],
+  "categories": [
+    "Grammar",
+    "Vocabulary",
+    "Reading",
+    "Quiz"
+  ],
   "games": [
     {
       "id": "grammar-maze",
@@ -7,7 +12,12 @@
       "subtitleHe": "מבוך הדקדוק",
       "description": "A torch-lit 3D maze for the classroom. Every fork is an English question: choose the sign with the right answer and the class walks that way. Four zones lead to the gold, with timers, monsters, and topics for grades 10–12.",
       "category": "Grammar",
-      "tags": ["Tenses", "Sentences", "Bagrut", "Word types"],
+      "tags": [
+        "Tenses",
+        "Sentences",
+        "Bagrut",
+        "Word types"
+      ],
       "level": "Grades 10–12",
       "path": "games/grammar-maze/",
       "thumbnail": "assets/thumbs/grammar-maze.png",
@@ -19,10 +29,29 @@
       "subtitleHe": "מילה קווסט",
       "description": "A 3D running game for English vocabulary: 8 worlds, 56 stages, bosses, and difficulty settings.",
       "category": "Vocabulary",
-      "tags": ["Words", "Worlds"],
+      "tags": [
+        "Words",
+        "Worlds"
+      ],
       "level": "בחירת גיל בהגדרות",
       "path": "games/mila-quest/",
       "thumbnail": "assets/thumbs/mila-quest.jpg"
+    },
+    {
+      "id": "word-detective",
+      "title": "Word Detective (Demo)",
+      "subtitleHe": "בלש המילים (דמו)",
+      "description": "DEMO · Parts of speech, word forms, prefixes and tenses for grades 10–12. Practice by topic with hints and explanations, a V1·V2·V3 verb drill, a reference page, a 30-question Bagrut-style exam, a class competition with codes, and a live team game on the projector.",
+      "category": "Grammar",
+      "tags": [
+        "Parts of speech",
+        "Word forms",
+        "Tenses",
+        "Bagrut-style"
+      ],
+      "level": "Grades 10–12",
+      "path": "games/word-detective/",
+      "thumbnail": "assets/thumbs/word-detective.jpg"
     }
   ]
 }
