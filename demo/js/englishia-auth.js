@@ -17,6 +17,9 @@
      registerDevTools(fn, label)     -> adds the game's developer tools to the admin panel
      bridgeLocal(localApi, gameId)   -> makes the old local window.Englishia API use the account
      admin.*                         -> admin-only tools (see bottom)
+     recordAnswer(gameId, {item, topic, level, correct, given, expected, prompt})
+                                     -> v12.6 performance reports (batched; signed-in players only)
+     version                         -> this file's version (pages check it to catch a stale cached copy)
 */
 (function (global) {
   "use strict";
@@ -31,6 +34,7 @@
     messagingSenderId: "62739653603",
     appId: "1:62739653603:web:bb5d73d2a343357aa536d6"
   };
+  var VERSION = "12.6";
   var SDK = "https://www.gstatic.com/firebasejs/10.14.1/";
   var EMAIL_DOMAIN = "englishia.app";
   var ACTIVITY_DAYS = 7;
@@ -168,14 +172,19 @@
 
   /* ---------- helpers ---------- */
   var HINTKEY = "englishia.session.v1";
+  // v12.6 "stay logged in": "0" = this browser session only (sessionStorage), else local (default)
+  var REMKEY = "englishia.remember";
+  function remembered() { try { return localStorage.getItem(REMKEY) !== "0"; } catch (e) { return true; } }
+  function hintStore() { try { return remembered() ? localStorage : sessionStorage; } catch (e) { return null; } }
   function readHint() {
-    try { return JSON.parse(localStorage.getItem(HINTKEY) || "null"); } catch (e) { return null; }
+    try { return JSON.parse(sessionStorage.getItem(HINTKEY) || localStorage.getItem(HINTKEY) || "null"); } catch (e) { return null; }
   }
   function writeHint() {
     try {
       if (state.user) {
-        var d = state.doc || {}, h = readHint() || {};
-        localStorage.setItem(HINTKEY, JSON.stringify({
+        var d = state.doc || {}, h = readHint() || {}, st = hintStore() || localStorage;
+        try { (st === localStorage ? sessionStorage : localStorage).removeItem(HINTKEY); } catch (e) {}
+        st.setItem(HINTKEY, JSON.stringify({
           uid: state.user.uid,
           username: d.username || h.username || "",
           displayName: d.displayName || d.username || h.displayName || "",
@@ -183,6 +192,7 @@
         }));
       } else if (!state.restoring) {
         localStorage.removeItem(HINTKEY);
+        try { sessionStorage.removeItem(HINTKEY); } catch (e) {}
       }
     } catch (e) {}
   }
@@ -200,6 +210,9 @@
     // because IndexedDB often reports "available" but then fails to restore the session.
     var persist = [A.indexedDBLocalPersistence, A.browserLocalPersistence];
     if (webkitAuth()) persist = [A.browserLocalPersistence, A.indexedDBLocalPersistence];
+    // v12.6: a "do not stay logged in" sign-in lives in sessionStorage; listed last so it is found
+    // on reload (and never migrated into local storage).
+    if (A.browserSessionPersistence) persist.push(A.browserSessionPersistence);
     try {
       if (typeof A.initializeAuth === "function") {
         return A.initializeAuth(app, {
@@ -377,13 +390,25 @@
     fb.F.updateDoc(userRef(state.user.uid), { lastSeen: fb.F.serverTimestamp() }).catch(function () {});
   }
 
-  function register(username, password, displayName) {
+  // v12.6: remember=false -> the session ends when the browser (tab) is closed
+  function applyPersistence(remember) {
+    remember = remember !== false;
+    try { localStorage.setItem(REMKEY, remember ? "1" : "0"); } catch (e) {}
+    var A = fb.A;
+    var p = remember ? (webkitAuth() ? A.browserLocalPersistence : A.indexedDBLocalPersistence) : A.browserSessionPersistence;
+    if (!p || typeof A.setPersistence !== "function") return Promise.resolve();
+    return A.setPersistence(fb.auth, p).catch(function (e) {
+      console.warn("englishia persistence", e);
+      if (remember && A.browserLocalPersistence) return A.setPersistence(fb.auth, A.browserLocalPersistence).catch(function () {});
+    });
+  }
+  function register(username, password, displayName, remember) {
     if (!displayName) displayName = String(username == null ? "" : username).trim();
     username = normUsername(username);
     var bad = checkUsername(username);
     if (bad) return Promise.reject({ heb: bad });
     if (String(password || "").length < 6) return Promise.reject({ heb: "הסיסמה קצרה מדי. צריך לפחות 6 תווים." });
-    return loadFirebase().then(function () {
+    return loadFirebase().then(function () { return applyPersistence(remember); }).then(function () {
       return fb.A.createUserWithEmailAndPassword(fb.auth, usernameToEmail(username), password);
     }).then(function (cred) {
       return ensureUserDoc(cred.user, username, displayName).then(function () {
@@ -395,10 +420,10 @@
       });
     }).then(function () { emit(); return publicUser(); });
   }
-  function login(username, password) {
+  function login(username, password, remember) {
     username = normUsername(username);
     if (!username || !password) return Promise.reject({ heb: "צריך לכתוב שם משתמש וסיסמה." });
-    return loadFirebase().then(function () {
+    return loadFirebase().then(function () { return applyPersistence(remember); }).then(function () {
       return fb.A.signInWithEmailAndPassword(fb.auth, usernameToEmail(username), password);
     }).then(function (cred) {
       // a slow/blocked network must not block a correct login; profile data loads again on the next auth event
@@ -546,7 +571,7 @@
   /* ---------- admin, managers, ranks, audit ---------- */
   // Roles: owner = admins/{uid} (set in the Firebase console, irrevocable from the site).
   // Managers = managers/{uid} {perms}. Every permission is enforced by firestore.rules too.
-  var PERMS = ["view", "points", "names", "ranks", "rankdefs", "delete", "managers", "audit"];
+  var PERMS = ["view", "points", "names", "ranks", "rankdefs", "delete", "managers", "audit", "reports"];
   var PERM_HE = {
     view: "צפייה בתלמידים, בהתקדמות ובפעילות",
     points: "עריכת נקודות והתקדמות (הוספה, שינוי, מחיקה)",
@@ -555,7 +580,8 @@
     rankdefs: "עריכת הדרגות (שמות וניקוד נדרש)",
     "delete": "מחיקת תלמידים ושחזור",
     managers: "מינוי מנהלים (רק בהרשאות שיש לו)",
-    audit: "צפייה ביומן הביקורת של כל המנהלים"
+    audit: "צפייה ביומן הביקורת של כל המנהלים",
+    reports: "צפייה בדוחות ביצועים (טעויות וקשיים של תלמידים)"
   };
   var ACTION_HE = {
     points: "עריכת נקודות", reset_game: "מחיקת ניקוד במשחק", rename: "שינוי שם", rank: "שינוי דרגה",
@@ -663,23 +689,35 @@
       while (seen[id]) id += "x";
       seen[id] = 1;
       var color = /^#[0-9a-f]{6}$/i.test(t.color || "") ? t.color : TIER_COLORS[i % TIER_COLORS.length];
-      out.push({ id: id, name: name, min: Math.min(1000000000, num(t.min)), color: color });
+      var o = { id: id, name: name, min: Math.min(1000000000, num(t.min)), color: color };
+      var icon = cleanIcon(t.icon);
+      if (icon) o.icon = icon;
+      out.push(o);
     });
     out.sort(function (a, b) { return a.min - b.min; });
     if (out.length) out[0].min = 0;
     return out;
   }
+  // v12.6: per-student symbol overrides live in config/rankicons {icons: {uid: icon}} (read with the tiers)
+  var rankIcons = {};
+  function loadRankIcons() {
+    return fb.F.getDoc(fb.F.doc(fb.db, "config", "rankicons")).then(function (s) {
+      var m = {}, src = s.exists() ? (s.data().icons || {}) : {};
+      Object.keys(src).forEach(function (k) { var v = cleanIcon(src[k]); if (v) m[k] = v; });
+      rankIcons = m; return m;
+    }).catch(function () { return rankIcons; });
+  }
   function getTiers(force) {
     if (!force && tiersCache && Date.now() - tiersAt < 60e3) return Promise.resolve(tiersCache);
     return loadFirebase().then(function () {
-      return fb.F.getDoc(fb.F.doc(fb.db, "config", "ranks"));
+      return Promise.all([fb.F.getDoc(fb.F.doc(fb.db, "config", "ranks")), loadRankIcons()]).then(function (r) { return r[0]; });
     }).then(function (s) {
       var t = s.exists() ? cleanTiers(s.data().tiers) : [];
       tiersCache = t.length ? t : DEFAULT_TIERS.slice(); tiersAt = Date.now();
       return tiersCache;
     }).catch(function () { return tiersCache || DEFAULT_TIERS.slice(); });
   }
-  function rankOf(total, manual, tiers, customName) {
+  function rankOf(total, manual, tiers, customName, uid) {
     tiers = tiers || tiersCache || DEFAULT_TIERS;
     total = num(total);
     if (manual && typeof manual === "object") {
@@ -693,7 +731,9 @@
       for (var i = 0; i < tiers.length; i++) if (tiers[i].id === manual) { idx = i; isManual = true; break; }
     }
     var next = auto + 1 < tiers.length ? tiers[auto + 1] : null;
-    return { tier: tiers[idx], index: idx, level: idx + 1, manual: isManual, auto: tiers[auto], next: next, toNext: next ? next.min - total : 0, total: total, customName: cleanCustomName(customName) };
+    var customIcon = uid ? (rankIcons[uid] || "") : "";
+    return { tier: tiers[idx], index: idx, level: idx + 1, manual: isManual, auto: tiers[auto], next: next, toNext: next ? next.min - total : 0, total: total, customName: cleanCustomName(customName),
+      customIcon: customIcon, icon: customIcon || (tiers[idx] && tiers[idx].icon) || "" };
   }
   // drawn badge (SVG shield with a star and the level number); no emoji
   function badgeSVG(tier, level, size) {
@@ -711,7 +751,7 @@
     var title = r.customName
       ? ("דרגה מותאמת: " + r.customName + (r.manual ? " · תג " + r.tier.name : " · תג לפי ניקוד (" + r.tier.name + ")"))
       : ("דרגה " + r.level + (r.manual ? " (נקבעה ע״י המנהל)" : ""));
-    return '<span class="eng-rank" title="' + esc(title) + '">' + badgeSVG(r.tier, r.level, size) +
+    return '<span class="eng-rank" title="' + esc(title) + '">' + badgeSVG(r.tier, r.level, size) + rankIconHTML(r.icon, size) +
       "<span>" + esc(rankLabel(r)) + "</span></span>";
   }
   function readRank(uid) {
@@ -731,6 +771,7 @@
   }
   var origRecordSession = recordSession;
   recordSession = function (gameId, score, seconds, progress) {
+    try { flushAnswers(); } catch (e) {}
     return origRecordSession(gameId, score, seconds, progress).then(function (ok) {
       if (ok) return syncRank().then(function () { if (staff.uid && state.user && staff.uid === state.user.uid) return readRank(staff.uid).then(function (x) { staff.rank = x; }); }).then(function () { return ok; });
       return ok;
@@ -738,7 +779,7 @@
   };
   function myRank() {
     var d = state.doc || {};
-    return rankOf(d.totalScore, staff.rank && staff.rank.manual, null, staff.rank && staff.rank.customName);
+    return rankOf(d.totalScore, staff.rank && staff.rank.manual, null, staff.rank && staff.rank.customName, state.user && state.user.uid);
   }
   function ranksFor(uids) {
     return Promise.all(uids.map(function (u) { return readRank(u); }));
@@ -844,7 +885,7 @@
           can("managers") ? admin.listManagers().catch(function () { return []; }) : Promise.resolve([]), testers]).then(function (r) {
           var mg = {}; r[2].forEach(function (m) { mg[m.uid] = m; });
           out.forEach(function (u, i) {
-            u.rankDoc = r[0][i]; u.rank = rankOf(u.totalScore, r[0][i] && r[0][i].manual, r[1], r[0][i] && r[0][i].customName);
+            u.rankDoc = r[0][i]; u.rank = rankOf(u.totalScore, r[0][i] && r[0][i].manual, r[1], r[0][i] && r[0][i].customName, u.uid);
             u.manager = mg[u.uid] || null;
             u.tester = !!r[3][u.uid];
           });
@@ -859,7 +900,7 @@
       }).then(function (r) {
           if (!r[0].exists()) return null;
           var u = Object.assign({ uid: uid }, r[0].data());
-          u.rankDoc = r[1]; u.rank = rankOf(u.totalScore, r[1] && r[1].manual, r[2], r[1] && r[1].customName);
+          u.rankDoc = r[1]; u.rank = rankOf(u.totalScore, r[1] && r[1].manual, r[2], r[1] && r[1].customName, uid);
           u.tester = !!r[3];
           return u;
         });
@@ -964,10 +1005,18 @@
     },
     // tierId '' = back to automatic (by score). customName is optional free text; '' clears it.
     // if the 3rd argument is omitted, an existing custom name is kept (old callers).
-    setRank: function (uid, tierId, customName) {
+    // v12.6: customIcon (4th argument): undefined = keep, "" = clear, else an emoji or "svg:name".
+    // After saving, the rank is read back from the server; a mismatch is reported instead of a silent "saved".
+    setRank: function (uid, tierId, customName, customIcon) {
       needPerm("ranks");
       var F = fb.F;
-      var keepCustom = arguments.length < 3;
+      var keepCustom = arguments.length < 3 || customName === undefined;
+      var keepIcon = customIcon === undefined;
+      if (!keepIcon) {
+        var rawIcon = String(customIcon == null ? "" : customIcon).trim();
+        customIcon = cleanIcon(rawIcon);
+        if (rawIcon && !customIcon) return Promise.reject({ heb: "הסמל לא תקין. בחרו סמל מהרשימה." });
+      }
       return Promise.all([admin.getUser(uid), getTiers(true)]).then(function (r) {
         var u = r[0], tiers = r[1];
         if (!u) throw { heb: "התלמיד לא נמצא." };
@@ -976,16 +1025,37 @@
         var raw = keepCustom ? ((u.rankDoc && u.rankDoc.customName) || "") : String(customName == null ? "" : customName).replace(/\s+/g, " ").trim();
         var custom = keepCustom ? cleanCustomName(u.rankDoc && u.rankDoc.customName) : cleanCustomName(raw);
         if (!keepCustom && raw && !custom) throw { heb: "אפשר לכתוב רק אותיות בעברית או באנגלית, מספרים ורווחים (עד 24 תווים)." };
+        var oldIcon = rankIcons[uid] || "", icon = keepIcon ? oldIcon : customIcon;
         var oldR = u.rank, newR = rankOf(u.totalScore, tierId, tiers, custom);
+        newR.customIcon = icon; newR.icon = icon || newR.tier.icon || "";
         var label = function (x) {
           var s = (x.customName || x.tier.name) + (x.manual ? " (ידני)" : " (לפי ניקוד)");
           if (x.customName) s += " · תג " + x.tier.name;
+          if (x.customIcon) s += " · סמל " + x.customIcon;
           return s;
         };
-        var b = auditBatch("rank", uid, u.displayName, label(oldR), label(newR), custom ? custom : "בלי שם חופשי");
-        b.set(F.doc(fb.db, "ranks", uid), rankFields(null, num(u.totalScore), tierId, custom));
-        return b.commit().then(function () {
+        var iconRef = F.doc(fb.db, "config", "rankicons");
+        var iconJob = icon === oldIcon ? Promise.resolve(null) : F.getDoc(iconRef).then(function (s) {
+          var m = Object.assign({}, s.exists() ? (s.data().icons || {}) : {});
+          if (icon) m[uid] = icon; else delete m[uid];
+          return m;
+        });
+        return iconJob.then(function (iconMap) {
+          var b = auditBatch("rank", uid, u.displayName, label(oldR), label(newR), (custom ? custom : "בלי שם חופשי") + (icon !== oldIcon ? (icon ? " · סמל חדש" : " · בלי סמל אישי") : ""));
+          b.set(F.doc(fb.db, "ranks", uid), rankFields(null, num(u.totalScore), tierId, custom));
+          if (iconMap) b.set(iconRef, { icons: iconMap, updatedAt: F.serverTimestamp(), by: state.user.uid });
+          return b.commit();
+        }).then(function () {
+          if (icon) rankIcons[uid] = icon; else delete rankIcons[uid];
           if (state.user && uid === state.user.uid) staff.rank = { total: num(u.totalScore), manual: tierId, customName: custom };
+          lbData = {};
+          // read back what the server now holds (catches a stale cached script or a silent drop)
+          return F.getDoc(F.doc(fb.db, "ranks", uid)).then(function (s) {
+            var x = s.exists() ? s.data() : null;
+            if (!x || (x.manual || "") !== tierId || cleanCustomName(x.customName) !== custom)
+              throw { heb: "הדרגה לא נשמרה כמו שצריך בשרת. רעננו את הדף (Ctrl+F5) ונסו שוב." };
+          }, function (e) { console.warn("englishia rank verify", e); });
+        }).then(function () {
           return logEvent("admin_rank", "", "דרגה: " + label(oldR) + " ← " + label(newR), { uid: uid, name: u.displayName });
         });
       });
@@ -997,7 +1067,7 @@
       if (!tiers.length) return Promise.reject({ heb: "צריך לפחות דרגה אחת." });
       var F = fb.F;
       return getTiers(true).then(function (old) {
-        var fmt = function (l) { return l.map(function (t) { return t.name + " " + t.min; }).join(" · "); };
+        var fmt = function (l) { return l.map(function (t) { return (t.icon ? t.icon + " " : "") + t.name + " " + t.min; }).join(" · "); };
         var b = auditBatch("rankdefs", "config", "דרגות", fmt(old), fmt(tiers), tiers.length + " דרגות");
         b.set(F.doc(fb.db, "config", "ranks"), { tiers: tiers, updatedAt: F.serverTimestamp(), by: state.user.uid });
         return b.commit().then(function () { tiersCache = tiers; tiersAt = Date.now(); return tiers; });
@@ -1015,6 +1085,7 @@
         knownGames(u).forEach(function (g) {
           b.delete(F.doc(fb.db, "users", uid, "progress", g));
           b.delete(F.doc(fb.db, "leaderboards", g, "scores", uid));
+          b.delete(F.doc(fb.db, "answers", uid, "agames", g));
           delete lbCache[g];
         });
         b.delete(F.doc(fb.db, "ranks", uid));
@@ -1264,7 +1335,10 @@
       trophy: '<path d="M8 4h8v3a4 4 0 0 1-8 0V4z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M8 6.5H5.5A2.5 2.5 0 0 0 8 9M16 6.5h2.5A2.5 2.5 0 0 1 16 9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M12 11v3M9 20h6M10.5 20l.5-6h2l.5 6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>',
       tools: '<path d="M15.2 14.2 20 19a1.4 1.4 0 0 1-2 2l-4.8-4.8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M9.2 4.5 7 6.7l2.8 2.8-2.1 2.1 1.7 1.7 2.1-2.1 2.8 2.8 2.2-2.2-5.3-7.3z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/>',
       pencil: '<path d="M4 20l1.2-5.2L16.5 3.5a2 2 0 0 1 2.8 0l1.2 1.2a2 2 0 0 1 0 2.8L9.2 18.8 4 20z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><path d="M14.8 5.2l4 4" fill="none" stroke="currentColor" stroke-width="1.8"/>',
-      lock: '<rect x="6" y="11" width="12" height="9" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8.5 11V8.2a3.5 3.5 0 0 1 7 0V11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="15.5" r="1.1" fill="currentColor"/>'
+      lock: '<rect x="6" y="11" width="12" height="9" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M8.5 11V8.2a3.5 3.5 0 0 1 7 0V11" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="15.5" r="1.1" fill="currentColor"/>',
+      chart: '<path d="M4 20h16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><rect x="6" y="11" width="3" height="7" rx=".8" fill="currentColor"/><rect x="10.5" y="6" width="3" height="12" rx=".8" fill="currentColor"/><rect x="15" y="13" width="3" height="5" rx=".8" fill="currentColor"/>',
+      print: '<path d="M7 9V4h10v5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/><rect x="4" y="9" width="16" height="7" rx="1.6" fill="none" stroke="currentColor" stroke-width="1.8"/><rect x="7" y="14" width="10" height="6" fill="#fff" stroke="currentColor" stroke-width="1.8"/>',
+      download: '<path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19.5h14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>'
     };
     return '<svg class="eng-ico" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">' + (p[name] || "") + "</svg>";
   }
@@ -1275,7 +1349,7 @@
     mode = mode || "login";
     var reg = mode === "register";
     var box = openBox(
-      "<h2>👤 חשבון אינגלישיה</h2>" +
+      "<h2>" + ico("user") + " חשבון אינגלישיה</h2>" +
       '<p class="eng-hint" style="text-align:center">חשבון אחד לכל המשחקים. כך ממשיכים מאיפה שעצרתם, בכל מחשב.</p>' +
       '<div class="eng-tabs"><button class="eng-btn ' + (reg ? "sec" : "") + '" data-eng="tab-login">כניסה</button>' +
       '<button class="eng-btn ' + (reg ? "" : "sec") + '" data-eng="tab-reg">הרשמה חדשה</button></div>' +
@@ -1286,6 +1360,8 @@
       '<p class="eng-hint">' + (reg ? "לפחות 6 תווים. אל תספרו לאף אחד את הסיסמה." : "הסיסמה הסודית שלכם.") + "</p>" +
       '<input id="eng-pass" type="password" autocomplete="' + (reg ? "new-password" : "current-password") + '" maxlength="60">' +
       '<label style="font-weight:500;font-size:18px"><input type="checkbox" id="eng-show" style="width:auto;margin-left:8px"> להציג את הסיסמה</label>' +
+      '<label class="eng-remember"><input type="checkbox" id="eng-remember" checked> להישאר מחובר/ת</label>' +
+      '<p class="eng-hint" style="margin-top:0">בלי סימון: יוצאים מהחשבון כשסוגרים את הדפדפן. מומלץ במחשב משותף בכיתה.</p>' +
       (reg ? "<label for=\"eng-name\">השם שיופיע במשחק ובטבלת השיאים</label>" +
         '<p class="eng-hint">שם פרטי או כינוי בלבד, בלי שם משפחה (טבלת השיאים גלויה לכולם). אפשר להשאיר ריק.</p><input id="eng-name" maxlength="20" autocomplete="nickname">' : "") +
       '<div class="eng-row"><button class="eng-btn green" data-eng="go">' + (reg ? "✓ להירשם" : "✓ להיכנס") + "</button>" +
@@ -1299,7 +1375,8 @@
     function submit() {
       var u = q(box, "#eng-user").value, p = q(box, "#eng-pass").value;
       busy(go, true);
-      (reg ? register(u, p, q(box, "#eng-name").value) : login(u, p)).then(function (user) {
+      var keep = q(box, "#eng-remember") ? q(box, "#eng-remember").checked : true;
+      (reg ? register(u, p, q(box, "#eng-name").value, keep) : login(u, p, keep)).then(function (user) {
         showMsg(box, (reg ? "נרשמתם! " : "") + "שלום, " + user.displayName + "!", true);
         setTimeout(function () { closeBox(); afterChange(); }, 700);
       }).catch(function (e) { busy(go, false); showMsg(box, errText(e)); });
@@ -1423,7 +1500,7 @@
     function paint() {
       var r = myRank();
       var pct = r.next ? Math.max(0, Math.min(100, Math.round(100 * (r.total - r.auto.min) / Math.max(1, r.next.min - r.auto.min)))) : 100;
-      card.innerHTML = badgeSVG(r.tier, r.level, 54) + '<div><div class="big">' + esc(rankLabel(r)) + "</div><div class=\"eng-hint\">" +
+      card.innerHTML = badgeSVG(r.tier, r.level, 54) + rankIconHTML(r.icon, 40) + '<div><div class="big">' + esc(rankLabel(r)) + "</div><div class=\"eng-hint\">" +
         (r.customName ? "שם דרגה שנקבע ע״י המורה · תג " + esc(r.tier.name) : ("דרגה " + r.level + (r.manual ? " · נקבעה ע״י המורה" : ""))) + "</div></div>" +
         (r.manual ? "" : '<div style="flex:1;min-width:180px"><div class="eng-prog"><i style="width:' + pct + '%"></i></div><div class="eng-hint">' +
           (r.next ? "עוד " + r.toNext + " נקודות לדרגה " + esc(r.next.name) : "הגעת לדרגה הגבוהה ביותר!") + "</div></div>");
@@ -1446,7 +1523,7 @@
       snap.forEach(function (s) { var v = s.data(); list.push({ uid: s.id, rank: list.length + 1, name: v.name, score: v.score, isMe: s.id === me }); });
       lbCache[gameId] = list.map(function (e) { return { rank: e.rank, name: e.name, score: e.score, isMe: e.isMe }; });
       return Promise.all([ranksFor(list.map(function (e) { return e.uid; })), getTiers()]).then(function (r) {
-        list.forEach(function (e, i) { e.r = r[0][i] ? rankOf(r[0][i].total, r[0][i].manual, r[1], r[0][i].customName) : null; });
+        list.forEach(function (e, i) { e.r = r[0][i] ? rankOf(r[0][i].total, r[0][i].manual, r[1], r[0][i].customName, e.uid) : null; });
         return list;
       });
     }).catch(function (e) {
@@ -1472,8 +1549,10 @@
     var box = openBox("<h2>🛠️ ניהול · " + esc(title) + '<span class="eng-tag">' + esc(role) + "</span></h2>" +
       '<div class="eng-row">' + (devTools && isOwner() ? '<button class="eng-btn" data-eng="dev">🧪 ' + esc(devTools.label) + "</button>" : "") +
       '<a class="eng-btn sec" style="text-decoration:none;display:inline-flex;align-items:center" href="' + esc(ROOT + "admin/") + '" target="_blank" rel="noopener">📋 עמוד ניהול מלא</a></div>' +
+      (gameId && can("reports") ? '<div class="eng-row"><button class="eng-btn green eng-has-ico" data-eng="report">' + icoLabel("chart", "דוח ביצועים: טעויות וקשיים במשחק הזה") + "</button></div>" : "") +
       (gameId ? (can("view") ? "<h3>תלמידים במשחק הזה</h3><div class=\"eng-users\">טוען…</div>" : '<p class="eng-hint">אין לך הרשאת צפייה בתלמידים.</p>') : ""), true);
     if (q(box, '[data-eng="dev"]')) q(box, '[data-eng="dev"]').onclick = function () { closeBox(); if (isOwner()) devTools.fn(); };
+    if (q(box, '[data-eng="report"]')) q(box, '[data-eng="report"]').onclick = function () { openClassReport(gameId); };
     if (!gameId || !can("view")) return;
     admin.listUsers().then(function (users) {
       var w = q(box, ".eng-users");
@@ -1598,7 +1677,7 @@
       if (!u) { openBox("<p>התלמיד לא נמצא.</p>"); return; }
       var s = statsOf((u.games || {})[gameId]);
       var html = "<h2>🛠️ " + esc(u.displayName) + "</h2><p class=\"eng-hint\" style=\"text-align:center\">שם משתמש: " + esc(u.username) + " · " + esc(opts.gameTitle || gameId) + "</p>" +
-        '<div class="eng-rankbar">' + badgeSVG(u.rank.tier, u.rank.level, 44) + '<div><div class="big">' + esc(rankLabel(u.rank)) + '</div><div class="eng-hint">' +
+        '<div class="eng-rankbar">' + badgeSVG(u.rank.tier, u.rank.level, 44) + rankIconHTML(u.rank.icon, 34) + '<div><div class="big">' + esc(rankLabel(u.rank)) + '</div><div class="eng-hint">' +
         (u.rank.customName ? "שם דרגה מותאם · תג " + esc(u.rank.tier.name) : (u.rank.manual ? "דרגה ידנית" : "לפי ניקוד")) + " · ניקוד כולל באינגלישיה: " + num(u.totalScore) + "</div></div></div>";
       if (can("points")) {
         html += '<div class="eng-sec"><h3>ניקוד וזמן במשחק הזה</h3>' +
@@ -1613,7 +1692,11 @@
         html += '<div class="eng-sec"><h3>דרגה</h3><p class="eng-hint">דרגה ידנית נשארת עד שמחזירים ל"לפי ניקוד". אפשר גם לכתוב שם דרגה חופשי שיופיע בכל המקומות. צבע התג לפי הדרגה שנבחרה (או לפי הניקוד).</p><div class="eng-inline"><select id="eng-a-rank"><option value="">לפי ניקוד (אוטומטי)</option>' +
           tiers.map(function (t, i) { return '<option value="' + esc(t.id) + '"' + (u.rankDoc && u.rankDoc.manual === t.id ? " selected" : "") + ">" + (i + 1) + ". " + esc(t.name) + "</option>"; }).join("") +
           '</select></div><label>דרגה בכתב חופשי (לא חובה)</label><div class="eng-inline"><input id="eng-a-rank-custom" maxlength="24" placeholder="למשל מלך המילים" value="' +
-          esc((u.rankDoc && u.rankDoc.customName) || "") + '"><button class="eng-btn" data-eng="rank">שמירת דרגה</button></div></div>';
+          esc((u.rankDoc && u.rankDoc.customName) || "") + '"></div>' +
+          '<label>סמל אישי (לא חובה)</label><div class="eng-inline"><input type="hidden" id="eng-a-rank-icon" value="' + esc(u.rank.customIcon || "") + '">' +
+          '<button type="button" class="eng-btn sec eng-icobtn" data-eng="rank-icon">' + (u.rank.customIcon ? rankIconHTML(u.rank.customIcon, 26) : "") + " בחירת סמל</button>" +
+          '<button type="button" class="eng-btn sec sm" data-eng="rank-icon-clr">בלי סמל אישי</button></div>' +
+          '<div class="eng-row"><button class="eng-btn" data-eng="rank">שמירת דרגה</button></div></div>';
       }
       if (isOwner()) {
         html += "<div class=\"eng-sec\"><h3>סיסמה</h3><label>סיסמה חדשה לתלמיד/ה</label><p class=\"eng-hint\">לפחות 6 תווים. בפעם הראשונה תתבקשו לאשר עם חשבון הגוגל של המורה.</p>" +
@@ -1625,8 +1708,10 @@
       if (can("points")) {
         html += '<div class="eng-sec"><h3>התקדמות במשחק</h3><div class="eng-pe-host">טוען…</div></div>';
       }
+      if (can("reports")) html += '<div class="eng-sec"><h3>דוח ביצועים</h3><p class="eng-hint">איפה טעה/תה, מה ענה/תה ומה הייתה התשובה הנכונה, ובמה הכי מתקשה.</p><div class="eng-row"><button class="eng-btn green eng-has-ico" data-eng="ureport">' + icoLabel("chart", "דוח במשחק הזה") + "</button></div></div>";
       html += '<div class="eng-row"><button class="eng-btn sec" data-eng="back">חזרה לרשימה</button></div>';
       var box = openBox(html, true);
+      if (q(box, '[data-eng="ureport"]')) q(box, '[data-eng="ureport"]').onclick = function () { openUserReport(uid, gameId, u.displayName); };
       if (q(box, ".eng-pe-host")) progressEditor(q(box, ".eng-pe-host"), uid, gameId);
       q(box, '[data-eng="back"]').onclick = function () { openAdmin(gameId); };
       function act(btn, fn, okText, reopen) {
@@ -1649,7 +1734,9 @@
         if (!confirm("למחוק את כל הניקוד וההתקדמות של " + u.displayName + " במשחק הזה?")) return;
         act(this, function () { return admin.resetGame(uid, gameId); }, "הניקוד וההתקדמות נמחקו.", true);
       });
-      on("rank", function () { var v = q(box, "#eng-a-rank").value, c = q(box, "#eng-a-rank-custom") ? q(box, "#eng-a-rank-custom").value : ""; act(this, function () { return admin.setRank(uid, v, c); }, "הדרגה נשמרה.", true); });
+      on("rank", function () { var v = q(box, "#eng-a-rank").value, c = q(box, "#eng-a-rank-custom") ? q(box, "#eng-a-rank-custom").value : "", ic = q(box, "#eng-a-rank-icon") ? q(box, "#eng-a-rank-icon").value : undefined; act(this, function () { return admin.setRank(uid, v, c, ic); }, "הדרגה נשמרה.", true); });
+      on("rank-icon", function () { var btn = this; openIconPicker({ current: q(box, "#eng-a-rank-icon").value, title: "סמל אישי ל" + u.displayName, onPick: function (v) { q(box, "#eng-a-rank-icon").value = v; btn.innerHTML = (v ? rankIconHTML(v, 26) : "") + " בחירת סמל"; } }); });
+      on("rank-icon-clr", function () { q(box, "#eng-a-rank-icon").value = ""; var b2 = q(box, '[data-eng="rank-icon"]'); if (b2) b2.innerHTML = " בחירת סמל"; });
       on("pass", function () { var p = q(box, "#eng-a-pass").value; act(this, function () { return admin.resetPassword(uid, p); }, "הסיסמה החדשה נשמרה. תנו אותה לתלמיד/ה."); });
       on("name", function () { act(this, function () { return admin.rename(uid, q(box, "#eng-a-name").value); }, "השם שונה."); });
     }).catch(function (e) { openBox("<p>" + esc(errText(e)) + "</p>"); });
@@ -1927,7 +2014,7 @@
         return mineP.then(function () {
           var all = list.concat(mine ? [mine] : []);
           return Promise.all([ranksFor(all.map(function (e) { return e.uid; })), getTiers()]).then(function (r) {
-            all.forEach(function (e, i) { var x = r[0][i]; e.r = x ? rankOf(x.total, x.manual, r[1], x.customName) : null; });
+            all.forEach(function (e, i) { var x = r[0][i]; e.r = x ? rankOf(x.total, x.manual, r[1], x.customName, e.uid) : null; });
             var out = { list: list, mine: mine };
             lbData[id] = { at: Date.now(), v: out };
             return out;
@@ -2070,6 +2157,427 @@
     return lb;
   }
 
+  /* ---------- v12.6: rank symbols (emoji or built-in drawings) ---------- */
+  var RANK_SVG = {
+    star: ["כוכב", '<path d="M12 2.6l2.8 5.8 6.3.9-4.6 4.4 1.1 6.3L12 17l-5.6 3 1.1-6.3L2.9 9.3l6.3-.9z" fill="#ffd43b" stroke="#a66b00" stroke-width="1.3" stroke-linejoin="round"/>'],
+    crown: ["כתר", '<path d="M3 8l4.5 4L12 5l4.5 7L21 8l-2 11H5z" fill="#fcc419" stroke="#8a5a00" stroke-width="1.3" stroke-linejoin="round"/><circle cx="12" cy="14.5" r="1.6" fill="#e03131"/>'],
+    trophy: ["גביע", '<path d="M7 3h10v4a5 5 0 0 1-10 0z" fill="#fab005" stroke="#8a5a00" stroke-width="1.3"/><path d="M7 5H4a3 3 0 0 0 3 4M17 5h3a3 3 0 0 1-3 4" fill="none" stroke="#8a5a00" stroke-width="1.3"/><path d="M10.5 12h3l.6 5h-4.2zM8 21h8v-3H8z" fill="#e8a400" stroke="#8a5a00" stroke-width="1.2"/>'],
+    medal: ["מדליה", '<path d="M7 2h4l2 6H9zM13 2h4l-2 6h-4z" fill="#4dabf7" stroke="#1c5d99" stroke-width="1"/><circle cx="12" cy="15" r="6" fill="#ffd43b" stroke="#a66b00" stroke-width="1.3"/><path d="M12 11.6l1 2.1 2.3.3-1.7 1.6.4 2.3-2-1.1-2 1.1.4-2.3-1.7-1.6 2.3-.3z" fill="#fff3bf"/>'],
+    book: ["ספר", '<path d="M3 5c3-1.4 6-1.4 9 .6v14c-3-2-6-2-9-.6z" fill="#74c0fc" stroke="#1c5d99" stroke-width="1.3" stroke-linejoin="round"/><path d="M21 5c-3-1.4-6-1.4-9 .6v14c3-2 6-2 9-.6z" fill="#a5d8ff" stroke="#1c5d99" stroke-width="1.3" stroke-linejoin="round"/>'],
+    rocket: ["טיל", '<path d="M12 2c3.5 2.5 5 6.5 4 11l-2.5 3h-3L8 13C7 8.5 8.5 4.5 12 2z" fill="#e9ecef" stroke="#495057" stroke-width="1.3"/><circle cx="12" cy="9" r="2" fill="#4dabf7" stroke="#495057"/><path d="M8 13l-3 4 4-1M16 13l3 4-4-1" fill="#fa5252" stroke="#495057" stroke-width="1"/><path d="M10.5 16.5 12 21l1.5-4.5z" fill="#fd7e14"/>'],
+    bolt: ["ברק", '<path d="M13.5 2 5 13.5h6L9.5 22 19 9.5h-6.2z" fill="#ffd43b" stroke="#a66b00" stroke-width="1.3" stroke-linejoin="round"/>'],
+    heart: ["לב", '<path d="M12 20.5S3 15 3 8.8A4.6 4.6 0 0 1 12 6.6a4.6 4.6 0 0 1 9 2.2C21 15 12 20.5 12 20.5z" fill="#fa5252" stroke="#a51111" stroke-width="1.3"/>'],
+    gem: ["יהלום", '<path d="M6 3h12l4 6-10 12L2 9z" fill="#63e6be" stroke="#087f5b" stroke-width="1.3" stroke-linejoin="round"/><path d="M2 9h20M9 3l3 18 3-18" fill="none" stroke="#087f5b" stroke-width="1"/>'],
+    flag: ["דגל", '<path d="M5 2v20" stroke="#495057" stroke-width="2" stroke-linecap="round"/><path d="M6 3h12l-3 4 3 4H6z" fill="#40c057" stroke="#2b8a3e" stroke-width="1.2" stroke-linejoin="round"/>'],
+    owl: ["ינשוף", '<path d="M5 6l2.5 2h9L19 6v8a7 7 0 0 1-14 0z" fill="#b08968" stroke="#5c3d1e" stroke-width="1.3"/><circle cx="9" cy="11" r="2.4" fill="#fff" stroke="#5c3d1e"/><circle cx="15" cy="11" r="2.4" fill="#fff" stroke="#5c3d1e"/><circle cx="9" cy="11" r="1" fill="#1d1a16"/><circle cx="15" cy="11" r="1" fill="#1d1a16"/><path d="M11 14h2l-1 1.6z" fill="#f59f00"/>'],
+    shield: ["מגן", '<path d="M12 2l8 3v6c0 5.5-3.5 9.4-8 11-4.5-1.6-8-5.5-8-11V5z" fill="#4c6ef5" stroke="#1d2f8f" stroke-width="1.3"/><path d="M8 12l3 3 5-6" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>']
+  };
+  var RANK_SVG_NAMES = Object.keys(RANK_SVG);
+  function cleanIcon(v) {
+    v = String(v == null ? "" : v).trim();
+    if (!v) return "";
+    if (/^svg:[a-z]{2,12}$/.test(v)) return RANK_SVG[v.slice(4)] ? v : "";
+    if (v.length > 16) return "";
+    if (/^[#*0-9]\uFE0F?\u20E3$/.test(v)) return v;
+    if (/[\sA-Za-z0-9<>&"'`=\\\/;:{}()\[\]]/.test(v)) return "";
+    try { if (!/\p{Extended_Pictographic}|\p{Regional_Indicator}/u.test(v)) return ""; } catch (e) {}
+    return v;
+  }
+  function rankIconHTML(icon, size) {
+    icon = cleanIcon(icon);
+    if (!icon) return "";
+    size = Math.max(14, Math.round(size || 24));
+    if (icon.indexOf("svg:") === 0) {
+      return '<svg class="eng-rkico" width="' + size + '" height="' + size + '" viewBox="0 0 24 24" aria-hidden="true" focusable="false">' + RANK_SVG[icon.slice(4)][1] + "</svg>";
+    }
+    return '<span class="eng-rkico eng-emo" style="font-size:' + Math.round(size * 0.82) + 'px" aria-hidden="true">' + esc(icon) + "</span>";
+  }
+  var scriptsLoading = {};
+  function loadScriptOnce(src) {
+    if (scriptsLoading[src]) return scriptsLoading[src];
+    scriptsLoading[src] = new Promise(function (res, rej) {
+      var s = document.createElement("script"); s.src = src; s.async = true;
+      s.onload = function () { res(); }; s.onerror = function () { delete scriptsLoading[src]; rej(new Error("load " + src)); };
+      document.head.appendChild(s);
+    });
+    return scriptsLoading[src];
+  }
+  // Picker: built-in drawings first, then every emoji by category; "safe" (Unicode 6.0 or older,
+  // one code point) emojis come first in each category and get a green frame.
+  function openIconPicker(o) {
+    o = o || {};
+    injectCSS2();
+    var layer = document.createElement("div");
+    layer.className = "eng-ov eng-pick-ov";
+    layer.innerHTML = '<div class="eng-box wide eng-pick" role="dialog" aria-modal="true">' +
+      '<button class="eng-btn sec sm eng-x" data-p="close" aria-label="סגירה">סגירה</button>' +
+      "<h2>" + esc(o.title || "בחירת סמל לדרגה") + "</h2>" +
+      '<p class="eng-hint">סמלים עם <b class="eng-safe-b">מסגרת ירוקה</b> הם "בטוחים": סמלים ותיקים (Unicode 6.0 ומטה) שמופיעים בדרך כלל גם במחשבי הכיתה הישנים (Windows 7). סמלים אחרים עלולים להופיע שם כריבוע. הסמלים המצוירים בראש הרשימה עובדים בכל מחשב.</p>' +
+      '<div class="eng-row"><input type="search" id="eng-pk-q" placeholder="חיפוש באנגלית: star, cat, book, heart…" style="max-width:420px">' +
+      '<label class="eng-remember"><input type="checkbox" id="eng-pk-safe"> רק סמלים בטוחים</label></div>' +
+      '<div class="eng-row eng-pk-curline">הסמל הנוכחי: <span id="eng-pk-cur"></span><button class="eng-btn sec sm" data-p="none">בלי סמל</button></div>' +
+      '<div class="eng-pk-cats"></div><div class="eng-pk-body">טוען את רשימת הסמלים…</div></div>';
+    document.body.appendChild(layer);
+    var box = layer.querySelector(".eng-pick"), body = box.querySelector(".eng-pk-body"), cats = box.querySelector(".eng-pk-cats");
+    function close() { layer.remove(); }
+    function pick(v) { close(); if (o.onPick) o.onPick(v); }
+    layer.addEventListener("click", function (e) { if (e.target === layer) close(); });
+    layer.addEventListener("keydown", function (e) { e.stopPropagation(); if (e.key === "Escape") close(); });
+    layer.addEventListener("keyup", function (e) { e.stopPropagation(); });
+    box.querySelector('[data-p="close"]').onclick = close;
+    box.querySelector('[data-p="none"]').onclick = function () { pick(""); };
+    box.querySelector("#eng-pk-cur").innerHTML = o.current ? rankIconHTML(o.current, 30) : "אין";
+    var data = null;
+    function btn(v, name, safe) {
+      return '<button type="button" class="eng-pk-i' + (safe ? " s" : "") + (v === o.current ? " on" : "") + '" data-v="' + esc(v) + '" title="' + esc(name) + '">' +
+        (v.indexOf("svg:") === 0 ? rankIconHTML(v, 30) : '<span class="eng-emo">' + esc(v) + "</span>") + "</button>";
+    }
+    function svgSection(term) {
+      var l = RANK_SVG_NAMES.filter(function (k) { return !term || k.indexOf(term) >= 0 || RANK_SVG[k][0].indexOf(term) >= 0; });
+      if (!l.length) return "";
+      return '<h3 id="eng-pk-c-svg">סמלים מצוירים (עובדים בכל מחשב)</h3><div class="eng-pk-grid">' + l.map(function (k) { return btn("svg:" + k, RANK_SVG[k][0], true); }).join("") + "</div>";
+    }
+    function paint() {
+      var term = (box.querySelector("#eng-pk-q").value || "").trim().toLowerCase();
+      var onlySafe = box.querySelector("#eng-pk-safe").checked;
+      var html = svgSection(term), nav = '<button type="button" class="eng-btn sec sm" data-c="svg">מצוירים</button>';
+      (data || []).forEach(function (g, gi) {
+        var l = g.e.filter(function (x) { return (!onlySafe || x[2]) && (!term || x[1].indexOf(term) >= 0 || g.n.indexOf(term) >= 0); });
+        if (!l.length) return;
+        l = l.filter(function (x) { return x[2]; }).concat(l.filter(function (x) { return !x[2]; }));
+        var ns = l.filter(function (x) { return x[2]; }).length;
+        nav += '<button type="button" class="eng-btn sec sm" data-c="' + gi + '">' + esc(g.n) + "</button>";
+        html += '<h3 id="eng-pk-c-' + gi + '">' + esc(g.n) + ' <small class="eng-hint">(' + ns + " בטוחים מתוך " + l.length + ")</small></h3>" +
+          '<div class="eng-pk-grid">' + l.map(function (x) { return btn(x[0], x[1], x[2]); }).join("") + "</div>";
+      });
+      if (!data) html += '<p class="eng-hint">טוען את כל האימוג׳ים…</p>';
+      body.innerHTML = html || "<p>לא נמצאו סמלים.</p>";
+      cats.innerHTML = nav;
+      Array.prototype.forEach.call(cats.querySelectorAll("[data-c]"), function (b) {
+        b.onclick = function () { var t = box.querySelector("#eng-pk-c-" + b.getAttribute("data-c")); if (t) t.scrollIntoView({ block: "start" }); };
+      });
+    }
+    body.addEventListener("click", function (e) { var b = e.target.closest && e.target.closest("[data-v]"); if (b) pick(b.getAttribute("data-v")); });
+    box.querySelector("#eng-pk-q").oninput = paint;
+    box.querySelector("#eng-pk-safe").onchange = paint;
+    paint();
+    loadScriptOnce(ROOT + "js/emoji-data.js?v=" + VERSION).then(function () { data = global.ENGLISHIA_EMOJI || []; if (layer.parentNode) paint(); })
+      .catch(function () { data = []; if (layer.parentNode) { paint(); body.insertAdjacentHTML("beforeend", '<p class="eng-err">לא הצלחתי לטעון את רשימת האימוג׳ים. הסמלים המצוירים זמינים.</p>'); } });
+    try { box.querySelector("#eng-pk-q").focus({ preventScroll: true }); } catch (e) {}
+    return layer;
+  }
+
+  /* ---------- v12.6: answers -> performance reports ----------
+     answers/{uid}/agames/{gameId} = {g, nm, n, c, first, v, updatedAt,
+        items: {itemKey: {n, c, t (topic), lv (level), q (prompt), e (expected), w: {given: count} (top 4), la, lw}},
+        recent: [{i, t, g, e, q, at}] (last 40 wrong answers, newest first)}
+     One read per game per page load, then one write at most every 20 seconds (and at the end of a
+     game / when the page is hidden). Only the player can write it; owner + 'reports' managers read it. */
+  var ANS_ITEMS = 300, ANS_RECENT = 40, ANS_WAIT = 20000;
+  var ansQ = {}, ansDocs = {}, ansChain = {}, ansTimer = null;
+  function cleanTxt(v, max) {
+    v = String(v == null ? "" : v).replace(/\*\*/g, "").replace(/<[^>]*>/g, "").replace(/\s+/g, " ").trim();
+    return v.length > max ? v.slice(0, max).trim() : v;
+  }
+  function ansKey(v) { v = cleanTxt(v, 60).replace(/^_+|_+$/g, "").replace(/`/g, "'"); return v; }
+  function recordAnswer(gameId, a) {
+    if (!state.user || !a || !/^[a-z0-9-]{1,40}$/.test(String(gameId || ""))) return false;
+    var item = ansKey(a.item || a.expected || a.prompt);
+    if (!item) return false;
+    var list = ansQ[gameId] || (ansQ[gameId] = []);
+    if (list.length >= 300) list.shift();
+    list.push({ uid: state.user.uid, i: item, t: cleanTxt(a.topic, 40), lv: cleanTxt(a.level, 24), q: cleanTxt(a.prompt, 90),
+      ok: !!a.correct, g: cleanTxt(a.given, 60), e: cleanTxt(a.expected, 60), at: Date.now() });
+    if (!ansTimer) ansTimer = setTimeout(function () { ansTimer = null; flushAnswers(); }, ANS_WAIT);
+    return true;
+  }
+  function mergeAnswers(d, g, list) {
+    d = d ? Object.assign({}, d) : { g: g, n: 0, c: 0, items: {}, recent: [], first: Date.now(), v: 1 };
+    delete d.updatedAt;
+    d.g = g; d.v = 1; d.n = num(d.n); d.c = num(d.c); if (!d.first) d.first = Date.now();
+    d.items = Object.assign({}, d.items || {}); d.recent = (d.recent || []).slice();
+    var nm = cleanName((state.doc && state.doc.displayName) || (state.doc && state.doc.username) || d.nm || "");
+    if (nm) d.nm = nm.slice(0, 20);
+    list.forEach(function (x) {
+      d.n++; if (x.ok) d.c++;
+      var it = Object.assign({ n: 0, c: 0 }, d.items[x.i] || {});
+      it.n = num(it.n) + 1; if (x.ok) it.c = num(it.c) + 1;
+      if (x.t) it.t = x.t; if (x.lv) it.lv = x.lv; if (x.q) it.q = x.q; if (x.e) it.e = x.e;
+      it.la = x.at;
+      if (!x.ok) {
+        it.lw = x.at;
+        var w = Object.assign({}, it.w || {}), gk = x.g || "—";
+        w[gk] = num(w[gk]) + 1;
+        var wk = Object.keys(w).sort(function (a, b) { return w[b] - w[a]; });
+        if (wk.length > 4) wk.slice(4).forEach(function (k) { if (k !== gk) delete w[k]; });
+        it.w = w;
+        d.recent.unshift({ i: x.i, t: x.t || "", g: x.g || "", e: x.e || "", q: x.q || "", at: x.at });
+      }
+      d.items[x.i] = it;
+    });
+    if (d.c > d.n) d.c = d.n;
+    d.recent = d.recent.slice(0, ANS_RECENT);
+    var keys = Object.keys(d.items);
+    if (keys.length > ANS_ITEMS) {
+      var wr = function (k) { var it = d.items[k]; return (num(it.n) - num(it.c)) * 1e13 + num(it.la); };
+      keys.sort(function (a, b) { return wr(a) - wr(b); }).slice(0, keys.length - ANS_ITEMS).forEach(function (k) { delete d.items[k]; });
+    }
+    return d;
+  }
+  function flushGame(uid, g, list) {
+    var key = uid + "|" + g;
+    ansChain[key] = (ansChain[key] || Promise.resolve()).catch(function () {}).then(function () {
+      var F = fb.F, ref = F.doc(fb.db, "answers", uid, "agames", g);
+      var load = ansDocs[key] ? Promise.resolve(ansDocs[key]) : F.getDoc(ref).then(function (s) { return s.exists() ? s.data() : null; });
+      return load.then(function (d) {
+        d = mergeAnswers(d, g, list);
+        return F.setDoc(ref, Object.assign({}, d, { updatedAt: F.serverTimestamp() })).then(function () { ansDocs[key] = d; return true; });
+      });
+    });
+    return ansChain[key];
+  }
+  function flushAnswers() {
+    if (ansTimer) { clearTimeout(ansTimer); ansTimer = null; }
+    if (!fb || !state.user) return Promise.resolve(false);
+    var uid = state.user.uid;
+    return Promise.all(Object.keys(ansQ).map(function (g) {
+      var list = (ansQ[g] || []).filter(function (x) { return x.uid === uid; });
+      ansQ[g] = [];
+      if (!list.length) return null;
+      return flushGame(uid, g, list).catch(function (e) {
+        console.warn("englishia answers", e);
+        if (netErr(e)) { ansQ[g] = list.concat(ansQ[g] || []).slice(-300); if (!ansTimer) ansTimer = setTimeout(function () { ansTimer = null; flushAnswers(); }, ANS_WAIT * 2); }
+        return false;
+      });
+    })).then(function (r) { return r.every(function (x) { return x !== false; }); });
+  }
+  global.addEventListener("pagehide", function () { try { flushAnswers(); } catch (e) {} });
+  document.addEventListener("visibilitychange", function () { if (document.visibilityState === "hidden") { try { flushAnswers(); } catch (e) {} } });
+  listeners.push(function (u) { if (!u) { ansQ = {}; ansDocs = {}; } });
+
+  // report reads (owner or the 'reports' permission; the rules enforce it too)
+  function repDoc(s) { var d = s.data() || {}; return { uid: s.ref.parent.parent.id, game: s.id, name: d.nm || "", doc: d }; }
+  admin.reportsFor = function (uid) {
+    return Promise.resolve().then(function () { needPerm("reports"); }).then(function () {
+      return fb.F.getDocs(fb.F.collection(fb.db, "answers", uid, "agames"));
+    }).then(function (snap) { var out = []; snap.forEach(function (s) { out.push(repDoc(s)); }); return out; });
+  };
+  admin.classReport = function (gameId) {
+    return Promise.resolve().then(function () { needPerm("reports"); }).then(function () {
+      var F = fb.F, base = F.collectionGroup(fb.db, "agames");
+      return F.getDocs(gameId ? F.query(base, F.where("g", "==", gameId)) : base);
+    }).then(function (snap) { var out = []; snap.forEach(function (s) { out.push(repDoc(s)); }); return out; });
+  };
+
+  function pct(c, n) { return n ? Math.round(100 * c / n) : 0; }
+  function analyzeReport(d) {
+    d = d || {};
+    var items = d.items || {}, topics = {}, levels = {}, missed = [];
+    Object.keys(items).forEach(function (k) {
+      var it = items[k] || {}, n = num(it.n), c = Math.min(n, num(it.c)), w = n - c;
+      var t = it.t || "כללי", l = it.lv || "";
+      var T = topics[t] || (topics[t] = { t: t, n: 0, c: 0 }); T.n += n; T.c += c;
+      if (l) { var L = levels[l] || (levels[l] = { t: l, n: 0, c: 0 }); L.n += n; L.c += c; }
+      if (w > 0) {
+        var wr = Object.keys(it.w || {}).map(function (g) { return [g, num(it.w[g])]; }).sort(function (a, b) { return b[1] - a[1]; });
+        missed.push({ key: k, q: it.q || "", e: it.e || "", t: it.t || "", lv: l, n: n, c: c, w: w, acc: pct(c, n), wrongs: wr, lw: num(it.lw) });
+      }
+    });
+    var tl = Object.keys(topics).map(function (k) { var x = topics[k]; x.w = x.n - x.c; x.acc = pct(x.c, x.n); return x; }).sort(function (a, b) { return a.acc - b.acc || b.n - a.n; });
+    var ll = Object.keys(levels).map(function (k) { var x = levels[k]; x.w = x.n - x.c; x.acc = pct(x.c, x.n); return x; }).sort(function (a, b) { return String(a.t).localeCompare(String(b.t), "he", { numeric: true }); });
+    missed.sort(function (a, b) { return b.w - a.w || a.acc - b.acc || b.lw - a.lw; });
+    var n = num(d.n), c = Math.min(n, num(d.c));
+    var struggles = tl.filter(function (x) { return x.n >= 3 && x.acc < 75; });
+    return { n: n, c: c, w: n - c, acc: pct(c, n), topics: tl, levels: ll, missed: missed, recent: (d.recent || []).slice(), struggles: struggles,
+      repeat: missed.filter(function (x) { return x.w >= 2; }), updatedAt: d.updatedAt };
+  }
+  function bar(p) {
+    var cls = p >= 80 ? "ok" : p >= 60 ? "mid" : "bad";
+    return '<span class="eng-bar ' + cls + '"><i style="width:' + Math.max(2, p) + '%"></i></span><b class="eng-bar-n">' + p + "%</b>";
+  }
+  function summaryText(a) {
+    if (!a.n) return "עוד אין תשובות במשחק הזה.";
+    var s = "";
+    if (a.struggles.length) s += "מתקשה בעיקר ב: " + a.struggles.slice(0, 3).map(function (x) { return x.t + " (" + x.acc + "%)"; }).join(", ") + ". ";
+    else if (a.n < 10) s += "עדיין מעט תשובות, קשה לקבוע קושי. ";
+    else s += "אין נושא שבולט כקשה (בכל הנושאים 75% ומעלה, או מעט תשובות). ";
+    if (a.repeat.length) s += "טעויות שחוזרות: " + a.repeat.slice(0, 5).map(function (x) { return x.key; }).join(", ") + ".";
+    return s;
+  }
+  function wrongsTxt(x) { return x.wrongs.slice(0, 3).map(function (w) { return (w[0] === "—" ? "בלי תשובה" : w[0]) + (w[1] > 1 ? " ×" + w[1] : ""); }).join(" · "); }
+  function fmtMs(ms) { try { return ms ? new Date(ms).toLocaleString("he-IL", { day: "numeric", month: "numeric", hour: "2-digit", minute: "2-digit" }) : ""; } catch (e) { return ""; } }
+  // entries: [{game, doc, name?}] for one student
+  function reportHTML(entries, o) {
+    o = o || {};
+    if (!entries.length) return '<p class="eng-hint">עוד אין נתונים. הדוח מתמלא כשהתלמיד/ה משחק/ת כשהוא/היא מחובר/ת לחשבון.</p>';
+    return entries.map(function (en) {
+      var a = analyzeReport(en.doc), title = GAME_TITLES[en.game] || en.game;
+      var h = '<section class="eng-rep"><h3>' + esc(title) + '</h3><div class="eng-stats">' + statBox(a.n, "תשובות") + statBox(a.c, "נכונות") + statBox(a.w, "שגויות") + statBox(a.acc + "%", "דיוק") + "</div>" +
+        '<p class="eng-rep-sum">' + esc(summaryText(a)) + "</p>";
+      if (a.topics.length) h += "<h4>לפי נושא / מיומנות (הקשה ביותר למעלה)</h4><table class=\"eng-tbl\"><tr><th>נושא</th><th>תשובות</th><th>שגויות</th><th>דיוק</th></tr>" +
+        a.topics.map(function (x) { return "<tr><td>" + esc(x.t) + "</td><td>" + x.n + "</td><td>" + x.w + "</td><td>" + bar(x.acc) + "</td></tr>"; }).join("") + "</table>";
+      if (a.levels.length > 1) h += "<h4>לפי רמה / שלב</h4><table class=\"eng-tbl\"><tr><th>רמה</th><th>תשובות</th><th>דיוק</th></tr>" +
+        a.levels.map(function (x) { return "<tr><td>" + esc(x.t) + "</td><td>" + x.n + "</td><td>" + bar(x.acc) + "</td></tr>"; }).join("") + "</table>";
+      if (a.missed.length) h += "<h4>הפריטים שהכי הרבה טעו בהם</h4><table class=\"eng-tbl\"><tr><th>פריט</th><th>נושא</th><th>טעויות</th><th>מה ענה/תה</th><th>התשובה הנכונה</th><th>דיוק</th></tr>" +
+        a.missed.slice(0, o.maxItems || 15).map(function (x) {
+          return '<tr><td><b dir="auto">' + esc(x.key) + "</b>" + (x.q && x.q !== x.key ? '<br><small dir="auto">' + esc(x.q) + "</small>" : "") + "</td><td>" + esc(x.t) + (x.lv ? "<br><small>" + esc(x.lv) + "</small>" : "") + "</td><td>" + x.w + " מתוך " + x.n +
+            '</td><td class="eng-bad" dir="auto">' + esc(wrongsTxt(x)) + '</td><td class="eng-good" dir="auto">' + esc(x.e) + "</td><td>" + bar(x.acc) + "</td></tr>";
+        }).join("") + "</table>";
+      if (a.recent.length && !o.noRecent) h += "<h4>טעויות אחרונות</h4><table class=\"eng-tbl\"><tr><th>מתי</th><th>פריט</th><th>ענה/תה</th><th>נכון</th></tr>" +
+        a.recent.slice(0, o.maxRecent || 12).map(function (x) { return "<tr><td>" + esc(fmtMs(x.at)) + '</td><td dir="auto">' + esc(x.q || x.i) + '</td><td class="eng-bad" dir="auto">' + esc(x.g || "בלי תשובה") + '</td><td class="eng-good" dir="auto">' + esc(x.e) + "</td></tr>"; }).join("") + "</table>";
+      return h + "</section>";
+    }).join("");
+  }
+  function csvCell(v) {
+    v = String(v == null ? "" : v);
+    if (/^[=+\-@\t\r]/.test(v)) v = "'" + v;
+    return /[",\n\r]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
+  }
+  function csvRows(rows) { return "\ufeff" + rows.map(function (r) { return r.map(csvCell).join(","); }).join("\r\n") + "\r\n"; }
+  function userCSV(name, entries) {
+    var rows = [["תלמיד", "משחק", "פריט", "שאלה", "נושא", "רמה", "ניסיונות", "נכונות", "טעויות", "דיוק %", "תשובות שגויות (כמה פעמים)", "התשובה הנכונה", "טעות אחרונה"]];
+    entries.forEach(function (en) {
+      var items = (en.doc && en.doc.items) || {};
+      Object.keys(items).forEach(function (k) {
+        var it = items[k], n = num(it.n), c = Math.min(n, num(it.c));
+        var wr = Object.keys(it.w || {}).map(function (g) { return (g === "—" ? "בלי תשובה" : g) + " (" + num(it.w[g]) + ")"; }).join("; ");
+        rows.push([name || en.name || "", GAME_TITLES[en.game] || en.game, k, it.q || "", it.t || "", it.lv || "", n, c, n - c, pct(c, n), wr, it.e || "", fmtMs(it.lw)]);
+      });
+    });
+    return csvRows(rows);
+  }
+  function classCSV(list, names) {
+    var rows = [["תלמיד", "משחק", "תשובות", "נכונות", "שגויות", "דיוק %", "נושאים קשים", "פריטים עם הכי הרבה טעויות"]];
+    list.forEach(function (en) {
+      var a = analyzeReport(en.doc);
+      rows.push([(names && names[en.uid]) || en.name || "", GAME_TITLES[en.game] || en.game, a.n, a.c, a.w, a.acc,
+        a.struggles.slice(0, 3).map(function (x) { return x.t + " " + x.acc + "%"; }).join("; "),
+        a.missed.slice(0, 5).map(function (x) { return x.key + " (" + x.w + ")"; }).join("; ")]);
+    });
+    return csvRows(rows);
+  }
+  function downloadCSV(text, filename) {
+    var blob = new Blob([text], { type: "text/csv;charset=utf-8" }), url = URL.createObjectURL(blob), a = document.createElement("a");
+    a.href = url; a.download = filename || "englishia-report.csv"; document.body.appendChild(a); a.click();
+    setTimeout(function () { URL.revokeObjectURL(url); a.remove(); }, 1500);
+  }
+  var PRINT_CSS = "body{font:15px/1.45 'Segoe UI',Arial,sans-serif;color:#111;direction:rtl;margin:18px}h1{font-size:24px;margin:0 0 4px}h3{font-size:20px;margin:18px 0 6px;border-bottom:2px solid #333}h4{font-size:16px;margin:12px 0 4px}" +
+    ".eng-stats{display:flex;gap:8px;flex-wrap:wrap}.eng-stat{border:1px solid #999;border-radius:8px;padding:4px 10px;text-align:center}.eng-stat b{display:block;font-size:20px}.eng-stat span{font-size:12px}" +
+    "table{width:100%;border-collapse:collapse;font-size:13px;margin:4px 0}th,td{border:1px solid #bbb;padding:3px 5px;text-align:right;vertical-align:top}th{background:#eee}" +
+    ".eng-bar{display:inline-block;width:70px;height:9px;border:1px solid #777;vertical-align:middle;margin-left:4px}.eng-bar i{display:block;height:100%;background:#555}.eng-bar-n{font-size:12px}" +
+    ".eng-bad{color:#9b1c1c}.eng-good{color:#14532d;font-weight:700}.eng-rep{page-break-inside:auto}.eng-rep-sum{background:#f3f3f3;border-right:4px solid #333;padding:6px 10px;font-weight:700}" +
+    ".noprint,button{display:none}@page{margin:12mm}";
+  function printHTML(title, html) {
+    var old = document.getElementById("eng-print-frame"); if (old) old.remove();
+    var f = document.createElement("iframe");
+    f.id = "eng-print-frame"; f.setAttribute("aria-hidden", "true");
+    f.style.cssText = "position:fixed;left:-10000px;top:0;width:900px;height:1200px;border:0;opacity:0";
+    document.body.appendChild(f);
+    var d = f.contentWindow.document;
+    d.open();
+    d.write('<!DOCTYPE html><html lang="he" dir="rtl"><head><meta charset="utf-8"><title>' + esc(title) + "</title><style>" + PRINT_CSS + "</style></head><body><h1>" + esc(title) + "</h1><p>אינגלישיה · הופק ב-" +
+      esc(new Date().toLocaleString("he-IL")) + " · מסמך פנימי למורים, לא להפצה</p>" + html + "</body></html>");
+    d.close();
+    setTimeout(function () { try { f.contentWindow.focus(); f.contentWindow.print(); } catch (e) { console.warn("print", e); } }, 250);
+    return f;
+  }
+  function fileDate() { var d = new Date(); return d.getFullYear() + "-" + ("0" + (d.getMonth() + 1)).slice(-2) + "-" + ("0" + d.getDate()).slice(-2); }
+  function safeFile(s) { return String(s || "").replace(/[\\\/:*?"<>|\s]+/g, "-").slice(0, 40) || "report"; }
+
+  function openUserReport(uid, gameId, name, back) {
+    injectCSS2();
+    var title = "דוח ביצועים · " + (name || "תלמיד/ה") + (gameId ? " · " + (GAME_TITLES[gameId] || gameId) : "");
+    var box = openBox("<h2>" + ico("chart") + " " + esc(title) + '</h2><div class="eng-rep-w">טוען…</div>', true);
+    admin.reportsFor(uid).then(function (list) {
+      if (gameId) list = list.filter(function (x) { return x.game === gameId; });
+      var w = q(box, ".eng-rep-w"); if (!w) return;
+      w.innerHTML = '<div class="eng-row noprint">' +
+        '<button class="eng-btn eng-has-ico" data-r="print">' + icoLabel("print", "הדפסה") + "</button>" +
+        '<button class="eng-btn sec eng-has-ico" data-r="csv">' + icoLabel("download", "קובץ CSV (אקסל)") + "</button>" +
+        '<button class="eng-btn sec" data-r="back">חזרה</button></div>' + reportHTML(list);
+      q(w, '[data-r="print"]').onclick = function () { printHTML(title, reportHTML(list, { maxItems: 40, maxRecent: 40 })); };
+      q(w, '[data-r="csv"]').onclick = function () { downloadCSV(userCSV(name, list), "englishia-" + safeFile(name) + "-" + (gameId || "all") + "-" + fileDate() + ".csv"); };
+      q(w, '[data-r="back"]').onclick = function () { if (back) back(); else if (opts.gameId) openAdminUser(uid, gameId || opts.gameId); else closeBox(); };
+    }).catch(function (e) { var w = q(box, ".eng-rep-w"); if (w) w.innerHTML = '<p class="eng-err">' + esc(errText(e)) + "</p>"; });
+  }
+  // class overview for one game (or every game when gameId is empty)
+  function classAggregate(list) {
+    var items = {}, topics = {};
+    list.forEach(function (en) {
+      var it = (en.doc && en.doc.items) || {};
+      Object.keys(it).forEach(function (k) {
+        var x = it[k], n = num(x.n), c = Math.min(n, num(x.c)), t = x.t || "כללי";
+        var I = items[k] || (items[k] = { key: k, e: x.e || "", t: t, n: 0, c: 0, who: 0 }); I.n += n; I.c += c; if (n > c) I.who++;
+        var T = topics[t] || (topics[t] = { t: t, n: 0, c: 0 }); T.n += n; T.c += c;
+      });
+    });
+    var tl = Object.keys(topics).map(function (k) { var x = topics[k]; x.acc = pct(x.c, x.n); return x; }).sort(function (a, b) { return a.acc - b.acc; });
+    var il = Object.keys(items).map(function (k) { var x = items[k]; x.w = x.n - x.c; x.acc = pct(x.c, x.n); return x; }).filter(function (x) { return x.w > 0; })
+      .sort(function (a, b) { return b.who - a.who || b.w - a.w; });
+    return { topics: tl, items: il };
+  }
+  function classHTML(list, names, gameId, withButtons) {
+    if (!list.length) return '<p class="eng-hint">עוד אין נתונים. הדוח מתמלא כשתלמידים משחקים כשהם מחוברים לחשבון.</p>';
+    var rows = list.map(function (en) { return { en: en, a: analyzeReport(en.doc), name: (names && names[en.uid]) || en.name || "(ללא שם)" }; })
+      .sort(function (x, y) { return x.a.acc - y.a.acc || y.a.n - x.a.n; });
+    var agg = classAggregate(list);
+    var h = "<h3>תלמידים (הכי מתקשים למעלה)</h3><table class=\"eng-tbl\"><tr><th>תלמיד/ה</th>" + (gameId ? "" : "<th>משחק</th>") + "<th>תשובות</th><th>דיוק</th><th>נושאים קשים</th><th>טעויות שחוזרות</th>" + (withButtons ? "<th></th>" : "") + "</tr>" +
+      rows.map(function (r) {
+        return "<tr><td><b>" + esc(r.name) + "</b></td>" + (gameId ? "" : "<td>" + esc(GAME_TITLES[r.en.game] || r.en.game) + "</td>") + "<td>" + r.a.n + "</td><td>" + bar(r.a.acc) + "</td><td>" +
+          esc(r.a.struggles.slice(0, 2).map(function (x) { return x.t + " " + x.acc + "%"; }).join(" · ") || "—") + '</td><td dir="auto">' + esc(r.a.repeat.slice(0, 3).map(function (x) { return x.key; }).join(", ") || "—") + "</td>" +
+          (withButtons ? '<td><button class="eng-btn sm" data-rep-uid="' + esc(r.en.uid) + '" data-rep-name="' + esc(r.name) + '">דוח מלא</button></td>' : "") + "</tr>";
+      }).join("") + "</table>";
+    if (agg.topics.length) h += "<h3>הכיתה לפי נושא</h3><table class=\"eng-tbl\"><tr><th>נושא</th><th>תשובות</th><th>דיוק</th></tr>" +
+      agg.topics.map(function (x) { return "<tr><td>" + esc(x.t) + "</td><td>" + x.n + "</td><td>" + bar(x.acc) + "</td></tr>"; }).join("") + "</table>";
+    if (agg.items.length) h += "<h3>הפריטים הקשים לכיתה</h3><table class=\"eng-tbl\"><tr><th>פריט</th><th>נושא</th><th>כמה תלמידים טעו</th><th>טעויות</th><th>התשובה הנכונה</th></tr>" +
+      agg.items.slice(0, 20).map(function (x) { return '<tr><td dir="auto"><b>' + esc(x.key) + "</b></td><td>" + esc(x.t) + "</td><td>" + x.who + "</td><td>" + x.w + " מתוך " + x.n + '</td><td class="eng-good" dir="auto">' + esc(x.e) + "</td></tr>"; }).join("") + "</table>";
+    return h;
+  }
+  function openClassReport(gameId) {
+    injectCSS2();
+    var title = "דוח כיתתי · " + (GAME_TITLES[gameId] || gameId || "כל המשחקים");
+    var box = openBox("<h2>" + ico("chart") + " " + esc(title) + '</h2><p class="eng-hint">מי מתקשה ובמה: דיוק, נושאים קשים וטעויות שחוזרות. מבוסס על תשובות של תלמידים מחוברים.</p><div class="eng-rep-w">טוען…</div>', true);
+    Promise.all([admin.classReport(gameId), can("view") ? admin.listUsers().catch(function () { return []; }) : Promise.resolve([])]).then(function (r) {
+      var list = r[0], names = {};
+      r[1].forEach(function (u) { names[u.uid] = u.displayName; });
+      var w = q(box, ".eng-rep-w"); if (!w) return;
+      w.innerHTML = '<div class="eng-row noprint"><button class="eng-btn eng-has-ico" data-r="print">' + icoLabel("print", "הדפסה") + "</button>" +
+        '<button class="eng-btn sec eng-has-ico" data-r="csv">' + icoLabel("download", "קובץ CSV (אקסל)") + "</button>" +
+        '<button class="eng-btn sec" data-r="back">חזרה לניהול</button></div>' + classHTML(list, names, gameId, true);
+      q(w, '[data-r="print"]').onclick = function () { printHTML(title, classHTML(list, names, gameId, false)); };
+      q(w, '[data-r="csv"]').onclick = function () { downloadCSV(classCSV(list, names), "englishia-class-" + (gameId || "all") + "-" + fileDate() + ".csv"); };
+      q(w, '[data-r="back"]').onclick = function () { openAdmin(gameId); };
+      Array.prototype.forEach.call(w.querySelectorAll("[data-rep-uid]"), function (b) {
+        b.onclick = function () { openUserReport(b.getAttribute("data-rep-uid"), gameId, b.getAttribute("data-rep-name"), function () { openClassReport(gameId); }); };
+      });
+    }).catch(function (e) { var w = q(box, ".eng-rep-w"); if (w) w.innerHTML = '<p class="eng-err">' + esc(errText(e)) + "</p>"; });
+  }
+  admin.reportHTML = reportHTML; admin.classHTML = classHTML;
+  var CSS3 = ".eng-rkico{display:inline-block;vertical-align:middle;flex:none;line-height:1}" +
+    ".eng-emo{font-family:'Segoe UI Emoji','Segoe UI Symbol','Apple Color Emoji','Noto Color Emoji','Noto Emoji',sans-serif;font-style:normal}" +
+    ".eng-rank .eng-rkico{margin-inline-end:2px}" +
+    ".eng-remember{display:flex !important;align-items:center;gap:10px;font-weight:700;font-size:20px;margin:14px 0 2px !important;cursor:pointer}" +
+    ".eng-remember input{width:26px !important;height:26px;flex:none;margin:0}" +
+    ".eng-pick-ov{z-index:2147483600}.eng-pick{max-width:1000px}" +
+    ".eng-pk-cats{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0;position:sticky;top:-24px;background:#fffaf0;z-index:2;padding:6px 0}.eng-pk-cats .eng-btn{margin:0}" +
+    ".eng-pk-grid{display:flex;flex-wrap:wrap;gap:6px}" +
+    ".eng-pk-i{width:54px;height:54px;border-radius:12px;border:2px dashed #cfc3aa;background:#fff;font-size:30px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;padding:0}" +
+    ".eng-pk-i.s{border:3px solid #2f9e44;background:#f1fbf3}.eng-pk-i.on{outline:4px solid #ef8f1e}.eng-pk-i:hover{transform:scale(1.08)}" +
+    ".eng-safe-b{color:#2f9e44}.eng-pk-curline{font-size:20px}" +
+    ".eng-icobtn{display:inline-flex;align-items:center;gap:8px}" +
+    ".eng-rep h3{border-bottom:3px solid #eadcbf;padding-bottom:4px}.eng-rep h4{margin:14px 0 6px;font-size:20px}" +
+    ".eng-rep-sum{background:#fff3d6;border-right:6px solid #ef8f1e;border-radius:10px;padding:10px 14px;font-weight:700}" +
+    ".eng-bar{display:inline-block;width:90px;height:12px;border-radius:99px;background:#eee3cc;vertical-align:middle;overflow:hidden;margin-inline-end:6px}.eng-bar i{display:block;height:100%}" +
+    ".eng-bar.ok i{background:#2f9e44}.eng-bar.mid i{background:#f59f00}.eng-bar.bad i{background:#e03131}.eng-bar-n{font-size:16px}" +
+    ".eng-bad{color:#a51111}.eng-good{color:#14532d;font-weight:700}" +
+    "@media (max-width:560px){.eng-pk-i{width:46px;height:46px;font-size:26px}.eng-bar{width:50px}.eng-rep .eng-tbl{font-size:14px}}";
+  (function () {
+    var orig = injectCSS2;
+    injectCSS2 = function () { orig(); if (!document.getElementById("eng-css3")) { var s = document.createElement("style"); s.id = "eng-css3"; s.textContent = CSS3; document.head.appendChild(s); } };
+    var origCSS = injectCSS;
+    injectCSS = function () { origCSS(); if (!document.getElementById("eng-css3")) { var s = document.createElement("style"); s.id = "eng-css3"; s.textContent = CSS3; document.head.appendChild(s); } };
+  })();
+
   /* ---------- public ---------- */
   var started = false;
   function init(o) {
@@ -2105,7 +2613,11 @@
     registerDevTools: registerDevTools, bridgeLocal: bridgeLocal,
     usernameToEmail: function (u) { return usernameToEmail(normUsername(u)); },
     formatTime: fmtTime, formatDate: fmtDate, gameTitles: GAME_TITLES,
-    admin: admin
+    admin: admin,
+    version: VERSION,
+    recordAnswer: recordAnswer, flushAnswers: flushAnswers,
+    openClassReport: openClassReport, openUserReport: openUserReport,
+    reports: { analyze: analyzeReport, html: reportHTML, csvUser: userCSV, csvClass: classCSV, print: printHTML, download: downloadCSV }
   };
   /* roles + ranks API (v12) */
   Object.defineProperty(global.EnglishiaAuth, "isOwner", { get: function () { return isOwner(); } });
@@ -2116,5 +2628,6 @@
   Object.defineProperty(global.EnglishiaAuth, "roleState", { get: function () { return roleState(); } });
   global.EnglishiaAuth.retryRole = retryRole;
   global.EnglishiaAuth.progressEditor = progressEditor;
-  global.EnglishiaAuth.ranks = { tiers: getTiers, of: rankOf, badge: badgeSVG, chip: rankChip, defaults: DEFAULT_TIERS, mine: function () { return state.user ? myRank() : null; } };
+  global.EnglishiaAuth.ranks = { tiers: getTiers, of: rankOf, badge: badgeSVG, chip: rankChip, defaults: DEFAULT_TIERS, mine: function () { return state.user ? myRank() : null; },
+    icon: rankIconHTML, cleanIcon: cleanIcon, pickIcon: openIconPicker, svgIcons: RANK_SVG_NAMES, customIcon: function (uid) { return rankIcons[uid] || ""; } };
 })(window);

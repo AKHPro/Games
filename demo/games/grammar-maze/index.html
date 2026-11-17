@@ -433,7 +433,7 @@ body.pseudo-full #app{height:100%; height:100svh; height:100dvh; padding-left:en
 </div>
 <div id="rotateTip" hidden>🔄 Turn your phone sideways (landscape) for the best view</div>
 
-<script src="../../js/englishia-auth.js"></script>
+<script src="../../js/englishia-auth.js?v=12.6"></script>
 <script>EnglishiaAuth.init({ gameId: "grammar-maze", gameTitle: "מבוך הדקדוק", mount: "#engSlotStart" }); EnglishiaAuth.mountMenu("#engSlotEnd");</script>
 <script src="firebase-config.js"></script>
 <script>
@@ -1790,6 +1790,14 @@ function showQuestion(){
   updateHud(); speakQ(q,view.signs); markSeen(q);
 }
 
+/* v12.6: Englishia performance report (signed-in player on this device; not in team mode) */
+function gmReport(q, picked, ok, timedOut){
+  try{
+    const A=window.EnglishiaAuth; if(!A||!A.recordAnswer||!A.user||!q||settings.mode==="teams") return;
+    A.recordAnswer("grammar-maze",{ item:String(q[1]||"").replace(/___/,"___"), prompt:String(q[1]||""), topic:q[6]==="X"?"My questions":String(q[0]||""),
+      level:"Level "+(q[5]||1)+(TYPES[q[6]]?" · "+TYPES[q[6]]:""), correct:!!ok, given:timedOut?"":String(picked==null?"":picked), expected:String(q[2]||"") });
+  }catch(e){}
+}
 function choose(side){
   if(G.paused) return;
   if(side==="M" && !G.three) return;
@@ -1806,7 +1814,7 @@ async function forkChoice(side,timedOut){
   const ok=!timedOut && side===G.correctSide;
   const picked = timedOut ? null : view.signs[side];
   const hr = view.hits.find(h=>h.side===side);
-  G.log.push({q, picked, ok, team:settings.mode==="teams"?G.team:-1, kind:"fork", timedOut});
+  G.log.push({q, picked, ok, team:settings.mode==="teams"?G.team:-1, kind:"fork", timedOut}); gmReport(q, picked, ok, timedOut);
   if(settings.mode==="teams"){ G.tq[G.team]++; if(ok) G.tr[G.team]++; }
   view.chosen={side,ok};
   G.path.push({dir:side,ok});
@@ -1868,7 +1876,7 @@ async function fightAnswer(side){
   G.phase="busy"; setButtons(false); hush();
   const run=G.run, q=G.cur, ok=side===G.correctSide;
   const picked = side ? view.fightAns[side] : null;
-  G.log.push({q, picked, ok, team:settings.mode==="teams"?G.team:-1, kind:"monster", timedOut:!side});
+  G.log.push({q, picked, ok, team:settings.mode==="teams"?G.team:-1, kind:"monster", timedOut:!side}); gmReport(q, picked, ok, !side);
   if(settings.mode==="teams"){ G.tq[G.team]++; if(ok) G.tr[G.team]++; }
   view.fightAns=null;
   const qe=$("question");
@@ -3247,6 +3255,7 @@ async function mpAnswer(choice) {
   MP.pick = { index: idx, choice };
   mpRefresh();
   const correct = choice === q.correct;
+  try { if (window.EnglishiaAuth && EnglishiaAuth.recordAnswer && EnglishiaAuth.user) EnglishiaAuth.recordAnswer("grammar-maze", { item: q.prompt, prompt: q.prompt, topic: q.topic || "Class game", level: "Class game", correct: !!correct, given: q.choices[choice], expected: q.choices[q.correct] }); } catch (e) {}
   const left = Math.max(0, mpTimeLeft());
   const pts = correct ? 1000 + Math.round(500 * ((room.timerMs || 1) ? left / room.timerMs : 0)) : 0;
   try {

@@ -51,6 +51,11 @@
 .pe-game{margin:8px 0;background:#fff;border:2px solid #eadcbf;border-radius:14px;padding:6px 12px}
 .pe-game>summary{cursor:pointer;font-weight:700;min-height:44px;display:flex;align-items:center;font-size:18px}
 .pe-host{font-size:18px}
+  .ti{width:1.1em;height:1.1em;vertical-align:-.15em}
+  .ico-tab{display:inline-flex;align-items:center;gap:6px}
+  section.card{overflow-x:auto;max-width:100%}
+  .rkico-btn{display:inline-flex;align-items:center;gap:6px;min-width:64px;justify-content:center}
+  #stale{background:#ffe1dc;color:#8a1c12;font-weight:700}
 </style>
 </head>
 <body>
@@ -74,7 +79,9 @@
       <button data-tab="ranks">🛡️ דרגות</button>
       <button data-tab="managers" data-need="managers">🔐 מנהלים והרשאות</button>
       <button data-tab="audit">📜 יומן ביקורת</button>
+      <button data-tab="reports" data-need="reports" class="ico-tab"><svg class="ti" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><rect x="6" y="11" width="3" height="7" fill="currentColor"/><rect x="10.5" y="6" width="3" height="12" fill="currentColor"/><rect x="15" y="13" width="3" height="5" fill="currentColor"/></svg> דוחות ביצועים</button>
     </div>
+    <div id="stale" class="card hidden"></div>
 
     <section class="card" id="tab-users">
       <h2>👥 כל התלמידים</h2>
@@ -109,6 +116,13 @@
       <div id="managers">טוען…</div>
     </section>
 
+    <section class="card hidden" id="tab-reports">
+      <h2>דוחות ביצועים</h2>
+      <p class="hint">איפה כל תלמיד טועה, מה ענה ומה הייתה התשובה הנכונה, ובאילו נושאים הוא מתקשה. הנתונים נאספים כשתלמידים משחקים כשהם מחוברים לחשבון (מגרסה 12.6). רק בעל האתר ומנהלים עם הרשאת "דוחות ביצועים" רואים אותם.</p>
+      <div class="row"><label>משחק: <select class="f" id="rep-game"></select></label><button class="btn" id="rep-reload">רענון</button></div>
+      <div id="reports">טוען…</div>
+    </section>
+
     <section class="card hidden" id="tab-audit">
       <h2>📜 יומן ביקורת</h2>
       <p class="hint" id="audit-hint">כל פעולה של מנהל: מי, מה, למי, לפני ואחרי, ומתי. אי אפשר לערוך או למחוק רשומות, והן לא נמחקות אחרי שבוע.</p>
@@ -117,11 +131,21 @@
     </section>
   </div>
 </main>
-<script src="../js/englishia-auth.js"></script>
+<script src="../js/englishia-auth.js?v=12.6"></script>
 <script>
 (function () {
   "use strict";
   var E = window.EnglishiaAuth, A = E.admin, R = E.ranks;
+  // v12.6: this page needs englishia-auth.js 12.6+. A stale cached copy silently dropped new fields
+  // (that is why the custom rank name "did not save" right after the 12.5 release).
+  var NEED_VER = [12, 6];
+  function verOk(v) { var p = String(v || "0").split(".").map(Number); return p[0] > NEED_VER[0] || (p[0] === NEED_VER[0] && (p[1] || 0) >= NEED_VER[1]); }
+  if (!verOk(E.version)) {
+    var st = document.getElementById("stale");
+    st.classList.remove("hidden");
+    st.innerHTML = "הדפדפן טען גרסה ישנה של קובץ החשבונות (" + (E.version || "ישן") + "). שינויים חדשים (כמו דרגה בכתב חופשי וסמלים) לא יישמרו. <button class=\"btn main\" id=\"stale-go\">רענון הדף</button>";
+    document.getElementById("stale-go").onclick = function () { location.reload(); };
+  }
   var TYPE_HE = { register: "הרשמה", login: "כניסה", logout: "יציאה", game_start: "פתח/ה משחק", stage_reached: "התחיל/ה שלב",
     stage_completed: "סיים/ה שלב", score: "ניקוד", name_change: "שינוי שם", password_change: "שינוי סיסמה",
     username_change: "שינוי שם משתמש", admin_edit: "עריכת מנהל", admin_reset_progress: "מחיקת ניקוד", admin_password_reset: "איפוס סיסמה ע״י המנהל",
@@ -142,7 +166,7 @@
   function chip(r, size) {
     if (!r || !r.tier) return "";
     var extra = r.customName ? " <small>(מותאם)</small>" : (r.manual ? " <small>(ידני)</small>" : "");
-    return '<span class="rk">' + R.badge(r.tier, r.level, size || 24) + esc(rankText(r)) + extra + "</span>";
+    return '<span class="rk">' + R.badge(r.tier, r.level, size || 24) + (R.icon ? R.icon(r.icon, size || 24) : "") + esc(rankText(r)) + extra + "</span>";
   }
   function permsLabel(p) { var l = A.PERMS.filter(function (k) { return p && p[k]; }); return l.length ? l.map(function (k) { return esc(A.PERM_HE[k]); }).join("<br>") : "—"; }
 
@@ -164,7 +188,7 @@
     Array.prototype.forEach.call(document.querySelectorAll("[data-need]"), function (b) { b.classList.toggle("hidden", !E.can(b.getAttribute("data-need"))); });
     A.cleanupActivity().catch(function () {});
     R.tiers().then(function (t) { tiers = t; });
-    if (E.can("view")) { tab("users"); if (usersState !== "loading") loadUsers(); } else tab("audit");
+    if (E.can("view")) { tab("users"); if (usersState !== "loading") loadUsers(); } else if (E.can("reports")) tab("reports"); else tab("audit");
   }
   $("gate-login").onclick = function () { E.openLogin(); };
   $("gate-retry").onclick = function () { $("gate-msg").textContent = "בודק הרשאות ניהול…"; $("gate-retry").classList.add("hidden"); E.retryRole(); };
@@ -175,7 +199,7 @@
     b.onclick = function () { tab(b.getAttribute("data-tab")); };
   });
   function tab(name) {
-    ["users", "user", "activity", "boards", "ranks", "managers", "audit"].forEach(function (t) { $("tab-" + t).classList.toggle("hidden", t !== name); });
+    ["users", "user", "activity", "boards", "ranks", "managers", "audit", "reports"].forEach(function (t) { $("tab-" + t).classList.toggle("hidden", t !== name); });
     Array.prototype.forEach.call(document.querySelectorAll("[data-tab]"), function (b) { b.classList.toggle("on", b.getAttribute("data-tab") === name || (name === "user" && b.getAttribute("data-tab") === "users")); });
     if (name === "users" && E.can("view") && !usersState) loadUsers();
     if (name === "activity") loadActivity();
@@ -183,6 +207,7 @@
     if (name === "ranks") loadRanks();
     if (name === "managers") loadManagers();
     if (name === "audit") loadAudit();
+    if (name === "reports") loadReports();
   }
 
   var usersState = null; // null | "loading" | "ok" | "error"
@@ -287,8 +312,12 @@
           '</select></div>' +
           '<label class="hint" for="u-rank-custom" style="display:block;margin-top:8px">דרגה בכתב חופשי (לא חובה)</label>' +
           '<div class="row"><input class="f" id="u-rank-custom" maxlength="24" placeholder="למשל מלך המילים" value="' +
-          esc((u.rankDoc && u.rankDoc.customName) || "") + '"><button class="btn main" id="u-rank-go">שמירת דרגה</button></div>' +
-          '<p class="hint">אם ממלאים, השם הזה מופיע במקום שם הדרגה. שדה ריק מחזיר לדרגה הרגילה.</p></div>';
+          esc((u.rankDoc && u.rankDoc.customName) || "") + '"></div>' +
+          '<p class="hint">אם ממלאים, השם הזה מופיע במקום שם הדרגה. שדה ריק מחזיר לדרגה הרגילה.</p>' +
+          '<label class="hint" style="display:block;margin-top:8px">סמל אישי (לא חובה, במקום הסמל של הדרגה)</label>' +
+          '<div class="row"><input type="hidden" id="u-rank-icon" value="' + esc(u.rank.customIcon || "") + '"><button class="btn rkico-btn" id="u-rank-icon-go">' + (u.rank.customIcon ? R.icon(u.rank.customIcon, 28) : "") + ' בחירת סמל</button>' +
+          '<button class="btn sm" id="u-rank-icon-clr">בלי סמל אישי</button></div>' +
+          '<div class="row"><button class="btn main" id="u-rank-go">שמירת דרגה</button></div></div>';
       }
       if (E.can("names")) html += "<div class=\"sec\"><h3>✏️ שינוי שם</h3><p class=\"hint\">השם שמופיע במשחקים ובטבלת השיאים.</p><div class=\"row\"><input class=\"f\" id=\"u-name\" maxlength=\"20\" value=\"" + esc(u.displayName) + '"><button class="btn main" id="u-name-go">שמירה</button></div></div>';
       if (E.isOwner) {
@@ -314,6 +343,7 @@
         html += '<div class="sec"><h3>🗑️ מחיקת תלמיד</h3><p class="hint">מוחק את הפרופיל, הניקוד, ההתקדמות והדרגה, ומוריד אותו מטבלאות השיאים. התלמיד לא יוכל לשמור התקדמות עד ששחזרו אותו (השחזור מתחיל מאפס). שם המשתמש נשאר תפוס.</p>' +
           '<button class="btn red" id="u-del">מחיקת התלמיד</button></div>';
       }
+      if (E.can("reports")) html += '<div class="sec"><h3>דוח ביצועים</h3><p class="hint">איפה טעה/תה בכל משחק, מה ענה/תה, ובמה הכי מתקשה.</p><div class="row"><button class="btn main" id="u-rep-go">הצגת דוח ביצועים</button></div><div id="u-rep"></div></div>';
       if (r[5]) html += "<h3>📜 פעולות מנהלים על התלמיד הזה</h3>" + auditRows(r[5], { noTarget: true });
       html += "<h3>📝 היסטוריית שינויים (שם, סיסמה, עריכות מנהל)</h3>" + actRows(changes, false) +
         "<h3>🕒 פעילות ב-7 הימים האחרונים</h3>" + actRows(acts, false);
@@ -352,7 +382,10 @@
       each("[data-reset]", function (b) { b.onclick = function () { var g = b.getAttribute("data-reset");
         if (!confirm("למחוק את הניקוד וההתקדמות של " + u.displayName + " ב" + gname(g) + "?")) return;
         run(b, A.resetGame(uid, g), "הניקוד וההתקדמות נמחקו.", true); }; });
-      if ($("u-rank-go")) $("u-rank-go").onclick = function () { run(this, A.setRank(uid, $("u-rank").value, $("u-rank-custom") ? $("u-rank-custom").value : ""), "הדרגה נשמרה.", true); };
+      if ($("u-rank-go")) $("u-rank-go").onclick = function () { run(this, A.setRank(uid, $("u-rank").value, $("u-rank-custom") ? $("u-rank-custom").value : "", $("u-rank-icon") ? $("u-rank-icon").value : undefined), "הדרגה נשמרה.", true); };
+      if ($("u-rank-icon-go")) $("u-rank-icon-go").onclick = function () { var b = this; R.pickIcon({ current: $("u-rank-icon").value, title: "סמל אישי ל" + u.displayName, onPick: function (v) { $("u-rank-icon").value = v; b.innerHTML = (v ? R.icon(v, 28) : "") + " בחירת סמל"; } }); };
+      if ($("u-rank-icon-clr")) $("u-rank-icon-clr").onclick = function () { $("u-rank-icon").value = ""; $("u-rank-icon-go").innerHTML = " בחירת סמל"; };
+      if ($("u-rep-go")) $("u-rep-go").onclick = function () { showUserReport($("u-rep"), uid, u.displayName); };
       if ($("u-name-go")) $("u-name-go").onclick = function () { run(this, A.rename(uid, $("u-name").value), "השם שונה.", true); };
       if ($("u-pass-go")) $("u-pass-go").onclick = function () { run(this, A.resetPassword(uid, $("u-pass").value), "הסיסמה החדשה נשמרה. תנו אותה לתלמיד/ה."); };
       if ($("u-user-go")) $("u-user-go").onclick = function () { run(this, A.changeUsername(uid, $("u-user").value), "שם המשתמש לכניסה שונה.", true); };
@@ -419,7 +452,7 @@
     R.tiers().then(function (t) {
       tiers = t;
       var edit = E.can("rankdefs");
-      var html = "<table id=\"tier-tbl\"><tr><th>#</th><th>סמל</th><th>שם הדרגה</th><th>מאיזה ניקוד כולל</th><th>צבע</th>" + (edit ? "<th></th>" : "") + "</tr>" +
+      var html = "<table id=\"tier-tbl\"><tr><th>#</th><th>תג</th><th>סמל נוסף</th><th>שם הדרגה</th><th>מאיזה ניקוד כולל</th><th>צבע</th>" + (edit ? "<th></th>" : "") + "</tr>" +
         t.map(function (x, i) { return tierRow(x, i, edit); }).join("") + "</table>";
       if (edit) html += '<div class="row"><button class="btn" id="tier-add">➕ דרגה חדשה</button><button class="btn main" id="tier-save">שמירת הדרגות</button><button class="btn" id="tier-def">החזרה לברירת המחדל</button></div><p class="hint">הדרגה הראשונה תמיד מתחילה מ-0. אפשר עד 12 דרגות. תלמידים עם דרגה ידנית נשארים איתה.</p>';
       else html += '<p class="hint">אין לך הרשאה לערוך את הדרגות.</p>';
@@ -429,14 +462,23 @@
       function bind() {
         Array.prototype.forEach.call(w.querySelectorAll("[data-del]"), function (b) { b.onclick = function () { b.closest("tr").remove(); renum(); }; });
         Array.prototype.forEach.call(w.querySelectorAll("tr[data-id] input"), function (inp) { inp.oninput = function () { var tr = inp.closest("tr"); tr.querySelector(".sym").innerHTML = R.badge({ color: tr.querySelector('[data-k="color"]').value }, +tr.getAttribute("data-i") + 1, 30); }; });
+        Array.prototype.forEach.call(w.querySelectorAll("[data-icon-pick]"), function (b) {
+          b.onclick = function () {
+            var tr = b.closest("tr");
+            R.pickIcon({ current: tr.getAttribute("data-icon") || "", title: "סמל לדרגה " + (tr.querySelector('[data-k="name"]').value || ""), onPick: function (v) {
+              tr.setAttribute("data-icon", v); b.innerHTML = v ? R.icon(v, 30) : "בחירה";
+              msg($("tier-msg"), "הסמל נבחר. לחצו \"שמירת הדרגות\" כדי לשמור.", true);
+            } });
+          };
+        });
       }
       function renum() { Array.prototype.forEach.call(w.querySelectorAll("tr[data-id]"), function (tr, i) { tr.setAttribute("data-i", i); tr.firstChild.textContent = i + 1; }); }
       bind();
       $("tier-add").onclick = function () { var n = w.querySelectorAll("tr[data-id]").length; if (n >= 12) return; $("tier-tbl").insertAdjacentHTML("beforeend", tierRow({ id: "", name: "", min: 0, color: "#495057" }, n, true)); bind(); };
-      $("tier-def").onclick = function () { $("tier-tbl").innerHTML = "<tr><th>#</th><th>סמל</th><th>שם הדרגה</th><th>מאיזה ניקוד כולל</th><th>צבע</th><th></th></tr>" + R.defaults.map(function (x, i) { return tierRow(x, i, true); }).join(""); bind(); };
+      $("tier-def").onclick = function () { $("tier-tbl").innerHTML = "<tr><th>#</th><th>תג</th><th>סמל נוסף</th><th>שם הדרגה</th><th>מאיזה ניקוד כולל</th><th>צבע</th><th></th></tr>" + R.defaults.map(function (x, i) { return tierRow(x, i, true); }).join(""); bind(); };
       $("tier-save").onclick = function () {
         var b = this, list = Array.prototype.map.call(w.querySelectorAll("tr[data-id]"), function (tr) {
-          return { id: tr.getAttribute("data-id"), name: tr.querySelector('[data-k="name"]').value, min: tr.querySelector('[data-k="min"]').value, color: tr.querySelector('[data-k="color"]').value };
+          return { id: tr.getAttribute("data-id"), name: tr.querySelector('[data-k="name"]').value, min: tr.querySelector('[data-k="min"]').value, color: tr.querySelector('[data-k="color"]').value, icon: tr.getAttribute("data-icon") || "" };
         });
         b.disabled = true;
         A.setTiers(list).then(function () { loadRanks(); setTimeout(function () { msg($("tier-msg"), "הדרגות נשמרו.", true); }, 600); }).catch(function (e) { b.disabled = false; msg($("tier-msg"), errText(e)); });
@@ -444,7 +486,8 @@
     });
   }
   function tierRow(x, i, edit) {
-    return '<tr data-id="' + esc(x.id) + '" data-i="' + i + '"><td>' + (i + 1) + '</td><td class="sym">' + R.badge(x, i + 1, 30) + "</td>" +
+    return '<tr data-id="' + esc(x.id) + '" data-i="' + i + '" data-icon="' + esc(x.icon || "") + '"><td>' + (i + 1) + '</td><td class="sym">' + R.badge(x, i + 1, 30) + "</td>" +
+      "<td>" + (edit ? '<button class="btn sm rkico-btn" data-icon-pick>' + (x.icon ? R.icon(x.icon, 30) : "בחירה") + "</button>" : (x.icon ? R.icon(x.icon, 30) : "—")) + "</td>" +
       (edit ? '<td><input class="f" data-k="name" maxlength="20" value="' + esc(x.name) + '"></td><td><input class="n" type="number" min="0" data-k="min" value="' + num(x.min) + '"' + (i === 0 ? " disabled" : "") + '></td><td><input type="color" data-k="color" value="' + esc(x.color) + '" style="width:60px;height:44px"></td><td><button class="btn sm red" data-del>מחיקה</button></td>'
         : "<td><b>" + esc(x.name) + "</b></td><td>" + num(x.min) + "</td><td></td>") + "</tr>";
   }
@@ -474,6 +517,49 @@
       }
       $("audit").innerHTML = auditRows(list, { noActor: !all });
     }).catch(function (e) { $("audit").textContent = errText(e); });
+  }
+
+  // ---- v12.6 performance reports ----
+  var repCache = null, repNames = {};
+  function repDownload(btn, text, name) { E.reports.download(text, name); }
+  function showUserReport(el, uid, name, gameId) {
+    el.innerHTML = "טוען…";
+    A.reportsFor(uid).then(function (list) {
+      if (gameId) list = list.filter(function (x) { return x.game === gameId; });
+      el.innerHTML = '<div class="row"><button class="btn main" data-r="print">הדפסה</button><button class="btn" data-r="csv">קובץ CSV (אקסל)</button></div>' + E.reports.html(list);
+      el.querySelector('[data-r="print"]').onclick = function () { E.reports.print("דוח ביצועים · " + name, E.reports.html(list, { maxItems: 40, maxRecent: 40 })); };
+      el.querySelector('[data-r="csv"]').onclick = function () { E.reports.download(E.reports.csvUser(name, list), "englishia-" + String(name).replace(/[\\\/:*?"<>|\s]+/g, "-") + "-" + new Date().toISOString().slice(0, 10) + ".csv"); };
+    }).catch(function (e) { el.innerHTML = '<div class="msg err">' + esc(errText(e)) + "</div>"; });
+  }
+  function loadReports(force) {
+    var sel = $("rep-game");
+    if (!sel.options.length) {
+      sel.innerHTML = '<option value="">כל המשחקים</option>' + Object.keys(E.gameTitles).map(function (g) { return '<option value="' + esc(g) + '">' + esc(gname(g)) + "</option>"; }).join("");
+      sel.onchange = function () { renderReports(); };
+      $("rep-reload").onclick = function () { loadReports(true); };
+    }
+    if (repCache && !force) return renderReports();
+    $("reports").textContent = "טוען…";
+    Promise.all([A.classReport(""), E.can("view") ? (users.length ? Promise.resolve(users) : A.listUsers().catch(function () { return []; })) : Promise.resolve([])]).then(function (r) {
+      repCache = r[0]; repNames = {};
+      r[1].forEach(function (u) { repNames[u.uid] = u.displayName; });
+      renderReports();
+    }).catch(function (e) { retryBox($("reports"), errText(e), function () { loadReports(true); }); });
+  }
+  function renderReports() {
+    var g = $("rep-game").value, list = (repCache || []).filter(function (x) { return !g || x.game === g; });
+    var title = "דוח כיתתי · " + (g ? gname(g) : "כל המשחקים");
+    $("reports").innerHTML = '<div class="row"><button class="btn main" id="rep-print">הדפסה</button><button class="btn" id="rep-csv">קובץ CSV (אקסל)</button></div>' + A.classHTML(list, repNames, g, true) + '<div id="rep-user"></div>';
+    $("rep-print").onclick = function () { E.reports.print(title, A.classHTML(list, repNames, g, false)); };
+    $("rep-csv").onclick = function () { E.reports.download(E.reports.csvClass(list, repNames), "englishia-class-" + (g || "all") + "-" + new Date().toISOString().slice(0, 10) + ".csv"); };
+    Array.prototype.forEach.call($("reports").querySelectorAll("[data-rep-uid]"), function (b) {
+      b.onclick = function () {
+        var el = $("rep-user"), nm = b.getAttribute("data-rep-name");
+        el.innerHTML = '<div class="sec"><h2>' + esc(nm) + '</h2><div id="rep-user-body"></div></div>';
+        showUserReport($("rep-user-body"), b.getAttribute("data-rep-uid"), nm, g);
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      };
+    });
   }
 
   function loadActivity() {
