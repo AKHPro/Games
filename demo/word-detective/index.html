@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#20356e">
+<title>Word Detective · בלש המילים</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='26' cy='26' r='17' fill='%23ffd34d' stroke='%2320356e' stroke-width='6'/%3E%3Cpath d='M39 39l17 17' stroke='%2320356e' stroke-width='8' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div id="app"><div class="wrap">
+
+<!-- HOME -->
+<section id="home" class="screen on">
+  <div class="hdr"><div class="slot" id="engSlot"></div><button class="iconbtn" id="soundBtn" aria-label="צליל"></button></div>
+  <div class="title">
+    <svg class="logo" viewBox="0 0 64 64" aria-hidden="true"><circle cx="26" cy="26" r="17" fill="#ffd34d" stroke="#20356e" stroke-width="5"/><path d="M39 39l16 16" stroke="#20356e" stroke-width="8" stroke-linecap="round"/><text x="26" y="32" text-anchor="middle" font-family="Arial" font-weight="800" font-size="17" fill="#20356e">Aa</text></svg>
+    <div><h1 class="en">Word Detective</h1><div class="he">בלש המילים</div><div class="sub">חלקי דיבר · צורות מילים · זמנים – לכיתות י׳–י״ב</div></div>
+  </div>
+  <div class="levels" id="levels"><span class="lbl">רמה:</span>
+    <button class="chip" data-lv="1">בסיסית</button><button class="chip" data-lv="2">בינונית</button><button class="chip" data-lv="3">מתקדמת</button></div>
+  <div class="modes" id="modes"></div>
+  <p class="muted center" style="margin-top:12px">אפשר לענות במקלדת שעל המסך או במקלדת רגילה. Enter = בדיקה.</p>
+</section>
+
+<!-- SECTIONS -->
+<section id="sections" class="screen">
+  <div class="topbar"><button class="iconbtn" data-go="home" aria-label="חזרה" data-ic="back"></button><div class="mid"><b>תרגול לפי נושא</b><div class="lbl" id="secLvl"></div></div></div>
+  <div class="seclist" id="secList"></div>
+</section>
+
+<!-- INTRO -->
+<section id="intro" class="screen">
+  <div class="topbar"><button class="iconbtn" data-go="sections" aria-label="חזרה" data-ic="back"></button><div class="mid"><b id="introTitle"></b><div class="lbl en" id="introEn"></div></div></div>
+  <div class="box rule" id="introRule"></div>
+  <p class="muted" id="introCount"></p>
+  <label class="box" id="introForms" style="display:flex;gap:10px;align-items:center;cursor:pointer"><input type="checkbox" id="introFormsCb" style="width:24px;height:24px"><span><b>גם לכתוב V1 · V2 · V3</b><br><small class="muted">לפני זיהוי הזמן: כותבים את שלוש הצורות של הפועל</small></span></label>
+  <button class="btn" id="introStart">מתחילים <span data-ic="arrow"></span></button>
+</section>
+
+<!-- PLAY -->
+<section id="play" class="screen">
+  <div class="topbar"><button class="iconbtn" id="quitBtn" aria-label="יציאה" data-ic="x"></button>
+    <div class="mid"><div class="lbl" id="playLbl"></div><div class="prog"><i id="progBar"></i></div></div>
+    <span class="pill" id="timerPill" hidden></span><span class="pill" id="scorePill">0</span></div>
+  <div class="play2">
+    <div class="qcard">
+      <div id="qTag"></div>
+      <div class="qprompt" id="qPrompt"></div>
+      <div class="sent" id="qSent"></div>
+    </div>
+    <div>
+      <div id="answerArea"></div>
+      <div id="fbArea"></div>
+      <div id="nextArea" hidden><button class="btn" id="nextBtn" style="margin-top:10px">לשאלה הבאה <span data-ic="arrow"></span></button><div class="muted center" id="nextNote"></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- END -->
+<section id="end" class="screen">
+  <div class="topbar"><button class="iconbtn" data-go="home" aria-label="בית" data-ic="home"></button><div class="mid"><b id="endTitle">סיכום</b></div><div class="slot" id="engSlotEnd"></div></div>
+  <div class="endcard"><div class="meta" id="endSub"></div><div class="sc" id="endScore"></div><div class="grid" id="endGrid"></div><div class="bd" id="endBd"></div></div>
+  <div class="row" style="margin-top:12px"><button class="btn" id="againBtn"><span data-ic="refresh"></span> שוב</button><button class="btn sec" data-go="home">לתפריט</button></div>
+  <h2 style="color:var(--navy);margin:16px 0 6px;font-size:20px">סקירת טעויות</h2>
+  <div class="review" id="endReview"></div>
+</section>
+
+<!-- COMP JOIN -->
+<section id="compJoin" class="screen">
+  <div class="topbar"><button class="iconbtn" data-go="home" aria-label="חזרה" data-ic="back"></button><div class="mid"><b>תחרות כיתתית</b><div class="lbl">15 שאלות · ניקוד על דיוק, מהירות ורצף</div></div></div>
+  <label class="field"><span>שם מלא</span><input id="cName" maxlength="24" autocomplete="name" placeholder="למשל: נועה כהן"></label>
+  <label class="field"><span>קוד תחרות (מהמורה)</span><input id="cCode" class="code" inputmode="numeric" pattern="[0-9]*" maxlength="4" placeholder="0000"></label>
+  <div class="err" id="cErr"></div>
+  <div class="box yellow" style="font-size:15px">תשובה נכונה: 100 נק׳ · בונוס מהירות: עד 50 · רצף: עד 40 · שאלת המשך נכונה: 20 · כמעט (איות): 50</div>
+  <button class="btn" id="cStart">יוצאים לדרך <span data-ic="arrow"></span></button>
+</section>
+
+<!-- COMP END -->
+<section id="compEnd" class="screen">
+  <div class="endcard">
+    <div style="font-size:15px;opacity:.9">Word Detective · תחרות · קוד <b id="ceCode"></b></div>
+    <div class="nm" id="ceName"></div>
+    <div class="sc" id="ceScore"></div><div style="opacity:.85">נקודות</div>
+    <div class="grid"><div><b id="ceCorrect"></b><small>תשובות נכונות</small></div><div><b id="ceTime"></b><small>זמן</small></div><div><b id="ceBest"></b><small>רצף שיא</small></div></div>
+    <div class="bd" id="ceBd"></div>
+    <div class="ver">קוד אימות למורה<br><b id="ceVer"></b></div>
+    <div class="meta" id="ceMeta" style="margin-top:6px"></div>
+  </div>
+  <p class="muted center">צלמו את המסך ושלחו למורה, או העתיקו את שורת התוצאה:</p>
+  <div class="box" style="font-size:14px;word-break:break-word" id="ceLine"></div>
+  <div class="row"><button class="btn yel" id="ceCopy"><span data-ic="copy"></span> העתקה</button><button class="btn sec" id="ceShare"><span data-ic="share"></span> שיתוף</button></div>
+  <div class="row" style="margin-top:10px"><button class="btn sec" id="ceReviewBtn">סקירת טעויות</button><button class="btn sec" data-go="home">לתפריט</button></div>
+  <div class="review" id="ceReview" style="margin-top:10px" hidden></div>
+</section>
+
+<!-- TEACHER -->
+<section id="teacher" class="screen">
+  <div class="topbar"><button class="iconbtn" data-go="home" aria-label="חזרה" data-ic="back"></button><div class="mid"><b>למורה</b><div class="lbl">קוד תחרות וטבלת מובילים</div></div></div>
+  <div class="box yellow">
+    <b>1. יוצרים קוד</b>
+    <div class="bigcode" id="tCode">----</div>
+    <div class="row"><button class="btn" id="tGen">קוד חדש</button><button class="btn sec" id="tShowQ">שאלות ותשובות</button></div>
+    <p class="muted">אותו קוד = אותן 15 שאלות באותו סדר לכל התלמידים.</p>
+    <div id="tQList" hidden class="review" style="font-size:15px"></div>
+  </div>
+  <div class="box teal">
+    <b>2. מוסיפים תוצאות</b>
+    <label class="field"><span>הדביקו שורות תוצאה מהתלמידים (אפשר כמה יחד)</span><textarea id="tPaste" placeholder="Word Detective | קוד 1234 | נועה כהן | 1530 נק' | 12/15 | 04:12 | אימות K7QXP | ניסיון 1"></textarea></label>
+    <button class="btn" id="tAdd">הוספה לטבלה</button>
+    <details style="margin-top:10px"><summary style="min-height:44px;cursor:pointer;font-weight:700">הקלדה ידנית מצילום מסך</summary>
+      <div class="row"><label class="field"><span>שם</span><input id="mName"></label><label class="field"><span>קוד</span><input id="mCode" inputmode="numeric" maxlength="4"></label></div>
+      <div class="row"><label class="field"><span>נקודות</span><input id="mScore" inputmode="numeric"></label><label class="field"><span>נכונות</span><input id="mCorrect" inputmode="numeric"></label></div>
+      <div class="row"><label class="field"><span>זמן (דק:שנ)</span><input id="mTime" placeholder="04:12"></label><label class="field"><span>קוד אימות</span><input id="mVer" style="direction:ltr;text-transform:uppercase"></label></div>
+      <button class="btn sec" id="mAdd">הוספה</button>
+    </details>
+    <div class="err" id="tErr"></div>
+  </div>
+  <div class="box">
+    <b>3. טבלת מובילים</b>
+    <label class="field"><span>קוד להצגה</span><select id="tFilter"></select></label>
+    <div id="tBoard"></div>
+    <p class="muted">V = קוד האימות תואם לשם, לקוד, לנקודות, למספר הנכונות ולזמן. X = משהו שונה – כדאי לבדוק. (בדיקה בסיסית, לא הגנה מלאה.)</p>
+    <button class="btn sec" id="tClear">מחיקת התוצאות של הקוד הזה</button>
+  </div>
+</section>
+
+<!-- TEAMS: hub -->
+<section id="teamsHub" class="screen">
+  <div class="topbar"><button class="iconbtn" data-go="home" aria-label="חזרה" data-ic="back"></button><div class="mid"><b>משחק קבוצות</b><div class="lbl">כל אחד מהטלפון שלו, המורה על המקרן</div></div></div>
+  <div class="box purple rule tRule"></div>
+  <div class="modes">
+    <button class="mode c-red" data-go="tJoin"><span class="ic" data-ic="user"></span><span><b>אני תלמיד/ה – הצטרפות</b><small>מקלידים קוד חדר ושם, ובוחרים קבוצה</small></span></button>
+    <button class="mode c-teal" data-go="hostSetup"><span class="ic" data-ic="teacher"></span><span><b>מסך מורה – פתיחת חדר</b><small>למקרן או למחשב של המורה</small></span></button>
+  </div>
+</section>
+
+<section id="tJoin" class="screen">
+  <div class="topbar"><button class="iconbtn" data-go="teamsHub" aria-label="חזרה" data-ic="back"></button><div class="mid"><b>הצטרפות למשחק קבוצות</b><div class="lbl">הקוד מופיע על המקרן</div></div></div>
+  <label class="field"><span>קוד חדר</span><input id="tjCode" class="code" inputmode="numeric" pattern="[0-9]*" maxlength="5" placeholder="00000"></label>
+  <label class="field"><span>שם</span><input id="tjName" maxlength="20" autocomplete="name" placeholder="למשל: נועה כהן"></label>
+  <div class="err" id="tjErr"></div>
+  <button class="btn" id="tjGo">הצטרפות <span data-ic="arrow"></span></button>
+  <p class="muted center" id="tjStatus"></p>
+</section>
+
+<section id="tPick" class="screen">
+  <div class="topbar"><button class="iconbtn" id="tpLeave" aria-label="יציאה" data-ic="x"></button><div class="mid"><b>בחרו קבוצה</b><div class="lbl" id="tpHello"></div></div></div>
+  <div class="tteams" id="tpTeams"></div>
+  <p class="muted center">אפשר להחליף קבוצה עד שהמורה מתחיל/ה את המשחק.</p>
+</section>
+
+<section id="tWait" class="screen">
+  <div class="topbar"><button class="iconbtn" id="twLeave" aria-label="יציאה" data-ic="x"></button><div class="mid"><b id="twHello"></b><div class="lbl connlbl" id="twConn"></div></div></div>
+  <div class="teambadge" id="twTeam"></div>
+  <div class="center" style="margin:16px 0"><div class="spin"></div><div class="tsmsg" id="twMsg">מחכים שהמורה יתחיל…</div></div>
+  <div id="twTeams" class="scorestrip"></div>
+  <div class="box purple rule tRule"></div>
+  <button class="btn sec" id="twSwitch">החלפת קבוצה</button>
+</section>
+
+<section id="tEnd" class="screen">
+  <div class="title"><h1>תוצאות הקבוצות</h1></div>
+  <div class="podium" id="teCols"></div>
+  <div class="box center" id="teMine" style="font-size:19px;font-weight:700"></div>
+  <button class="btn sec" style="margin-top:12px" id="teHome">לתפריט</button>
+</section>
+
+<!-- HOST -->
+<section id="hostSetup" class="screen">
+  <div class="topbar"><button class="iconbtn" data-go="teamsHub" aria-label="חזרה" data-ic="back"></button><div class="mid"><b>משחק קבוצות – מסך מורה</b><div class="lbl">הגדרות החדר</div></div></div>
+  <div id="hsResume"></div>
+  <div class="hgrid">
+    <div>
+      <label class="field"><span>מספר קבוצות</span><select id="hsN"><option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option></select></label>
+      <div id="hsTeams"></div>
+    </div>
+    <div>
+      <label class="field"><span>נושא</span><select id="hsTopic"><option value="all">כל הנושאים</option><option value="pos">חלקי דיבר</option><option value="forms">צורות מילים ותחיליות</option><option value="tenses">זמנים, סביל ותנאי</option><option value="exam">שאלות המבחן המסכם</option></select></label>
+      <label class="field"><span>רמה</span><select id="hsLv"><option value="1">בסיסית</option><option value="2" selected>בינונית</option><option value="3">מתקדמת</option></select></label>
+      <label class="field"><span>מספר שאלות</span><select id="hsQ"><option>5</option><option selected>10</option><option>15</option><option>20</option></select></label>
+      <label class="field"><span>זמן לכל שאלה</span><select id="hsT"><option value="15">15 שניות</option><option value="20">20 שניות</option><option value="30" selected>30 שניות</option><option value="45">45 שניות</option><option value="60">60 שניות</option></select></label>
+      <div class="muted" id="hsNote"></div>
+    </div>
+  </div>
+  <div class="err" id="hsErr"></div>
+  <button class="btn" id="hsOpen">פתיחת חדר <span data-ic="arrow"></span></button>
+</section>
+
+<section id="hostLobby" class="screen">
+  <div class="topbar"><button class="iconbtn" id="hlClose" aria-label="סגירה" data-ic="x"></button><div class="mid"><b>Word Detective – משחק קבוצות</b><div class="lbl connlbl" id="hlConn"></div></div></div>
+  <div class="hgrid">
+    <div class="box yellow center">
+      <div style="font-weight:800">סורקים את הקוד או נכנסים למשחק וכותבים את קוד החדר:</div>
+      <div class="bigcode" id="hlCode"></div>
+      <div class="qr" id="hlQR"></div>
+      <div class="muted" style="direction:ltr;word-break:break-all" id="hlLink"></div>
+    </div>
+    <div>
+      <div style="font-size:20px;font-weight:800;margin:4px 0 8px" id="hlCount"></div>
+      <div class="tcols" id="hlTeams"></div>
+      <div class="box purple rule tRule"></div>
+    </div>
+  </div>
+  <button class="btn grn" id="hlStart" disabled>התחלת המשחק <span data-ic="arrow"></span></button>
+</section>
+
+<section id="hostQ" class="screen">
+  <div class="topbar"><button class="iconbtn" id="hqClose" aria-label="סגירה" data-ic="x"></button><div class="mid"><b id="hqLbl"></b><div class="prog"><i id="hqProg"></i></div></div><span class="pill htimer" id="hqTimer"></span></div>
+  <div class="qcard"><div class="qprompt" id="hqPrompt"></div><div class="sent hbig" id="hqSent"></div><div id="hqOpts"></div></div>
+  <div class="tsmsg" id="hqAnswered"></div>
+  <div id="hqFirst"></div>
+  <div class="scorestrip" id="hqBoard"></div>
+  <button class="btn" id="hqReveal">חשיפת התשובה <span data-ic="arrow"></span></button>
+</section>
+
+<section id="hostRev" class="screen">
+  <div class="topbar"><button class="iconbtn" id="hrClose" aria-label="סגירה" data-ic="x"></button><div class="mid"><b id="hrLbl"></b></div></div>
+  <div id="hrWin"></div>
+  <div class="qcard"><div class="sent hbig" id="hrSent"></div><div class="cmp" style="font-size:22px"><span>התשובה:</span><span id="hrAns"></span></div><div class="why" id="hrWhy"></div></div>
+  <div class="scorestrip" id="hrBoard"></div>
+  <button class="btn" id="hrNext">שאלה הבאה <span data-ic="arrow"></span></button>
+</section>
+
+<section id="hostEnd" class="screen">
+  <div class="title"><h1>הפודיום</h1><div class="sub en">Word Detective – Team game</div></div>
+  <div class="podium" id="heCols"></div>
+  <div class="scorestrip" id="heBoard"></div>
+  <div class="row" style="margin-top:12px"><button class="btn" id="heNew">משחק חדש</button><button class="btn sec" id="heHome">לתפריט</button></div>
+</section>
+
+</div>
+<div class="credit" id="wd-credit"></div>
+</div>
+
+<div class="modal" id="hintModal"><div class="sheet"><div id="hintBody" class="rule"></div><button class="btn" style="margin-top:10px" id="hintClose">הבנתי</button></div></div>
+<div class="refmodal" id="refModal" role="dialog" aria-label="דף עזר"><div class="bar"><b>דף עזר – Word Detective</b><button class="iconbtn" id="refClose" aria-label="סגירה" data-ic="x"></button></div><div class="refnav" id="refNav"></div><div class="refbody" id="refBody"></div></div>
+<div class="toast" id="toast"></div>
+
+<script src="lib/peerjs.min.js"></script>
+<script src="lib/qrcode.js"></script>
+<script src="js/data.js"></script>
+<script src="js/app.js"></script>
+<script src="js/teams.js"></script>
+<script>
+(function(){var demo=/\/demo\//.test(location.pathname);
+var V="1.0";var el=document.getElementById("wd-credit");
+var l1=document.createElement("div");l1.dir="ltr";l1.textContent="\u00A9 2026 Amir \u00B7 Englishia \u00B7 All rights reserved \u00B7 "+(demo?"Demo version "+V:"Version "+V);
+var l2=document.createElement("div");l2.dir="rtl";l2.textContent="\u00A9 2026 \u05D0\u05DE\u05D9\u05E8 \u00B7 \u05D0\u05D9\u05E0\u05D2\u05DC\u05D9\u05E9\u05D9\u05D4 \u00B7 \u05DB\u05DC \u05D4\u05D6\u05DB\u05D5\u05D9\u05D5\u05EA \u05E9\u05DE\u05D5\u05E8\u05D5\u05EA \u00B7 "+(demo?"\u05D2\u05E8\u05E1\u05EA \u05D3\u05DE\u05D5 "+V:"\u05D2\u05E8\u05E1\u05D4 "+V);
+el.appendChild(l1);el.appendChild(l2);})();
+</script>
+<script>
+/* Englishia account (one login for all games). Guests still play if it can't load. */
+(function(){var s=document.createElement("script");s.src="../js/englishia-auth.js";
+s.onload=function(){try{EnglishiaAuth.init({gameId:"word-detective",gameTitle:"\u05D1\u05DC\u05E9 \u05D4\u05DE\u05D9\u05DC\u05D9\u05DD",mount:"#engSlot"});EnglishiaAuth.mountMenu("#engSlotEnd");if(window.WDApp)WDApp.onAuth();}catch(e){console.warn(e);}};
+s.onerror=function(){};document.head.appendChild(s);})();
+</script>
+</body>
+</html>

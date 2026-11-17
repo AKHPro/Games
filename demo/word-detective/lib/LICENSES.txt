@@ -1,0 +1,5 @@
+Third-party files in this folder:
+- peerjs.min.js – PeerJS 1.5.4, MIT License, https://github.com/peers/peerjs
+- qrcode.js – QR Code Generator for JavaScript 1.4.4, (c) 2009 Kazuhiko Arase, MIT License, https://github.com/kazuhikoarase/qrcode-generator
+- rubik-*.woff2 – Rubik font (Google Fonts), SIL Open Font License 1.1
+Game code and content: (c) 2026 Amir · Englishia
