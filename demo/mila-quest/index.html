@@ -360,6 +360,20 @@ html.short .mq-x{top:6px;left:6px;width:42px;height:42px}
   html.portrait #s-end .end-actions .btn{flex:1 1 40%}
   html.portrait #s-end .end-actions #nx{flex-basis:100%}
 }
+/* v11.4: back to Englishia (top-left, under sound/settings) + leaderboard buttons; drawn SVG icons, no emoji */
+.mq-ico{width:1.25em;height:1.25em;flex:none;display:inline-block;vertical-align:-.25em}
+#mq-home{position:fixed;top:calc(max(10px,env(safe-area-inset-top)) + 56px);left:max(10px,env(safe-area-inset-left));z-index:8;display:inline-flex;align-items:center;gap:6px;font-size:17px;font-weight:800;padding:8px 14px;min-height:44px;text-decoration:none;background:#fffdf6;color:#2b2418}
+#mq-home:focus-visible{outline:3px solid #ffd43b;outline-offset:2px}
+body[data-ui="hud"] #mq-home,body.set-open #mq-home,body[data-ui="s-load"] #mq-home{display:none}
+.mq-lb-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:linear-gradient(180deg,#ffe066,#fab005);color:#3b2600;box-shadow:0 5px 0 #a86f00;font-weight:800}
+.title-sec #btn-leaderboard{font-size:19px;padding:10px 20px}
+.map-top #btn-map-lb{font-size:17px}
+@media (orientation:portrait),(max-width:700px){
+  html.portrait #mq-home{font-size:14px;padding:7px 10px;min-height:40px;top:calc(max(10px,env(safe-area-inset-top)) + 50px)}
+  html.portrait .title-sec #btn-leaderboard{flex-basis:100%;font-size:clamp(15px,4.2vw,18px)}
+}
+html.portrait .map-top{padding-top:100px}
+html.short #mq-home{font-size:14px;padding:6px 10px;min-height:38px;top:calc(max(8px,env(safe-area-inset-top)) + 48px)}
 </style>
 </head>
 <body>
@@ -367,6 +381,7 @@ html.short .mq-x{top:6px;left:6px;width:42px;height:42px}
 <button class="btn s" id="mute" aria-label="השתקה">🔊</button>
 <button class="btn s" id="btn-settings" aria-label="הגדרות">⚙️ הגדרות</button>
 <button class="btn s hidden" id="btn-dev" aria-label="Developer">DEVELOPER</button>
+<a class="btn s" id="mq-home" href="../../" aria-label="חזרה לאנגלישיה" title="חזרה לאנגלישיה"><svg class="mq-ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3.5 11.2 12 4l8.5 7.2" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M6 10v9.5h4.5v-5h3v5H18V10" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"/></svg><span>אנגלישיה</span></a>
 <div id="mq-account">
   <button type="button" class="btn s mq-account-btn" id="mq-account-btn" aria-label="התחברות לאינגלישיה" aria-expanded="false" aria-haspopup="true" aria-controls="mq-account-menu">
     <span class="ico-user" aria-hidden="true"></span>
@@ -398,6 +413,7 @@ html.short .mq-x{top:6px;left:6px;width:42px;height:42px}
       <button class="btn s" id="btn-profiles">החלפת פרופיל</button>
     </div>
     <div class="row title-sec">
+      <button class="btn s mq-lb-btn" id="btn-leaderboard"><svg class="mq-ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 3.5h10v4.2a5 5 0 0 1-10 0z" fill="#ffd43b" stroke="#5b3a00" stroke-width="1.6" stroke-linejoin="round"/><path d="M7 5.5H4.2a3 3 0 0 0 3.3 4.2M17 5.5h2.8a3 3 0 0 1-3.3 4.2" fill="none" stroke="#5b3a00" stroke-width="1.6" stroke-linecap="round"/><path d="M12 12.7v3.3" stroke="#5b3a00" stroke-width="1.8"/><path d="M8.5 20.5h7l-.8-3.6H9.3z" fill="#ffd43b" stroke="#5b3a00" stroke-width="1.6" stroke-linejoin="round"/></svg><span>טבלת דירוג</span></button>
       <button class="btn s" id="btn-start">🗺️ בחירת עולם ושלב</button>
       <button class="btn s" id="btn-profile">פרופיל</button>
       <button class="btn s" id="btn-help">❓ איך משחקים?</button>
@@ -426,6 +442,7 @@ html.short .mq-x{top:6px;left:6px;width:42px;height:42px}
         <span class="pill"><span class="ico-coin" aria-hidden="true"></span> <span id="map-coins">0</span></span>
         <span class="pill">⭐ <span id="map-stars">0</span></span>
         <span class="pill">🔑 <span id="map-keys">0</span></span>
+        <button class="btn s mq-lb-btn" id="btn-map-lb"><svg class="mq-ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 3.5h10v4.2a5 5 0 0 1-10 0z" fill="#ffd43b" stroke="#5b3a00" stroke-width="1.6" stroke-linejoin="round"/><path d="M7 5.5H4.2a3 3 0 0 0 3.3 4.2M17 5.5h2.8a3 3 0 0 1-3.3 4.2" fill="none" stroke="#5b3a00" stroke-width="1.6" stroke-linecap="round"/><path d="M12 12.7v3.3" stroke="#5b3a00" stroke-width="1.8"/><path d="M8.5 20.5h7l-.8-3.6H9.3z" fill="#ffd43b" stroke="#5b3a00" stroke-width="1.6" stroke-linejoin="round"/></svg><span>טבלת דירוג</span></button>
         <button class="btn s" id="btn-map-back">חזרה</button>
       </div>
     </div>
@@ -545,10 +562,22 @@ html.short .mq-x{top:6px;left:6px;width:42px;height:42px}
     .catch(function (e) { console.error(e); });
 })();
 </script>
+<script>
+(function(){
+  var home=document.getElementById("mq-home");
+  if(home) home.setAttribute("href", /\/demo\//.test(location.pathname) ? "../" : "../../");
+  function openLb(){
+    if(window.EnglishiaAuth&&EnglishiaAuth.openLeaderboard){ EnglishiaAuth.openLeaderboard("mila-quest"); return; }
+    alert("\u05d8\u05d1\u05dc\u05ea \u05d4\u05d3\u05d9\u05e8\u05d5\u05d2 \u05e2\u05d5\u05d3 \u05e0\u05d8\u05e2\u05e0\u05ea, \u05e0\u05e1\u05d5 \u05e9\u05d5\u05d1 \u05d1\u05e2\u05d5\u05d3 \u05e8\u05d2\u05e2.");
+  }
+  window.MQ_openLeaderboard=openLb;
+  ["btn-leaderboard","btn-map-lb"].forEach(function(id){var b=document.getElementById(id);if(b)b.addEventListener("click",function(e){e.preventDefault();try{if(window.MQ_sfxClick)MQ_sfxClick();}catch(x){}openLb();});});
+})();
+</script>
 <div id="mq-credit" style="position:fixed;left:0;right:0;bottom:4px;text-align:center;font:600 12px/1.2 system-ui,sans-serif;color:rgba(255,255,255,.75);text-shadow:0 1px 2px rgba(0,0,0,.6);pointer-events:none;z-index:3;direction:ltr"></div>
 <script>
 (function(){var demo=/\/demo\//.test(location.pathname);
-var V="11.3";var el=document.getElementById("mq-credit");
+var V="11.4";var el=document.getElementById("mq-credit");
 var l1=document.createElement("div");l1.textContent="\u00A9 2026 Amir \u00B7 Englishia \u00B7 All rights reserved \u00B7 "+(demo?"Demo version "+V:"Version "+V);
 var l2=document.createElement("div");l2.dir="rtl";l2.textContent="\u00A9 2026 \u05D0\u05DE\u05D9\u05E8 \u00B7 \u05D0\u05D9\u05E0\u05D2\u05DC\u05D9\u05E9\u05D9\u05D4 \u00B7 \u05DB\u05DC \u05D4\u05D6\u05DB\u05D5\u05D9\u05D5\u05EA \u05E9\u05DE\u05D5\u05E8\u05D5\u05EA \u00B7 "+(demo?"\u05D2\u05E8\u05E1\u05EA \u05D3\u05DE\u05D5 "+V:"\u05D2\u05E8\u05E1\u05D4 "+V);
 el.appendChild(l1);el.appendChild(l2);})();
