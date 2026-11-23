@@ -67,7 +67,7 @@ export const DIFFS = {
   master: {
     label: "אלוף", scoreMul: 4, mul: 1.5, hearts: 3, timeMul: 0.72, timeAdd: 0, densMul: 1.4, spaceMul: 0.82, simMul: 1.8,
     options: 3, hints: false, reveal: false, boss: 2, lvlShift: 0.32, comboCap: 0.48, rate: 0.96, minAnswer: 2.0, tier: 5,
-    desc: "הכי מהיר, 2 לבבות, הזמן הקצר ביותר לענות, שאלות קשות ומכשולים צפופים, בלי רמזים. ניקוד ×4."
+    desc: "הכי מהיר, 3 לבבות, הזמן הקצר ביותר לענות, שאלות קשות ומכשולים צפופים, בלי רמזים. ניקוד ×4."
   }
 };
 /* Old 4-speed control — kept only to migrate saves into the 6 difficulty levels. */
@@ -96,7 +96,7 @@ export const normAge = (v) => (AGES.some((a) => a.key === v) ? v : "de");
 
 export const GFX_OPTS = [
   { v: "auto", label: "אוטומטי" },
-  { v: "low", label: "נמוכה (פיקסלים)" },
+  { v: "low", label: "חסכונית" },
   { v: "medium", label: "בינונית" },
   { v: "high", label: "גבוהה" }
 ];
@@ -110,6 +110,7 @@ export const DEFAULT_SETTINGS = () => ({
   voice: 1,
   hints: true,
   showAnswer: true,
+  fx: true,
   age: "de"
 });
 
@@ -130,6 +131,7 @@ export function normSettings(s) {
   o.voice = Math.max(0, Math.min(1, o.voice == null ? 1 : +o.voice));
   if (!QTYPES.some((q) => o.types[q.key])) o.types.en2he = true; // at least one type stays on
   o.age = normAge(o.age);
+  o.fx = o.fx !== false;
   return o;
 }
 export function enabledModes(set) {

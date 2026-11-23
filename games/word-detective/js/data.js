@@ -397,3 +397,5 @@ var IRREG = [
 
 return { POS: POS, POS4C: POS4C, POS4F: POS4F, POS8: POS8, SUF: SUF, TENSE: TENSE, TENSE_ORDER: TENSE_ORDER, PFX: PFX, SECTIONS: SECTIONS, EXAM: EXAM, IRREG: IRREG };
 })();
+/* v1.2: Arabic / Russian native language (shared Englishia setting). Hebrew originals stay in _he / _name for reports. */
+if (window.EnglishiaLang) EnglishiaLang.swapData(WD);

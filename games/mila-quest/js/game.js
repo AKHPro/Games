@@ -10,6 +10,9 @@ import { GFX, setGfxLevel, N } from "./gfx.js";
 import { mergeStatic } from "./merge.js";
 import { NEW_THEMES, buildWorld2Course, buildWorld2Ambience, world2Decor, world2Hazard } from "./worlds2.js";
 import { PROPS, stagePlan, stageSceneName, stageLook, stageDecorSpec, buildStageScatter, buildStageAtmos } from "./stages.js";
+import { UI_ICON, startEmojiSweep } from "./icons.js";
+import { FX, makeAura, updateAura, makeTrail, updateTrail, makeShield, getEnvMap, makeComposer } from "./fx.js";
+import { Wallet, initWallet, earn as walletEarn, flushEarn, useItem, initShop, openShop, closeShop, shopTab, itemById, CATALOG, coinSVG, equip as walletEquip } from "./shop.js";
 import { normSettings, difficultyFor, stageModes, worldMode, isListenMode, MODE_LABEL, MODE_DESC, QTYPES, DIFFS, GFX_OPTS, DEFAULT_SETTINGS, AGES, normAge } from "./settings.js";
 
 let GPU_INFO = "";
@@ -70,6 +73,7 @@ const progressFields = (s) => ({
   best: s.best || 0,
   runs: s.runs || 0,
   ach: Array.isArray(s.ach) ? s.ach.slice() : [],
+  champ: s.champ || {},
   age: (s.settings && s.settings.age) || "de"
 });
 const keepDevice = (s) => ({
@@ -169,7 +173,7 @@ function mqReport(word, ok) {
   const given = ok ? "" : (lanes ? String(run.opts[playerLaneNow()] == null ? "" : run.opts[playerLaneNow()]) : "אות לא נכונה");
   const expected = lanes && run.ans >= 0 ? String(run.opts[run.ans]) : word.en;
   const wn = WORLDS[run.world - 1];
-  A.recordAnswer("mila-quest", { item: word.en, prompt: word.he, topic: MQ_SKILL[m] || "אוצר מילים",
+  A.recordAnswer("mila-quest", { item: word.en, prompt: word._he || word.he, topic: MQ_SKILL[m] || "אוצר מילים",
     level: (wn ? wn.name : "עולם " + run.world) + " · " + (run.boss ? "בוס" : "שלב " + (run.st + 1)), correct: !!ok, given, expected });
 }
 function record(word, ok, hint, wrongHere) {
@@ -212,7 +216,7 @@ function showModal(html) {
   $("modal").classList.remove("hidden");
 }
 function hideModal() { $("modal").classList.add("hidden"); }
-function coinHtml(n) { return `<span class="ico-coin" aria-hidden="true"></span> ${n}`; }
+function coinHtml(n) { return `<span class="ico-coin" aria-hidden="true"></span> ${typeof n === "number" ? n.toLocaleString("he-IL") : n}`; }
 function formatPlayTime(sec) {
   sec = Math.max(0, Math.round(+sec || 0));
   const h = Math.floor(sec / 3600);
@@ -306,7 +310,14 @@ const canvas = $("c");
    AUTO   : picks a tier from the GPU name / CPU cores / memory, then drops a tier if the
             measured frame rate in the first seconds of a run is too low (remembered). */
 const TIERS = ["low", "medium", "high"];
-const LOW_PR = 0.3;
+/* v12: LOW is no longer pixelated. It renders at (near) native resolution with smooth scaling and saves
+   work elsewhere: no shadows, no bloom, fewer lights / particles / scenery, shorter draw distance. */
+function lowPixelRatio() {
+  const dpr = devicePixelRatio || 1;
+  // keep native on normal screens; only very large canvases are capped (~1.6 MP), always smooth (never < 0.75)
+  const cap = Math.sqrt(1600000 / Math.max(1, innerWidth * innerHeight));
+  return Math.max(0.75, Math.min(dpr, 1, cap));
+}
 let autoTier = null, autoReason = "";
 function detectTier() {
   const g = GPU_INFO.toLowerCase();
@@ -348,12 +359,14 @@ function applyQuality() {
   const t = tier();
   setGfxLevel(t);
   const dpr = devicePixelRatio || 1;
-  const pr = t === "high" ? Math.min(dpr, 1.5) : t === "medium" ? Math.min(dpr, 1) * 0.8 : LOW_PR;
+  const pr = t === "high" ? Math.min(dpr, 1.75) : t === "medium" ? Math.min(dpr, 1.25) : lowPixelRatio();
   renderer.setPixelRatio(pr);
   renderer.setSize(innerWidth, innerHeight);
-  canvas.style.imageRendering = t === "low" ? "pixelated" : "auto";
-  canvas.classList.toggle("pixelated", t === "low");
-  GFX.px.value = t === "low" ? 0.5 : pr;
+  canvas.style.imageRendering = "auto";
+  canvas.classList.remove("pixelated");
+  GFX.px.value = pr;
+  setupPost(t);
+  [runFx, mapFx].forEach((f) => { if (f) f.setScale(camera, innerHeight * pr); });
   const sh = t !== "low";
   const type = t === "high" ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
   const key = sh + ":" + type;
@@ -361,8 +374,28 @@ function applyQuality() {
   shadowState = key;
   renderer.shadowMap.enabled = sh;
   renderer.shadowMap.type = type;
+  if (lightsReady) [runLights.dir, mapLights.dir].forEach((d) => {
+    const ms = t === "high" ? 2048 : 1024;
+    if (d.shadow.mapSize.x !== ms) { d.shadow.mapSize.set(ms, ms); if (d.shadow.map) { d.shadow.map.dispose(); d.shadow.map = null; } }
+    d.shadow.bias = -0.0004; d.shadow.normalBias = 0.02;
+    if (t === "high") d.shadow.radius = 3;
+  });
   applyLightTier();
 }
+/* v12: bloom post-processing (HIGH only; weak PCs never pay for it) */
+let post = null;
+function setupPost(t) {
+  const want = t === "high" && S.settings.fx !== false && renderer.capabilities.isWebGL2;
+  if (!want) { if (post) { post.dispose(); post = null; } return; }
+  if (!post) post = makeComposer(renderer, innerWidth, innerHeight);
+  post.comp.setPixelRatio(renderer.getPixelRatio());
+  post.setSize(innerWidth, innerHeight);
+}
+function renderFrame(scene) {
+  if (post) post.render(scene, camera);
+  else renderer.render(scene, camera);
+}
+let runFx = null, mapFx = null;
 function applyLightTier() {
   if (!lightsReady) return;
   const t = tier();
@@ -376,10 +409,10 @@ function applyLightTier() {
   if (before !== [runLights.rim.visible, playerFill.visible, playerKey.visible].join()) markMaterialsDirty();
   if (run && run.layout) applyStageLook(WORLDS[run.world - 1]);
 }
+const camera = new THREE.PerspectiveCamera(52, innerWidth / innerHeight, 0.1, 520);
 applyQuality();
 renderer.setClearColor(0x62c8ff);
 
-const camera = new THREE.PerspectiveCamera(52, innerWidth / innerHeight, 0.1, 520);
 const mapScene = new THREE.Scene();
 const runScene = new THREE.Scene();
 mapScene.fog = new THREE.Fog(0x8ec8ff, 30, 125);
@@ -391,13 +424,13 @@ function addLights(scene, world) {
   const dir = new THREE.DirectionalLight(world ? world.sun : 0xfff1c2, 1.48);
   dir.position.set(10, 18, 8);
   dir.castShadow = true;
-  dir.shadow.mapSize.set(512, 512);
+  dir.shadow.mapSize.set(1024, 1024);
   dir.shadow.camera.near = 1;
-  dir.shadow.camera.far = 60;
-  dir.shadow.camera.left = -22;
-  dir.shadow.camera.right = 22;
-  dir.shadow.camera.top = 22;
-  dir.shadow.camera.bottom = -22;
+  dir.shadow.camera.far = 70;
+  dir.shadow.camera.left = -18;
+  dir.shadow.camera.right = 18;
+  dir.shadow.camera.top = 18;
+  dir.shadow.camera.bottom = -18;
   dir.name = "sun";
   const rim = new THREE.DirectionalLight(0xffe0b8, 1.08);
   rim.position.set(-10, 9, -8);
@@ -467,6 +500,9 @@ runScene.add(playerKey.target);
 runLights.fill = playerFill;
 runLights.key = playerKey;
 lightsReady = true;
+runFx = new FX(runScene);
+mapFx = new FX(mapScene);
+applyQuality();
 applyLightTier();
 
 /* v9: portrait + landscape on phones / tablets. The vertical FOV widens on narrow (portrait) screens so
@@ -729,7 +765,8 @@ function makeTextTexture(text, opt = {}) {
   ctx.strokeStyle = opt.bd || "#140818";
   ctx.lineWidth = 22; ctx.stroke();
   ctx.textAlign = "center"; ctx.textBaseline = "middle";
-  ctx.direction = /[\u0590-\u05FF]/.test(String(text)) ? "rtl" : "ltr";
+  if (window.EnglishiaLang && text != null) text = window.EnglishiaLang.t(String(text));
+  ctx.direction = /[\u0590-\u05FF\u0600-\u06FF]/.test(String(text)) ? "rtl" : "ltr";
   const raw = String(text || "");
   const maxW = w - 80;
   let font = opt.font || 168;
@@ -858,7 +895,7 @@ function makeSign(text, big = true) {
 }
 function makeGoldKey() {
   const g = new THREE.Group();
-  const gold = new THREE.MeshStandardMaterial({ color: 0xffc83d, metalness: 0.85, roughness: 0.22, emissive: 0xaa7700, emissiveIntensity: 0.4 });
+  const gold = new THREE.MeshStandardMaterial({ color: 0xffc83d, metalness: 0.9, roughness: 0.2, emissive: 0xaa7700, emissiveIntensity: 0.35, envMap: getEnvMap(renderer), envMapIntensity: 1.3 });
   const ring = new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.07, 8, 16), gold);
   const shaft = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.09, 0.58), gold);
   shaft.position.z = -0.4;
@@ -872,14 +909,15 @@ function makeGoldKey() {
 function makeLockMesh() {
   const g = new THREE.Group();
   g.name = "lock";
-  const iron = new THREE.MeshStandardMaterial({ color: 0x2a2438, metalness: 0.55, roughness: 0.35, emissive: 0x16101f, emissiveIntensity: 0.2 });
-  const gold = new THREE.MeshStandardMaterial({ color: 0xffc83d, metalness: 0.8, roughness: 0.25, emissive: 0xaa7700, emissiveIntensity: 0.45 });
-  const body = new THREE.Mesh(new THREE.BoxGeometry(1.15, 0.95, 0.42), iron);
+  const env = getEnvMap(renderer);
+  const iron = new THREE.MeshStandardMaterial({ color: 0x6a5aa8, metalness: 0.7, roughness: 0.28, emissive: 0x2a1a5a, emissiveIntensity: 0.35, envMap: env, envMapIntensity: 1.1 });
+  const gold = new THREE.MeshStandardMaterial({ color: 0xffc83d, metalness: 0.9, roughness: 0.22, emissive: 0xaa7700, emissiveIntensity: 0.35, envMap: env, envMapIntensity: 1.3 });
+  const body = new THREE.Mesh(roundedBoardGeo(1.15, 0.95, 0.42, 0.18), iron);
   body.position.y = 2.85;
   const shackle = new THREE.Mesh(new THREE.TorusGeometry(0.42, 0.12, 8, 16), gold);
   shackle.position.y = 3.55;
   const hole = new THREE.Mesh(new THREE.CircleGeometry(0.16, 12), new THREE.MeshBasicMaterial({ color: 0x110814 }));
-  hole.position.set(0, 2.75, 0.22);
+  hole.position.set(0, 2.75, 0.48);
   g.add(body, shackle, hole);
   g.position.set(0, 0.35, 1.85);
   return g;
@@ -1163,12 +1201,7 @@ function buildPath() {
   skirtMat = new THREE.MeshStandardMaterial({ color: 0x5a5348, roughness: 0.74, metalness: 0.06, flatShading: false, side: THREE.DoubleSide });
   railMat = new THREE.MeshStandardMaterial({ color: 0xc4a574, roughness: 0.45, metalness: 0.18, flatShading: false });
   valleyMat = new THREE.MeshStandardMaterial({ map: makeValleyTexture(), color: 0xe6d7b4, roughness: 0.94, metalness: 0, emissive: 0x6a5a3c, emissiveIntensity: 0.24, flatShading: false });
-  for (let i = 0; i < 56; i++) {
-    const m = new THREE.Mesh(new THREE.SphereGeometry(0.08, 6, 6), new THREE.MeshBasicMaterial({ color: 0xffc83d }));
-    m.visible = false;
-    runScene.add(m);
-    particles.push({ mesh: m, v: new THREE.Vector3(), life: 0, kind: "burst" });
-  }
+
 }
 
 function applyWorldTheme(world) {
@@ -1306,47 +1339,30 @@ function ensureRunAmbience() {
 }
 
 const CONFETTI = [0xffc83d, 0xff5b8a, 0x4ecdc4, 0x7cff6b, 0xfff1a8, 0x6a8cff, 0xffffff];
-function burst(pos, color) {
-  let used = 0;
-  for (const p of particles) {
-    if (p.life > 0) continue;
-    p.life = 1.15;
-    p.kind = "burst";
-    p.mesh.visible = true;
-    p.mesh.material.color.setHex(color || CONFETTI[used % CONFETTI.length]);
-    p.mesh.position.copy(pos);
-    p.v.set((Math.random() - 0.5) * 10, Math.random() * 10 + 3, (Math.random() - 0.5) * 10);
-    p.mesh.scale.setScalar(0.65 + Math.random() * 0.7);
-    if (++used >= 22) break;
-  }
+function fxStyle() {
+  const id = Wallet.equipped("fx");
+  const it = id && itemById(id);
+  return (it && it.style) || "confetti";
 }
+function burst(pos, color) {
+  const fx = appMode === "run" ? runFx : mapFx;
+  if (!fx) return;
+  if (color === 0x4ecdc4) fx.burst(pos, "ice");
+  else if (color === 0xffc83d) fx.burst(pos, "gold");
+  else fx.burst(pos, fxStyle());
+}
+/* v12: footstep dust (default) — the equipped trail / aura are drawn by updateCosmetics() */
+const _feet = new THREE.Vector3();
 function emitTrail(dt) {
   trailAcc += dt;
-  if (trailAcc < 0.07) return;
+  if (trailAcc < 0.14) return;
   trailAcc = 0;
-  if (!player || GFX.level === "low") return;
-  for (const p of particles) {
-    if (p.life > 0) continue;
-    p.life = 0.5;
-    p.kind = "trail";
-    p.mesh.visible = true;
-    p.mesh.material.color.setHex(Math.random() > 0.5 ? 0xfff2a0 : 0xffc83d);
-    p.mesh.position.copy(player.group.position);
-    p.mesh.position.x += (Math.random() - 0.5) * 0.3; p.mesh.position.y += 0.35 + Math.random() * 0.45; p.mesh.position.z += 0.4;
-    p.v.set((Math.random() - 0.5) * 0.5, 0.7, 1.4);
-    p.mesh.scale.setScalar(0.45);
-    break;
-  }
+  if (!player || !runFx || GFX.level === "low" || player.jumping || S.settings.fx === false) return;
+  player.group.getWorldPosition(_feet);
+  runFx.step(_feet.setY(_feet.y + 0.06), (run && run.layout && themeOf(run.world) === "jungle") ? 0xc8a878 : 0xd8d0c0);
 }
 function updateParticles(dt) {
-  for (const p of particles) {
-    if (p.life <= 0) continue;
-    p.life -= dt * (p.kind === "trail" ? 2.4 : 1.45);
-    if (p.kind !== "trail") p.v.y -= 12 * dt;
-    p.mesh.position.addScaledVector(p.v, dt);
-    p.mesh.visible = p.life > 0;
-    if (p.life <= 0) p.mesh.scale.setScalar(1);
-  }
+  if (runFx) runFx.update(dt, camera, player && player.group.position);
 }
 
 function recycleZ(obj, far = 16) {
@@ -1530,6 +1546,9 @@ async function ensureWorldAssets(world) {
   for (const f of files) {
     try { await loadGLTF(MP(f)); } catch (e) { console.warn(e); }
   }
+  for (const f of realAnimalFiles(world.id)) {
+    try { await loadGLTF(f); } catch (e) { console.warn("animal model", f, e); }
+  }
 }
 
 function placeDecor(d) {
@@ -1699,12 +1718,40 @@ function updateTrackBar() {
   if (!bar) return;
   if (!run || !player || appMode !== "run") { bar.classList.add("hidden"); return; }
   bar.classList.remove("hidden");
-  const end = run.finishS || finishAt();
-  const p = Math.max(0, Math.min(1, (player.s || 0) / end));
-  bar.style.setProperty("--p", (p * 100).toFixed(2) + "%");
+  const target = trackProgress();
+  // smooth: ease toward the target (never backwards, except when a missed word is re-queued)
+  const prev = run.barP == null ? target : run.barP;
+  const nowT = performance.now();
+  const dt = Math.min(0.1, ((nowT - (run.barT || nowT)) / 1000) || 0.016);
+  run.barT = nowT;
+  const p = run.barDone ? 1 : prev + (target - prev) * Math.min(1, dt * 6);
+  run.barP = p;
+  bar.style.setProperty("--p", p.toFixed(4));
   bar.setAttribute("aria-valuenow", String(Math.round(p * 100)));
   const boss = $("track-bar-boss");
   if (boss) boss.classList.toggle("hidden", !run.boss);
+}
+/* v12 fix: the bar used distance / whole course length, but a stage ends when the questions are done
+   (the course is built much longer), so at 3/10 the marker was still near the start. Now:
+   progress = (answered + way to the next gate) / questions — the same numbers as the "3/10" counter.
+   Boss: hits / boss HP. Spelling: letters collected count as part of the word. */
+function trackProgress() {
+  if (!run) return 0;
+  if (run.barDone) return 1;
+  if (run.boss) return Math.max(0, Math.min(1, (run.bossMax - run.bossHP) / Math.max(1, run.bossMax)));
+  const n = Math.max(1, run.queue.length);
+  let frac = 0;
+  if (run.activeMode === "build" && run.spell && run.spell.rest && run.spell.rest.length) {
+    frac = Math.min(0.95, run.spell.idx / run.spell.rest.length);
+  } else if (player) {
+    let g = null;
+    for (const x of gates) if (!x.resolved && x.s != null && (!g || x.s < g.s)) g = x;
+    if (g) {
+      if (run.qGate !== g) { run.qGate = g; run.qFrom = Math.min(player.s || 0, g.s - 1); }
+      frac = Math.max(0, Math.min(0.95, ((player.s || 0) - run.qFrom) / Math.max(1, g.s - run.qFrom)));
+    }
+  }
+  return Math.max(0, Math.min(1, (Math.min(run.i, n) + frac) / n));
 }
 function updateFinishCue() {
   const el = $("finish-cue");
@@ -1922,12 +1969,18 @@ function setPrompt(sub, q, emoji) {
 function updateHud() {
   document.body.classList.toggle("mq-run", appMode === "run");
   if (!run) return;
-  $("hud-hearts").textContent = "❤️".repeat(run.hearts) + "🖤".repeat(Math.max(0, (run.maxHearts || 3) - run.hearts));
-  $("hud-score").textContent = "⭐ " + run.score;
-  $("hud-combo").textContent = "🔥 " + run.combo;
-  $("hud-coins").innerHTML = coinHtml(S.coins);
+  $("hud-hearts").innerHTML = UI_ICON.heart.repeat(run.hearts) + UI_ICON.heartOff.repeat(Math.max(0, (run.maxHearts || 3) - run.hearts)) + (run.shield ? UI_ICON.shield : "");
+  $("hud-score").innerHTML = UI_ICON.star + " " + run.score;
+  $("hud-combo").innerHTML = UI_ICON.flame + " " + run.combo;
+  $("hud-coins").innerHTML = coinHtml(Wallet.balance());
+  const mh = $("btn-magic");
+  if (mh) {
+    const n = Wallet.count("mq.cons.hint");
+    mh.classList.toggle("hidden", !n || run.activeMode === "build");
+    mh.innerHTML = `${UI_ICON.wand} רמז קסם <b>${n}</b>`;
+  }
   updateTrackBar();
-  if (run.boss) $("hud-prog").textContent = BOSSES[run.world - 1].name + " " + "❤️".repeat(run.bossHP) + "🖤".repeat(Math.max(0, run.bossMax - run.bossHP));
+  if (run.boss) $("hud-prog").innerHTML = esc(BOSSES[run.world - 1].name) + " " + UI_ICON.heart.repeat(run.bossHP) + UI_ICON.heartOff.repeat(Math.max(0, run.bossMax - run.bossHP));
   else $("hud-prog").textContent = `${Math.min(run.i + 1, run.queue.length)}/${run.queue.length}`;
 }
 
@@ -1955,6 +2008,30 @@ function pairDistractors(pair, k, sim) {
   }
   return [...out];
 }
+/* v12.1: on the "very easy" and "easy" levels every English prompt (and English answer options) is read aloud.
+   A speaker button replays it. Hidden when the browser has no speech; never blocks the game. */
+const isEasyDiff = (D) => !!D && (D.level === "veryeasy" || D.level === "easy");
+function easyReadAloud(D, mode, text, opts) {
+  const old = $("btn-say"); if (old) old.remove();
+  if (!isEasyDiff(D) || isListenMode(mode) || !window.speechSynthesis || !window.SpeechSynthesisUtterance) return;
+  let t = "";
+  if (mode === "tr" || mode === "picw") t = (opts || []).filter((o) => /[A-Za-z]/.test(o) && !/[\u0590-\u06FF\u0400-\u04FF]/.test(o)).join(". ");
+  else t = text || "";
+  if (!t) return;
+  run.easySay = t;
+  const rate = Math.min(0.85, (D && D.rate) || 0.8);
+  const w = run.cur;
+  setTimeout(() => { if (run && run.cur === w && !paused) say(t, rate); }, 250);
+  const host = $("prompt");
+  if (!host) return;
+  const b = document.createElement("button");
+  b.type = "button"; b.id = "btn-say"; b.className = "btn s say-btn";
+  b.setAttribute("aria-label", "הקראה באנגלית"); b.title = "הקראה באנגלית";
+  b.innerHTML = UI_ICON.speaker;
+  b.onclick = (e) => { e.stopPropagation(); say(run && run.easySay || t, rate, true); };
+  ["pointerdown", "touchstart", "mousedown"].forEach((ev) => b.addEventListener(ev, (e) => e.stopPropagation()));
+  host.appendChild(b);
+}
 function setupQuestion() {
   if (!run || run.i >= run.queue.length) return;
   clearLetters();
@@ -1974,6 +2051,7 @@ function setupQuestion() {
     setLaneOpts(null);
     setPrompt("אספו את האותיות לפי הסדר", w.he, w.pic);
     spawnLetterWord(w);
+    easyReadAloud(D, mode, run.speakText, null);
     return;
   }
   let opts, sub, q, emoji = "", answer, extraT = 0;
@@ -2045,6 +2123,7 @@ function setupQuestion() {
   run.opts = opts; run.ans = ans;
   setLaneOpts(opts);
   setPrompt(sub, q, emoji);
+  easyReadAloud(D, mode, run.speakText, opts);
   const rb = $("btn-replay");
   if (rb) rb.onclick = (e) => { e.stopPropagation(); sayCurrent(false, true); };
   // v9: the gate distance comes from the answer time (seconds) x the current base speed
@@ -2129,15 +2208,61 @@ function letterObstacleOK(s) {
   return Math.random() < D.letterObs;                         // later worlds: a few, only between rows
 }
 
+/* v12.1: coins stand upright (facing the runner), spin slowly on the vertical axis, bob, and glow.
+   Air coins: an arc of 3-5 coins over a jumpable obstacle, collected only while jumping. */
+function coinGlowTex() {
+  if (coinGlowTex._t) return coinGlowTex._t;
+  const c = document.createElement("canvas"); c.width = c.height = 64;
+  const g = c.getContext("2d"), gr = g.createRadialGradient(32, 32, 2, 32, 32, 32);
+  gr.addColorStop(0, "rgba(255,230,140,0.9)"); gr.addColorStop(0.45, "rgba(255,200,60,0.35)"); gr.addColorStop(1, "rgba(255,190,40,0)");
+  g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
+  coinGlowTex._t = new THREE.CanvasTexture(c); coinGlowTex._t.colorSpace = THREE.SRGBColorSpace;
+  return coinGlowTex._t;
+}
+function makeCoin() {
+  const holder = new THREE.Group();
+  let spin;
+  if (run.coinProto) { spin = run.coinProto.clone(true); }
+  else {
+    spin = new THREE.Group();
+    const disc = new THREE.Mesh(new THREE.CylinderGeometry(0.21, 0.21, 0.06, 16), new THREE.MeshStandardMaterial({ color: 0xffd24a, metalness: 0.6, roughness: 0.3, emissive: 0x6a4200, emissiveIntensity: 0.3 }));
+    disc.rotation.x = Math.PI / 2; disc.position.y = 0.21; spin.add(disc);
+  }
+  spin.name = "coinSpin";
+  holder.add(spin);
+  if (GFX.level !== "low") {
+    const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: coinGlowTex(), color: 0xffd76a, transparent: true, opacity: 0.55, depthWrite: false, blending: THREE.AdditiveBlending }));
+    glow.scale.set(0.8, 0.8, 1); glow.position.y = 0.21; glow.name = "coinGlow";
+    holder.add(glow);
+  }
+  return { holder, spin };
+}
+function addCoinAt(s, lane, h, air) {
+  const { holder, spin } = makeCoin();
+  placeOnCourse(holder, s, lane);
+  holder.rotation.x = 0;                       // stay vertical even on slopes
+  const baseY = holder.position.y + h;
+  holder.position.y = baseY;
+  spin.rotation.y = Math.random() * Math.PI;
+  runScene.add(holder);
+  coins.push({ mesh: holder, spin, taken: false, s, lane, air: !!air, h, baseY, ph: Math.random() * 6.28 });
+}
 function spawnCoinRow(s) {
   if (run && run.activeMode === "build" && run.spell && run.spell.rows && run.spell.rows.some((r) => r != null && Math.abs(r - s) < 3)) return;
+  if (obstacles.some((o) => !o.hit && Math.abs((o.s || 0) - s) < 1.6)) return;
   const lane = Math.floor(Math.random() * 3);
-  const mesh = run.coinProto ? run.coinProto.clone(true) : new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 0.06, 12), new THREE.MeshStandardMaterial({ color: 0xffd24a, metalness: 0.6, roughness: 0.3 }));
-  placeOnCourse(mesh, s, lane);
-  mesh.position.y += 0.7;
-  mesh.rotation.x = Math.PI / 2;
-  runScene.add(mesh);
-  coins.push({ mesh, taken: false, s, lane });
+  addCoinAt(s, lane, 0.5, false);
+}
+const AIR_COIN_TYPES = ["low", "hole", "roll", "wall", "animal"];
+function spawnAirArc(s, lane) {
+  const n = 3 + Math.floor(Math.random() * 3);           // 3-5 coins
+  const spd = (run && run.layout && run.layout.speed) || 8;
+  const span = Math.max(0.9, Math.min(1.4, spd * 0.16));   // the arc always fits inside one jump at the current speed
+  for (let i = 0; i < n; i++) {
+    const d = (i - (n - 1) / 2) * span;
+    const k = d / ((n - 1) / 2 * span + 0.8);
+    addCoinAt(s + d, lane, 1.75 + 0.75 * (1 - k * k), true);  // 1.9 at the ends, 2.5 over the obstacle (jump peak is 3.0)
+  }
 }
 function cautionTex() {
   if (cautionTex._t) return cautionTex._t;
@@ -2196,24 +2321,84 @@ function hazardMark(kind) {
   return g;
 }
 
-const ANIMAL_BY_WORLD = {
-  1: ["snake", "monkey"],
-  2: ["crab", "seagull"],
-  3: ["bat", "cat"],
-  4: ["alien", "blob"],
-  5: ["penguin", "seal"],
-  6: ["scorpion", "snake"],
-  7: ["fish", "jellyfish"],
-  8: ["dino", "lizard"]
+/* v12: realistic animated animals (CC0 models by Quaternius). Procedural ones stay as the fallback
+   (model not loaded yet / failed) and for fantasy creatures (aliens, crabs, seagulls, penguins …). */
+const REAL_ANIMALS = {
+  fox: { file: "animals/fox.glb", h: 0.72, w: 1.25, clip: /gallop$/i, speed: 1.0, fb: "cat" },
+  deer: { file: "animals/deer.glb", h: 1.05, w: 1.35, clip: /gallop$/i, speed: 0.95, fb: "monkey" },
+  shiba: { file: "animals/shibainu.glb", h: 0.68, w: 1.15, clip: /gallop$/i, speed: 1.05, fb: "cat" },
+  husky: { file: "animals/husky.glb", h: 0.8, w: 1.3, clip: /gallop$/i, speed: 1.0, fb: "seal" },
+  wolf: { file: "animals/wolf.glb", h: 0.85, w: 1.35, clip: /gallop$/i, speed: 1.0, fb: "seal" },
+  alpaca: { file: "animals/alpaca.glb", h: 1.05, w: 1.2, clip: /walk$/i, speed: 1.5, fb: "snake" },
+  donkey: { file: "animals/donkey.glb", h: 1.0, w: 1.35, clip: /walk$/i, speed: 1.5, fb: "snake" },
+  clownfish: { file: "animals/clownfish.glb", h: 0.5, w: 0.95, clip: /swimming_normal$/i, speed: 1.4, fb: "fish", swim: 1 },
+  puffer: { file: "animals/puffer.glb", h: 0.6, w: 0.9, clip: /swimming_normal$/i, speed: 1.3, fb: "fish", swim: 1 },
+  shark: { file: "animals/shark.glb", h: 0.6, w: 1.6, clip: /swimming_fast$/i, speed: 1.0, fb: "fish", swim: 1 },
+  trex: { file: "animals/trex.glb", h: 1.5, w: 1.9, clip: /_run$/i, speed: 0.9, fb: "dino" },
+  triceratops: { file: "animals/triceratops.glb", h: 0.95, w: 1.5, clip: /_walk$/i, speed: 1.6, fb: "dino" },
+  raptor: { file: "animals/velociraptor.glb", h: 0.9, w: 1.4, clip: /_run$/i, speed: 1.0, fb: "lizard" },
+  stego: { file: "animals/stegosaurus.glb", h: 0.95, w: 1.55, clip: /_walk$/i, speed: 1.6, fb: "dino" }
 };
+const ANIMAL_BY_WORLD = {
+  1: ["fox", "deer", "monkey"],
+  2: ["crab", "seagull"],
+  3: ["shiba", "cat"],
+  4: ["alien", "blob"],
+  5: ["husky", "wolf", "penguin"],
+  6: ["alpaca", "donkey", "scorpion"],
+  7: ["clownfish", "puffer", "shark", "jellyfish"],
+  8: ["trex", "triceratops", "raptor", "stego"]
+};
+function realAnimalFiles(wid) {
+  return (ANIMAL_BY_WORLD[wid] || []).filter((k) => REAL_ANIMALS[k]).map((k) => MP(REAL_ANIMALS[k].file));
+}
+function buildRealAnimal(kind) {
+  const R = REAL_ANIMALS[kind];
+  const gltf = R && gltfCache.get(MP(R.file));
+  if (!gltf) return null;
+  const model = SkeletonUtils.clone(gltf.scene);
+  model.traverse((o) => {
+    if (!o.isMesh) return;
+    o.castShadow = GFX.level !== "low";
+    o.receiveShadow = false;
+    o.frustumCulled = false;
+    [].concat(o.material || []).forEach((m) => {
+      if (!m || m.userData.mqFixed) return;
+      m.userData.mqFixed = true;
+      m.roughness = Math.max(m.roughness != null ? m.roughness : 0.6, 0.62);
+      m.metalness = Math.min(m.metalness || 0, 0.04);
+    });
+  });
+  // pose the rig with its clip BEFORE measuring: some rigs (the dinosaurs) animate the armature scale,
+  // so a rest-pose bounding box is far off and the animal would be normalized to a speck
+  const mixer = new THREE.AnimationMixer(model);
+  const clip = gltf.animations.find((a) => R.clip.test(a.name)) || gltf.animations[0];
+  if (clip) { const a = mixer.clipAction(clip); a.timeScale = R.speed || 1; a.play(); a.time = Math.random() * clip.duration; mixer.update(0); }
+  model.traverse((o) => { if (o.isSkinnedMesh) o.boundingBox = null; });
+  normalize(model, R.h, R.w);
+  model.traverse((o) => { if (o.isSkinnedMesh) o.boundingBox = null; });
+  const inner = new THREE.Group();
+  inner.add(model);
+  const g = new THREE.Group();
+  g.name = "animal-" + kind;
+  g.add(inner);
+  g.userData = { gltf: true, mixer, real: R, inner };
+  return g;
+}
 function pickAnimalKind(wid) {
   const list = ANIMAL_BY_WORLD[wid] || ANIMAL_BY_WORLD[1];
   return list[Math.floor(Math.random() * list.length)];
 }
 function animalMove(kind) {
+  if (REAL_ANIMALS[kind]) return (kind === "shark" || kind === "fox" || kind === "wolf" || kind === "raptor" || kind === "shiba") ? "sidestep" : "run";
   return (kind === "snake" || kind === "crab" || kind === "scorpion" || kind === "lizard" || kind === "seal") ? "sidestep" : "hop";
 }
 function buildAnimal(kind) {
+  if (REAL_ANIMALS[kind]) {
+    const real = buildRealAnimal(kind);
+    if (real) return real;
+    kind = REAL_ANIMALS[kind].fb;
+  }
   const g = new THREE.Group();
   g.name = "animal-" + kind;
   const segs = isHigh() ? 8 : 5;
@@ -2367,6 +2552,22 @@ function animateAnimal(o, dt) {
     o.s -= approach * dt;
   }
   placeOnCourse(o.mesh, o.s, o.lane);
+  if (o.mesh.userData.real) {
+    // natural motion: the model's own gallop / swim animation, running toward the player;
+    // side-steppers trot across the lanes and turn their head the way they go.
+    const U = o.mesh.userData, R = U.real;
+    U.mixer.update(dt);
+    let yaw = 0;
+    if (o.move === "sidestep") {
+      const sway = Math.sin(t * 1.6) * 0.95;
+      const v = Math.cos(t * 1.6);
+      if (run && run.course) o.mesh.position.addScaledVector(trackFrameAt(o.s).right, sway);
+      yaw = Math.atan2(v * 1.5, 1.6);
+    }
+    U.inner.rotation.y = Math.PI + yaw;
+    if (R.swim) o.mesh.position.y += 0.35 + Math.sin(t * 2.2) * 0.12;
+    return;
+  }
   const hop = o.move === "hop";
   if (hop) {
     const phase = Math.sin(t * 6.4);
@@ -2434,12 +2635,13 @@ function hitObstacle(o) {
   shakeT = 0.22;
   sfx.bad();
   playAnim(player, "fall", 0.08, true);
-  run.hearts--;
+  if (runFx && o.mesh) runFx.puff(o.mesh.position.clone().add(new THREE.Vector3(0, 0.4, 0)), 0xffffff);
+  const lost = takeHit();
   run.wrong++;
   run.combo = 0;
-  flashHearts();
+  if (lost) flashHearts();
   updateHud();
-  if (run.hearts <= 0) finishLevel(false);
+  if (run.hearts <= 0) outOfHearts(null);
 }
 
 function spawnEarlyAnimal() {
@@ -2481,6 +2683,12 @@ function spawnObstacle(s) {
     runScene.add(mesh);
     obstacles.push({ mesh, lane, type, hit: false, spin: type === "roll" ? 4 : 0, s, kind, move, t: Math.random() * 4 });
   });
+  // v12.1: an arc of coins over the obstacle - jump over it to collect them
+  if (type !== "animal" && AIR_COIN_TYPES.includes(type) && !(run && run.activeMode === "build") && Math.random() < 0.6) {
+    const lane = blocked[0];
+    for (const c of coins) if (!c.taken && !c.air && c.lane === lane && Math.abs(c.s - s) < 3.5) { c.taken = true; runScene.remove(c.mesh); }
+    spawnAirArc(s, lane);
+  }
 }
 
 function nextAfterResolve() {
@@ -2496,19 +2704,70 @@ function nextAfterResolve() {
   setupQuestion(); updateHud();
 }
 
+/* v12: every coin also goes to the shop wallet (Englishia-wide currency) */
+function addCoins(n) {
+  S.coins += n;
+  if (run) run.coins += n;
+  walletEarn(n);
+}
+/* v12 power-ups: super-run shield takes the first hit; the lifeline is offered when the hearts run out */
+function takeHit() {
+  if (run.shield) {
+    run.shield = false;
+    if (runFx && player) runFx.shieldPop(player.group.position.clone().add(new THREE.Vector3(0, 0.9, 0)));
+    $("prompt-sub").textContent = "המגן של סופר ריצה הציל אתכם! הלב נשאר.";
+    updateHud();
+    return false;
+  }
+  run.hearts = Math.max(0, run.hearts - 1);
+  return true;
+}
+function outOfHearts(cont) {
+  const n = Wallet.count("mq.cons.life");
+  if (!n || run.lifeUsed) { finishLevel(false); return; }
+  paused = true;
+  showModal(`<h2>${UI_ICON.life} נגמרו הלבבות</h2><p>להשתמש ב<b>גלגל הצלה</b> ולהמשיך עם 2 לבבות?</p><p class="set-note">יש לכם ${n}</p>
+    <div class="row"><button class="btn g" id="life-yes">כן, ממשיכים!</button><button class="btn" id="life-no">לא, לסיים את השלב</button></div>`);
+  $("life-yes").onclick = async () => {
+    hideModal();
+    await useItem("mq.cons.life", 1);
+    run.lifeUsed = true; run.hearts = 2; run.iFrames = 1.6; run.stumbleT = 0;
+    if (runFx && player) runFx.burst(player.group.position.clone().add(new THREE.Vector3(0, 1.2, 0)), "love");
+    sfx.good(); updateHud(); paused = false;
+    if (cont) cont();
+  };
+  $("life-no").onclick = () => { hideModal(); finishLevel(false); };
+}
+function useMagicHint() {
+  if (!run || paused || !Wallet.count("mq.cons.hint")) return;
+  if (run.activeMode === "build" || run.activeMode === "wait") return;
+  let g = null;
+  for (const x of gates) if (!x.resolved && x.s != null && x.s > (player.s || 0) && (!g || x.s < g.s)) g = x;
+  if (!g || g.magic) return;
+  const opts = [0, 1, 2].filter((i) => i !== g.ans && $("lane-opt-" + i) && !$("lane-opt-" + i).classList.contains("closed"));
+  if (!opts.length) return;
+  const k = opts[Math.floor(Math.random() * opts.length)];
+  g.magic = true;
+  useItem("mq.cons.hint", 1);
+  const el = $("lane-opt-" + k);
+  el.textContent = CLOSED; el.classList.add("closed");
+  g.group.children.forEach((c) => { if (c.name === "laneSign" && c.userData.lane === k) c.visible = false; });
+  if (runFx) { const p = new THREE.Vector3(); g.group.getWorldPosition(p); runFx.burst(p.add(new THREE.Vector3(0, 2.3, 0)), "electric"); }
+  sfx.good();
+  updateHud();
+}
 function onCorrect() {
   const w = run.cur;
   const p = Math.round(PTS[Math.min(run.hint, 3)] * (run.wrongHere ? 0.5 : 1) * scoreMul());
   run.score += p; run.combo++;
   const c = Math.max(1, Math.round(p / 20) + Math.min(3, run.combo >> 1));
-  S.coins += c; run.coins += c;
+  addCoins(c);
   if (!run.hint && !run.wrongHere) run.firstTry++;
   if (run.boss) run.bossHP = Math.max(0, run.bossHP - 1);
   record(w, true, run.hint, run.wrongHere);
   sfx.good();
-  const bp = player.group.position.clone().add(new THREE.Vector3(0, 1.35, -1));
-  burst(bp);
-  burst(bp.clone().add(new THREE.Vector3(0.4, 0.3, 0)));
+  const bp = player.group.position.clone().add(new THREE.Vector3(0, 1.45, 0));
+  if (runFx) runFx.burst(bp, fxStyle());
   popEl("prompt");
   popEl("hud-combo");
   if (!isListenMode(run.activeMode)) say(run.speakText || speakText(w) || w.en);
@@ -2516,7 +2775,8 @@ function onCorrect() {
 }
 function onWrong() {
   const w = run.cur;
-  run.wrong++; run.wrongHere = true; run.combo = 0; run.hearts = Math.max(0, run.hearts - 1);
+  run.wrong++; run.wrongHere = true; run.combo = 0;
+  takeHit();
   record(w, false, run.hint, true);
   sfx.bad(); shakeT = 0.28;
   playAnim(player, "fall", 0.08, true);
@@ -2533,10 +2793,11 @@ function onWrong() {
     setPrompt("לא הפעם", "המילה תחזור שוב בהמשך", "💪");
   }
   updateHud();
-  if (run.hearts <= 0) return finishLevel(false);
   // requeue word and continue shortly
   run.queue.splice(Math.min(run.i + 3, run.queue.length), 0, w);
-  setTimeout(() => { if (run && !paused) { run.i++; setupQuestion(); updateHud(); } }, 900);
+  const next = () => setTimeout(() => { if (run && !paused) { run.i++; setupQuestion(); updateHud(); } }, 900);
+  if (run.hearts <= 0) return outOfHearts(next);
+  next();
 }
 
 function resolveGate(g) {
@@ -2550,14 +2811,17 @@ function showEndScreen(ok, st, title, nx) {
   showUI("s-end");
   $("s-end").innerHTML = `<div class="glass pop" style="padding:22px;max-width:640px">
     <h2>${title}</h2>
-    <div style="font-size:48px">${"⭐".repeat(st)}${"☆".repeat(3 - st)}</div>
+    <div class="end-stars">${UI_ICON.bigStar.repeat(st)}${UI_ICON.bigStarOff.repeat(3 - st)}</div>
     <p>ניקוד: <b>${run.score}</b> <span class="score-mul">×${scoreMul()} (${esc((DIFFS[(run.layout && run.layout.diff && run.layout.diff.level)] || DIFFS.normal).label)})</span> · ${coinHtml("+" + run.coins)} · נכון בניסיון ראשון: ${run.firstTry}/${run.queue.length}</p>
-    ${ok && run.boss && run.bossHP <= 0 && run.world < WORLDS.length ? "<p>🔑 קיבלתם מפתח זהב! העולם הבא נפתח.</p>" : ""}
+    ${ok && run.boss && run.bossHP <= 0 && run.world < WORLDS.length ? `<p>${UI_ICON.key} קיבלתם מפתח זהב! העולם הבא נפתח.</p>` : ""}
     <div class="row end-actions">${nx}
       <button class="btn" id="again">שוב</button>
       <button class="btn" id="to-map">למפה</button>
     </div>
+    <p class="end-wallet">יש לכם ${coinHtml(Wallet.balance())} מטבעות <button class="btn s mq-shop-btn" id="end-shop">${UI_ICON.shop} לחנות</button></p>
   </div>`;
+  const es = $("end-shop");
+  if (es) es.onclick = () => { goTitle(); openShopUI(); };
   // v11.3: a stage opened with the DEVELOPER jump may still be locked for this profile, so
   // "שוב" / "next" keep the jump's lock bypass (owner only, re-checked in startLevel).
   // If a stage still can't start, go to the map instead of doing nothing.
@@ -2590,6 +2854,8 @@ function recordRunSession() {
 }
 function finishLevel(ok) {
   paused = true;
+  if (ok && run) { run.barDone = true; updateTrackBar(); }
+  try { flushEarn(); } catch (e) {}
   recordRunSession();
   if (player) playAnim(player, ok ? "emote-yes" : "idle");
   const acc = run.queue.length ? run.firstTry / Math.max(1, run.queue.length) : 0;
@@ -2607,7 +2873,7 @@ function finishLevel(ok) {
     if (run.world < WORLDS.length) pendingUnlock = run.world;
     startKeyReward();
     appMode = "run";
-  } else {
+  } else if (!ok) {
     appMode = "map";
   }
   if (stDone(1, BOSS_ST)) grantAch("world1");
@@ -2626,11 +2892,50 @@ function finishLevel(ok) {
     if (run.st < BOSS_ST) nx = `<button class="btn g" id="nx">לשלב הבא ▶</button>`;
     else if (WORLDS[run.world]) nx = `<button class="btn g" id="nx">לעולם הבא ▶</button>`;
   }
+  if (ok && runFx && player) runFx.burst(player.group.position.clone().add(new THREE.Vector3(0, 1.6, 0)), "fireworks");
+  const champ = bossWin && run.world === WORLDS.length && !run.lost;
   if (bossWin) {
-    setTimeout(() => showEndScreen(ok, st, title, nx), 1600);
+    setTimeout(() => { showEndScreen(ok, st, title, nx); if (champ) setTimeout(showCampaignDone, 900); }, 1600);
+  } else if (ok) {
+    // v12: let the bar marker glide into the finish flag before the result card
+    setTimeout(() => { if (appMode === "run" && paused) appMode = "map"; showEndScreen(ok, st, title, nx); }, 750);
   } else {
     showEndScreen(ok, st, title, nx);
   }
+}
+
+/* v12.1: last boss of the last world -> congratulations + offer the next harder difficulty.
+   Accept: new difficulty, fresh stage progress from world 1 stage 1. Coins, shop items, wallet, best score,
+   notebook, achievements and leaderboard history are kept. Decline: nothing changes. */
+function nextDiffKey(k) { const ks = Object.keys(DIFFS); const i = ks.indexOf(k); return i >= 0 && i < ks.length - 1 ? ks[i + 1] : null; }
+function showCampaignDone() {
+  const cur = (S.settings && S.settings.difficulty in DIFFS) ? S.settings.difficulty : "normal";
+  const nk = nextDiffKey(cur);
+  S.champ = S.champ || {}; S.champ[cur] = (S.champ[cur] || 0) + 1; save();
+  grantAch("worlds5");
+  const C = DIFFS[cur], Nx = nk && DIFFS[nk];
+  showModal(`<div class="camp-done" id="camp-done">
+    <div class="camp-ico">${UI_ICON.trophy}</div>
+    <h2>כל הכבוד! סיימתם את כל העולמות</h2>
+    <p>ניצחתם את כל הבוסים ברמת <b>${esc(C.label)}</b>.</p>
+    ${Nx ? `<p>רוצים אתגר? אפשר לעבור לרמה <b>${esc(Nx.label)}</b> <span class="seg-mul" dir="ltr" style="display:inline">×${Nx.scoreMul} <span>ניקוד</span></span> ולהתחיל מחדש מעולם 1, שלב 1.</p>
+    <p class="camp-keep">המטבעות, הפריטים מהחנות, הניקוד והשיאים נשארים.</p>
+    <div class="row end-actions"><button class="btn g" id="camp-yes">${UI_ICON.arrowR} כן, לרמה הבאה</button><button class="btn" id="camp-no">לא, תודה</button></div>`
+    : `<p>זו הרמה הכי קשה במשחק. אתם אלופים!</p>
+    <div class="row end-actions"><button class="btn g" id="camp-replay">${UI_ICON.repeat} לשחק שוב מההתחלה</button><button class="btn" id="camp-no">סגירה</button></div>`}
+  </div>`);
+  const close = () => hideModal();
+  const no = $("camp-no"); if (no) no.onclick = close;
+  const restart = (diffKey) => {
+    if (diffKey) S.settings = normSettings(Object.assign({}, S.settings, { difficulty: diffKey }));
+    S.prog = {}; S.stars = 0;
+    save();
+    hideModal();
+    try { if (window.EnglishiaAuth && EnglishiaAuth.user) EnglishiaAuth.logEvent("campaign_restart", GAME_ID, diffKey || cur); } catch (e) {}
+    Promise.resolve(startLevel(1, 0)).then((r) => { if (r === false) goMapMode(); }).catch(() => goMapMode());
+  };
+  const y = $("camp-yes"); if (y) y.onclick = () => restart(nk);
+  const rp = $("camp-replay"); if (rp) rp.onclick = () => restart(null);
 }
 
 /* some GLBs ship zero-length normals -> NaN lighting -> pure black silhouettes; recompute those */
@@ -2703,7 +3008,7 @@ async function startLevel(wid, st, lost, opt) {
     world: wid, st, lost, dev: !!bypass, mode, qmode: mode, modes, boss, queue, i: 0, score: 0, coins: 0,
     hint: 0, wrong: 0, firstTry: 0, hearts: D.hearts, maxHearts: D.hearts, combo: 0, stumbleT: 0, iFrames: 0,
     bossHP: boss ? D.bossHP : 0, bossMax: boss ? D.bossHP : 0, nextCoinS: 8, nextObsS: 18, glanceT: 0, forceGlance: false,
-    layout, playSec: 0, recorded: false
+    layout, playSec: 0, recorded: false, shield: false, lifeUsed: false, barP: 0
   };
   fpsMon.runStart = performance.now();
   // v8: course long enough for the stage (letter rows are now far apart)
@@ -2776,6 +3081,16 @@ async function startLevel(wid, st, lost, opt) {
   spawnFinishGate();
   spawnEarlyAnimal();
   run.coinProto = await createProp(MP("platformer/coin-gold.glb"), 0.42);
+  {
+    const env = getEnvMap(renderer);
+    run.coinProto.traverse((o) => { if (o.isMesh) { o.material = new THREE.MeshStandardMaterial({ color: 0xffcc33, metalness: 0.95, roughness: 0.22, envMap: env, envMapIntensity: 1.4, emissive: 0x6a4200, emissiveIntensity: 0.35 }); o.castShadow = GFX.level !== "low"; } });
+  }
+  if (runFx) {
+    runFx.clear();
+    const AMB = { 1: ["pollen", 0xfff4c0], 2: ["pollen", 0xffffff], 3: ["pollen", 0xffb8f0], 4: ["pollen", 0xb8c8ff], 5: ["snow", 0xffffff], 6: ["pollen", 0xffe0a0], 7: ["bubbles", 0xa8f0ff], 8: ["embers", 0xff7a2a] };
+    const a = AMB[wid] || AMB[1];
+    runFx.ambient(S.settings.fx !== false, a[1], a[0]);
+  }
   run.obsProtos = {};
   for (const f of world.obstacle) run.obsProtos[f] = await createProp(MP(f), 0.7);
 
@@ -2807,9 +3122,25 @@ async function startLevel(wid, st, lost, opt) {
   showUI("hud");
   $("btn-hint").classList.toggle("hidden", !(S.settings.hints && D.hints));
   const how = lost ? "" : `<p class="mode-how">${esc(MODE_DESC[worldMode(wid, S.settings)] || "")}</p>`;
-  const lvl = `<p class="lvl-line">רמת קושי: <b>${esc(DIFFS[D.level].label)}</b> · ×${D.scoreMul} · ❤️ ${D.hearts} · ${D.options === 2 ? "2 תשובות" : "3 תשובות"}${boss ? "" : " · שלב " + (st + 1) + " מתוך 6"}</p>`;
-  showModal(`<h2>${title}</h2>${scene}${how}<p>${boss ? "הבוס רץ מאחוריכם! ענו נכון כדי להחליש אותו!" : (st === 0 && !lost ? INTRO[wid - 1] : "כל שלב קשה יותר מהקודם. קדימה, אתם יכולים!")}</p>${lvl}
+  const lvl = `<p class="lvl-line">רמת קושי: <b>${esc(DIFFS[D.level].label)}</b> · ×${D.scoreMul} · ${UI_ICON.heart} ${D.hearts} · ${D.options === 2 ? "2 תשובות" : "3 תשובות"}${boss ? "" : " · שלב " + (st + 1) + " מתוך 6"}</p>`;
+  const nSuper = Wallet.count("mq.cons.super"), nLife = Wallet.count("mq.cons.life"), nHint = Wallet.count("mq.cons.hint");
+  const boosts = (nSuper || nLife || nHint) ? `<div class="boost-row">
+      ${nSuper ? `<button class="boost" id="boost-super">${UI_ICON.shield}<span>להפעיל <b>סופר ריצה</b> (יש ${nSuper})</span></button>` : ""}
+      ${nLife ? `<span class="boost info">${UI_ICON.life}<span>גלגל הצלה מוכן (${nLife})</span></span>` : ""}
+      ${nHint ? `<span class="boost info">${UI_ICON.wand}<span>רמז קסם: ${nHint}</span></span>` : ""}
+    </div>` : "";
+  showModal(`<h2>${title}</h2>${scene}${how}<p>${boss ? "הבוס רץ מאחוריכם! ענו נכון כדי להחליש אותו!" : (st === 0 && !lost ? INTRO[wid - 1] : "כל שלב קשה יותר מהקודם. קדימה, אתם יכולים!")}</p>${lvl}${boosts}
     <button class="btn g" id="mgo">יוצאים לדרך ▶</button>${opt && opt.quick ? `<p class="mgo-count" id="mgo-count"></p>` : ""}`);
+  const bs = $("boost-super");
+  if (bs) bs.onclick = async () => {
+    if (run.shield) return;
+    bs.disabled = true;
+    if (await useItem("mq.cons.super", 1)) {
+      run.shield = true; syncCosmetics(); updateHud();
+      bs.classList.add("on"); bs.innerHTML = `${UI_ICON.shield}<span><b>סופר ריצה פעילה!</b> הטעות הראשונה לא מורידה לב</span>`;
+      const c = $("mgo-count"); if (c) c.remove();
+    }
+  };
   if (opt && opt.quick) {
     // v9: from «שחקו!» the run starts by itself after a short countdown (no extra click needed)
     let left = isListenMode(run.activeMode) ? 6 : 4;
@@ -2832,13 +3163,158 @@ async function startLevel(wid, st, lost, opt) {
   return true;
 }
 
+/* v12: the shop skin decides the model (knight / storm / robot) or the material (gold, crystal, neon, shadow) */
+function skinModelFile(skinId) {
+  const it = skinId && itemById(skinId);
+  return it && it.look && it.look.model ? it.look.model : HEROES[S.hero].file;
+}
+function applySkinLook(root, skinId) {
+  const it = skinId && itemById(skinId);
+  const env = getEnvMap(renderer);
+  const kind = it && it.look && it.look.mat;
+  root.traverse((o) => {
+    if (!o.isMesh || !o.material) return;
+    const make = (m) => {
+      const base = { map: m.map || null, skinning: true, transparent: false };
+      let n;
+      if (kind === "gold") n = new THREE.MeshStandardMaterial({ color: 0xffc23a, metalness: 0.92, roughness: 0.26, envMap: env, envMapIntensity: 1.35, emissive: 0x3a2400, emissiveIntensity: 0.25 });
+      else if (kind === "crystal") n = new THREE.MeshStandardMaterial({ color: 0xc8f4ff, metalness: 0.25, roughness: 0.08, envMap: env, envMapIntensity: 1.6, emissive: 0x2a9cff, emissiveIntensity: 0.32, transparent: true, opacity: 0.86 });
+      else if (kind === "neon") n = new THREE.MeshStandardMaterial({ color: 0x1a1030, metalness: 0.3, roughness: 0.4, envMap: env, envMapIntensity: 0.6, emissive: 0xff3fd0, emissiveMap: m.map || null, emissiveIntensity: 1.25 });
+      else if (kind === "shadow") n = new THREE.MeshStandardMaterial({ map: m.map || null, color: 0x3a3048, metalness: 0.45, roughness: 0.32, envMap: env, envMapIntensity: 1.0, emissive: 0x6a2aff, emissiveIntensity: 0.22 });
+      else { n = m.clone(); n.envMap = env; n.envMapIntensity = 0.45; }
+      void base;
+      return n;
+    };
+    o.material = Array.isArray(o.material) ? o.material.map(make) : make(o.material);
+  });
+}
+const skinKey = (skinId) => S.hero + "|" + (skinId || "");
+async function buildHeroActor(skinId, height) {
+  const it = skinId && itemById(skinId);
+  const actor = await createActor(MP(skinModelFile(skinId)), height, true, true);
+  if (it && it.look && it.look.model) fixZeroNormals(actor.model);
+  applySkinLook(actor.model, skinId);
+  return actor;
+}
 async function ensurePlayer() {
-  if (player && player.hero === S.hero) return;
+  const skin = Wallet.equipped("skin");
+  if (player && player.key === skinKey(skin)) return;
   if (player && player.group.parent) player.group.parent.remove(player.group);
-  const actor = await createActor(MP(HEROES[S.hero].file), 1.52, true, true);
+  const actor = await buildHeroActor(skin, 1.52);
   const group = new THREE.Group();
   group.add(actor.model);
-  player = { ...actor, group, hero: S.hero, lane: 1, s: 0, z: 0, laneShift: 0, y: 0, vy: 0, jumping: false, sliding: false, slideT: 0, current: null };
+  player = { ...actor, group, hero: S.hero, key: skinKey(skin), lane: 1, s: 0, z: 0, laneShift: 0, y: 0, vy: 0, jumping: false, sliding: false, slideT: 0, current: null };
+  cos.aura = null; cos.trail = null; cos.shield = null; cos.auraId = cos.trailId = "";
+}
+
+/* ===== v12 COSMETICS: aura + trail + super-run shield (run) and the live shop preview (title) ===== */
+const cos = { aura: null, auraId: "", trail: null, trailId: "", shield: null };
+const _head = new THREE.Vector3(), _pp = new THREE.Vector3();
+function syncCosmetics() {
+  if (!player) return;
+  const auraId = Wallet.equipped("aura"), trailId = Wallet.equipped("trail");
+  if (cos.auraId !== auraId) {
+    if (cos.aura) { player.group.remove(cos.aura); disposeDeep(cos.aura); }
+    cos.aura = auraId ? makeAura(auraId.slice(3)) : null;
+    if (cos.aura) player.group.add(cos.aura);
+    cos.auraId = auraId;
+  }
+  if (cos.trailId !== trailId) {
+    if (cos.trail) { runScene.remove(cos.trail); disposeDeep(cos.trail); }
+    cos.trail = trailId ? makeTrail(trailId.slice(3)) : null;
+    if (cos.trail) runScene.add(cos.trail);
+    cos.trailId = trailId;
+  }
+  const wantShield = !!(run && run.shield);
+  if (wantShield && !cos.shield) { cos.shield = makeShield(); player.group.add(cos.shield); }
+  if (!wantShield && cos.shield) { player.group.remove(cos.shield); disposeDeep(cos.shield); cos.shield = null; }
+}
+function updateCosmetics(dt) {
+  if (appMode !== "run" || !player) return;
+  syncCosmetics();
+  const fxOn = S.settings.fx !== false;
+  player.group.getWorldPosition(_pp);
+  if (cos.aura) { cos.aura.visible = fxOn; if (fxOn) updateAura(cos.aura, dt, camera, runFx, _pp); }
+  if (cos.trail) {
+    cos.trail.visible = fxOn;
+    if (fxOn && dt > 0) {
+      _head.set(0, 0.1, 0.35).applyMatrix4(player.group.matrixWorld);
+      updateTrail(cos.trail, dt, _head, runFx);
+    }
+  }
+  if (cos.shield) { cos.shield.material.uniforms.uTime.value += dt; cos.shield.rotation.y += dt * 0.6; }
+}
+/* title screen: the selected hero shows the equipped (or previewed) skin, aura and trail */
+const tcos = { key: "", actor: null, aura: null, auraId: "", trail: null, trailId: "", busy: false, preview: null };
+function titleLook() {
+  const p = tcos.preview;
+  return {
+    skin: p && p.cat === "skin" ? p.id : Wallet.equipped("skin"),
+    aura: p && p.cat === "aura" ? p.id : Wallet.equipped("aura"),
+    trail: p && p.cat === "trail" ? p.id : Wallet.equipped("trail"),
+    fx: p && p.cat === "fx" ? p.id : ""
+  };
+}
+async function refreshTitleHero() {
+  const look = titleLook();
+  const key = skinKey(look.skin);
+  const base = titleHeroes[S.hero];
+  if (!base) return;
+  if (tcos.key !== key && !tcos.busy) {
+    tcos.busy = true;
+    try {
+      if (tcos.actor) { mapScene.remove(tcos.actor.model); mapMixers = mapMixers.filter((m) => m !== tcos.actor.mixer); tcos.actor = null; }
+      titleHeroes.forEach((h) => { h.model.visible = true; });
+      if (look.skin) {
+        const a = await buildHeroActor(look.skin, 1.45);
+        a.model.position.copy(base.model.position);
+        mapScene.add(a.model);
+        if (a.mixer) mapMixers.push(a.mixer);
+        playAnim(a, "idle");
+        tcos.actor = a;
+        base.model.visible = false;
+      }
+      tcos.key = key;
+    } finally { tcos.busy = false; }
+    if (tcos.key !== skinKey(titleLook().skin)) refreshTitleHero();
+  }
+  if (tcos.auraId !== look.aura) {
+    if (tcos.aura) { mapScene.remove(tcos.aura); disposeDeep(tcos.aura); }
+    tcos.aura = look.aura ? makeAura(look.aura.slice(3)) : null;
+    if (tcos.aura) mapScene.add(tcos.aura);
+    tcos.auraId = look.aura;
+  }
+  if (tcos.trailId !== look.trail) {
+    if (tcos.trail) { mapScene.remove(tcos.trail); disposeDeep(tcos.trail); }
+    tcos.trail = look.trail ? makeTrail(look.trail.slice(3)) : null;
+    if (tcos.trail) mapScene.add(tcos.trail);
+    tcos.trailId = look.trail;
+  }
+  const shown = tcos.actor || base;
+  playAnim(shown, look.trail && tcos.preview && tcos.preview.cat === "trail" ? "sprint" : "idle");
+}
+const _drift = new THREE.Vector3(0, 0, -3.2);
+function updateTitleCosmetics(dt) {
+  const base = titleHeroes[S.hero];
+  if (!base || appMode !== "title") { if (tcos.aura) tcos.aura.visible = false; if (tcos.trail) tcos.trail.visible = false; return; }
+  const shown = tcos.actor || base;
+  if (tcos.actor) { tcos.actor.model.position.copy(base.model.position); tcos.actor.model.rotation.y = base.model.rotation.y; }
+  const fxOn = S.settings.fx !== false;
+  if (tcos.aura) { tcos.aura.visible = fxOn; tcos.aura.position.copy(shown.model.position); updateAura(tcos.aura, dt, camera, mapFx, shown.model.position); }
+  if (tcos.trail) {
+    tcos.trail.visible = fxOn;
+    _head.copy(shown.model.position); _head.y += 0.1; _head.z -= 0.2;
+    updateTrail(tcos.trail, dt, _head, mapFx, _drift);
+  }
+  if (tcos.preview && tcos.preview.cat === "fx") {
+    tcos.fxT = (tcos.fxT || 0) - dt;
+    if (tcos.fxT <= 0 && mapFx) { tcos.fxT = 1.3; mapFx.burst(shown.model.position.clone().add(new THREE.Vector3(0, 1.6, 0.4)), tcos.preview.style); }
+  }
+}
+function shopPreview(it) {
+  tcos.preview = it && it.cat !== "cons" ? it : null;
+  if (appMode !== "title") { appMode = "title"; }
+  refreshTitleHero();
 }
 
 /* ===== INPUT ===== */
@@ -2950,18 +3426,25 @@ function tick(now) {
     });
     islands.forEach((isle, i) => { isle.position.y = (i % 2 ? 0.4 : 0) + Math.sin(now * 0.001 + i) * 0.18; });
     updateKeyFx(dt);
-    renderer.render(mapScene, camera);
+    updateTitleCosmetics(dt);
+    if (mapFx) mapFx.update(dt, camera, null);
+    renderFrame(mapScene);
     return;
   }
   if (appMode === "run" && player) {
     updateFlagWave(now * 0.001);
     if (!paused) updateRunner(dt);
-    else if (player.mixer) player.mixer.update(dt);
+    else {
+      if (player.mixer) player.mixer.update(dt);
+      if (run && run.barDone) updateTrackBar();
+    }
     updateKeyFx(dt);
     if (!holdCam) updateRunCamera(dt);
     if (runSky) runSky.position.copy(camera.position);
     updateThemeFx(dt, now * 0.001);
-    renderer.render(runScene, camera);
+    updateCosmetics(paused ? 0 : dt);
+    if (paused && runFx) runFx.update(0, camera, null);
+    renderFrame(runScene);
   }
 }
 
@@ -3107,13 +3590,18 @@ function updateRunner(dt) {
     run.nextObsS += ((run.layout && run.layout.diff && run.layout.diff.spacing) || 10.5) + Math.random() * 4;
   }
 
+  const tNow = now * 0.001;
   for (const c of coins) {
     if (c.taken) continue;
-    c.mesh.rotation.z += dt * 3;
+    if (c.spin) c.spin.rotation.y += dt * 2.2;                 // slow spin around the vertical axis
+    if (c.baseY != null) c.mesh.position.y = c.baseY + Math.sin(tNow * 2.6 + c.ph) * 0.07;
     if ((c.s != null ? c.s : 0) < player.s - 4) { c.taken = true; runScene.remove(c.mesh); continue; }
-    if (Math.abs((c.s || 0) - player.s) < 0.6 && c.lane === playerLaneNow() && player.y < 1.2) {
-      c.taken = true; runScene.remove(c.mesh);
-      S.coins += 1; run.coins += 1; run.score += Math.round(10 * scoreMul()); sfx.coin(); updateHud();
+    const near = Math.abs((c.s || 0) - player.s) < (c.air ? 0.8 : 0.6) && c.lane === playerLaneNow();
+    const reach = c.air ? (player.jumping && player.y > c.h - 1.6 && player.y < c.h + 0.4) : player.y < 1.2;
+    if (near && reach) {
+      c.taken = true; c.got = true; runScene.remove(c.mesh);
+      if (runFx) runFx.coin(c.mesh.position);
+      addCoins(1); run.score += Math.round(10 * scoreMul()); sfx.coin(); updateHud(); popEl("hud-coins");
     }
   }
   for (const o of obstacles) {
@@ -3263,6 +3751,7 @@ function helpCard(l) {
 
 function goMapMode() {
   paused = true; appMode = "map";
+  try { flushEarn(); } catch (e) {}
   hideModal(); showUI("s-map");
   refreshMapStats(); renderStages(); highlightIsland(); refreshLocks();
   if (pendingUnlock != null) {
@@ -3777,11 +4266,25 @@ function initDevTools() {
 }
 
 /* ===== SETTINGS + PAUSE (v8) ===== */
-const TIER_HE = { low: "נמוכה (פיקסלים)", medium: "בינונית", high: "גבוהה" };
+const TIER_HE = { low: "חסכונית", medium: "בינונית", high: "גבוהה" };
 let settingsBack = null;
+let settingsTab = "game";
+const SET_TABS = [
+  { k: "game", label: "משחק", ico: "target" },
+  { k: "types", label: "תרגילים", ico: "book" },
+  { k: "gfx", label: "גרפיקה", ico: "screen" },
+  { k: "sound", label: "צלילים", ico: "speaker" },
+  { k: "help", label: "עזרה", ico: "owl" }
+];
+const GFX_DESC = {
+  auto: "המשחק בוחר לבד לפי המחשב, ויורד רמה אם הוא מרגיש איטיות.",
+  low: "תמונה חדה (לא מפוקסלת). בלי צללים ובלי זוהר, פחות חלקיקים ועצים, ראות קצרה יותר. הכי קלה למחשב.",
+  medium: "צללים פשוטים, חלקיקים והילה. מתאימה לרוב המחשבים בכיתה.",
+  high: "צללים רכים, זוהר (Bloom), החלקת קצוות והכי הרבה פרטים."
+};
 function segRow(name, opts, cur) {
   return `<div class="seg" role="radiogroup" data-set="${name}">${opts.map((o) =>
-    `<button type="button" class="seg-b${String(o.v) === String(cur) ? " on" : ""}" data-v="${o.v}" role="radio" aria-checked="${String(o.v) === String(cur)}">${esc(o.label)}</button>`).join("")}</div>`;
+    `<button type="button" class="seg-b${String(o.v) === String(cur) ? " on" : ""}" data-v="${o.v}" role="radio" aria-checked="${String(o.v) === String(cur)}">${esc(o.label)}${o.mul ? `<small class="seg-mul" dir="ltr">×${o.mul} <span>ניקוד</span></small>` : ""}</button>`).join("")}</div>`;
 }
 function renderSettings(msg) {
   const st = S.settings;
@@ -3789,43 +4292,54 @@ function renderSettings(msg) {
   const autoNow = st.gfx === "auto" ? `כרגע נבחרה: <b>${TIER_HE[tier()]}</b>${autoReason ? " · " + esc(autoReason) : ""}` : "";
   const ageNow = st.age || "de";
   const ageInfo = AGES.find((a) => a.key === ageNow) || AGES[0];
-  $("set-body").innerHTML = `
-    <div class="set-sec" id="set-age"><h3>שכבת גיל</h3>
-      ${ex("בחרו את שכבת הגיל של השחקן. התוכן משתנה לפי הגיל: בד׳–ה׳ מילים, אותיות ותמונות; בשכבות הגבוהות יותר אוצר מילים ארוך יותר, משפטים, השלמת פערים במשפט, הווה פשוט (do/does, he/she +s), הווה ממושך, עבר פשוט, there is/are, מילות יחס והבנת הנקרא. בי׳–י״ב אוצר מילים וזמנים בסגנון בגרות. רמת הקושי (מהירות וניקוד) נשארת נפרדת.")}
+  const D = DIFFS[st.difficulty] || DIFFS.normal;
+  const pane = {
+    game: `
+    <div class="set-sec" id="set-age"><h3>${UI_ICON.teacher} שכבת גיל</h3>
+      ${ex("התוכן משתנה לפי הגיל: בד׳–ה׳ מילים, אותיות ותמונות; בשכבות הגבוהות משפטים, זמנים והבנת הנקרא; בי׳–י״ב בסגנון בגרות.")}
       ${segRow("age", AGES.map((a) => ({ v: a.key, label: a.label })), ageNow)}
-      <p class="set-note">${esc(ageInfo.blurb)}</p></div>
-    <div class="set-sec"><h3>🎯 רמת קושי</h3>
-      ${ex("כמה המשחק קשה: מהירות הריצה, מספר הלבבות, כמה זמן יש לענות, קושי השאלות, ומכפיל הניקוד. ככל שהרמה גבוהה יותר — רצים מהר יותר ומרוויחים יותר נקודות.")}
-      ${segRow("difficulty", Object.keys(DIFFS).map((k) => ({ v: k, label: DIFFS[k].label })), st.difficulty)}
-      <ul class="diff-desc">${Object.keys(DIFFS).map((k) => `<li class="${k === st.difficulty ? "on" : ""}"><b>${esc(DIFFS[k].label)}:</b> ${esc(DIFFS[k].desc)}</li>`).join("")}</ul>
-      <p class="set-note">בכל רמה: כל שלב קשה יותר מהקודם, וכל עולם קשה יותר מהעולם שלפניו. מהירות הריצה נקבעת לפי רמת הקושי.</p></div>
-    <div class="set-sec"><h3>❓ סוגי תרגילים</h3>
-      ${ex("אילו תרגילים יופיעו במשחק. מסמנים ✔ את מה שרוצים לתרגל, ומורידים את הסימון ממה שלא.")}
+      <p class="set-callout">${esc(ageInfo.blurb)}</p></div>
+    <div class="set-sec"><h3>${UI_ICON.target} רמת קושי</h3>
+      ${ex("מהירות הריצה, מספר הלבבות, זמן לענות ומכפיל הניקוד.")}
+      ${segRow("difficulty", Object.keys(DIFFS).map((k) => ({ v: k, label: DIFFS[k].label, mul: DIFFS[k].scoreMul })), st.difficulty)}
+      <p class="set-callout"><b>${esc(D.label)}:</b> ${esc(D.desc)}</p></div>`,
+    types: `
+    <div class="set-sec"><h3>${UI_ICON.book} סוגי תרגילים</h3>
+      ${ex("מסמנים את מה שרוצים לתרגל. לכל עולם יש סוג תרגיל משלו; עולם שהסוג שלו כבוי יקבל סוג דומה.")}
       <div class="set-checks">${QTYPES.map((q) => `<label class="set-check"><input type="checkbox" data-type="${q.key}" ${st.types[q.key] ? "checked" : ""}> ${esc(q.label)}</label>`).join("")}</div>
-      <p class="set-note" id="set-types-msg">${msg ? esc(msg) : "לכל עולם יש סוג תרגיל משלו. עולם שהסוג שלו כבוי יקבל סוג דומה אחר."}</p></div>
-    <div class="set-sec"><h3>🖥️ איכות גרפיקה</h3>
-      ${ex("כמה יפה התמונה. אם המשחק איטי או נתקע – בחרו «נמוכה». «אוטומטי» בוחר לבד לפי המחשב.")}
+      <p class="set-note" id="set-types-msg">${msg ? esc(msg) : ""}</p></div>`,
+    gfx: `
+    <div class="set-sec"><h3>${UI_ICON.screen} איכות גרפיקה</h3>
+      ${ex("אם המשחק איטי או נתקע — בחרו «חסכונית».")}
       ${segRow("gfx", GFX_OPTS, st.gfx)}
-      <p class="set-note">נמוכה: תמונה מפוקסלת ברזולוציה נמוכה, הכי מהירה למחשבים ישנים. ${autoNow}</p></div>
-    <div class="set-sec"><h3>🔊 צלילים</h3>
-      <div class="set-item">${ex("עוצמת אפקטי הצליל: מטבעות, קפיצות, תשובה נכונה או שגויה.")}
-      <label class="set-range">אפקטים <input type="range" min="0" max="100" step="10" data-range="sfx" value="${Math.round(st.sfx * 100)}"><span>${Math.round(st.sfx * 100)}%</span></label></div>
-      <div class="set-item">${ex("עוצמת הקול שמקריא את המילים באנגלית. בעולמות ההאזנה חייבים לשמוע אותו!")}
-      <label class="set-range">הקראה באנגלית <input type="range" min="0" max="100" step="10" data-range="voice" value="${Math.round(st.voice * 100)}"><span>${Math.round(st.voice * 100)}%</span></label></div>
-      <div class="set-item">${ex("לוחצים כדי לבדוק שהרמקולים עובדים ושומעים את ההקראה.")}
-      <button type="button" class="btn s" id="set-test-voice">🔊 בדיקת הקראה</button></div></div>
-    <div class="set-sec"><h3>🦉 עזרה</h3>
-      <div class="set-item">${ex("מציג את כפתור הינשוף בזמן הריצה – אפשר לבקש רמז כשתקועים. (ברמות «קשה», «קשה מאוד» ו«אלוף» אין רמזים.)")}
-        <label class="set-check"><input type="checkbox" data-flag="hints" ${st.hints ? "checked" : ""}> כפתור רמזים (הינשוף)</label></div>
-      <div class="set-item">${ex("אחרי טעות מופיעה התשובה הנכונה, כדי ללמוד ממנה. (בעולמות ההאזנה – רק ברמות «קל מאוד» ו«קל».)")}
-        <label class="set-check"><input type="checkbox" data-flag="showAnswer" ${st.showAnswer ? "checked" : ""}> הצגת התשובה הנכונה אחרי טעות</label></div></div>
-    <p class="set-note">${appMode === "run" ? "שינוי ברמת הקושי ובסוגי התרגילים ייכנס לתוקף מהשלב הבא. גרפיקה וצלילים משתנים מיד." : "ההגדרות נשמרות במחשב הזה."}</p>`;
+      <p class="set-callout">${esc(GFX_DESC[st.gfx] || "")} ${autoNow}</p></div>
+    <div class="set-sec"><h3>${UI_ICON.sparkle} אפקטים</h3>
+      ${ex("חלקיקים, הילה, שובל ונצנוצים. כיבוי חוסך עוד קצת כוח למחשב.")}
+      <label class="set-check big"><input type="checkbox" data-flag="fx" ${st.fx !== false ? "checked" : ""}> אפקטים מיוחדים</label></div>`,
+    sound: `
+    <div class="set-sec"><h3>${UI_ICON.speaker} צלילים</h3>
+      <label class="set-range"><span class="lbl">אפקטים</span><input type="range" min="0" max="100" step="10" data-range="sfx" value="${Math.round(st.sfx * 100)}"><span>${Math.round(st.sfx * 100)}%</span></label>
+      <label class="set-range"><span class="lbl">הקראה באנגלית</span><input type="range" min="0" max="100" step="10" data-range="voice" value="${Math.round(st.voice * 100)}"><span>${Math.round(st.voice * 100)}%</span></label>
+      ${ex("בעולמות ההאזנה חייבים לשמוע את ההקראה.")}
+      <button type="button" class="btn s" id="set-test-voice">${UI_ICON.speaker} בדיקת הקראה</button></div>`,
+    help: `
+    <div class="set-sec"><h3>${UI_ICON.owl} עזרה בזמן המשחק</h3>
+      <label class="set-check big"><input type="checkbox" data-flag="hints" ${st.hints ? "checked" : ""}> כפתור רמזים (הינשוף)</label>
+      ${ex("ברמות «קשה», «קשה מאוד» ו«אלוף» אין רמזים של הינשוף. «רמז קסם» מהחנות עובד בכל רמה.")}
+      <label class="set-check big"><input type="checkbox" data-flag="showAnswer" ${st.showAnswer ? "checked" : ""}> הצגת התשובה הנכונה אחרי טעות</label>
+      ${ex("בעולמות ההאזנה — רק ברמות «קל מאוד» ו«קל».")}</div>`
+  };
+  $("set-body").innerHTML = `<div class="set-layout">
+    <nav class="set-tabs" role="tablist">${SET_TABS.map((t) => `<button type="button" role="tab" class="set-tab${t.k === settingsTab ? " on" : ""}" data-stab="${t.k}" aria-selected="${t.k === settingsTab}">${UI_ICON[t.ico]}<span>${t.label}</span></button>`).join("")}</nav>
+    <div class="set-pane">${pane[settingsTab] || pane.game}
+    <p class="set-foot">${appMode === "run" ? "קושי ותרגילים ישתנו מהשלב הבא. גרפיקה וצלילים משתנים מיד." : "ההגדרות נשמרות במחשב הזה."}</p></div></div>`;
 }
 function applySettingChange(kind) {
   S.settings = normSettings(S.settings);
   save();
   if (kind === "gfx") { autoTier = null; if (S.settings.gfx === "auto") { S.autoTier = null; fpsMon.drops = 0; save(); } applyQuality(); if (appMode === "run" && run) applyStageLook(WORLDS[run.world - 1]); }
   if (kind === "types" || kind === "difficulty" || kind === "age") { if (appMode === "map") renderStages(); fillDevGrid(); refreshPlayNext(); refreshWordcount(); }
+  if (kind === "flag") { applyQuality(); if (runFx) runFx.ambient(S.settings.fx !== false && appMode === "run", (runFx.amb && runFx.amb.color) || 0xfff4c0, (runFx.amb && runFx.amb.kind) || "pollen"); }
   if (kind === "flag" && appMode === "run") $("btn-hint").classList.toggle("hidden", !(S.settings.hints && !(run && run.layout && run.layout.diff && run.layout.diff.hints === false)));
 }
 function openSettings(back) {
@@ -3868,6 +4382,8 @@ function initSettingsUI() {
   };
   const body = $("set-body");
   body.addEventListener("click", (e) => {
+    const tb = e.target.closest("[data-stab]");
+    if (tb) { settingsTab = tb.dataset.stab; sfx.click(); renderSettings(); body.scrollTop = 0; return; }
     const b = e.target.closest(".seg-b");
     if (b) {
       const name = b.parentElement.dataset.set;
@@ -3907,6 +4423,53 @@ function initSettingsUI() {
   body.addEventListener("change", (e) => { if (e.target.dataset.range === "sfx") sfx.coin(); });
 }
 
+/* ===== v12 SHOP ===== */
+function openShopUI(t) {
+  if (appMode === "run") return;
+  if (appMode !== "title") goTitle();
+  focusShopCam(true);
+  openShop(t);
+}
+function focusShopCam(on) {
+  const base = titleHeroes[S.hero];
+  if (on && base) {
+    // camera in FRONT of the hero (the hero faces the island centre), framed into the free part of the
+    // screen: left of the side panel on desktop, above the bottom sheet on phones
+    const p = new THREE.Vector3(); base.model.getWorldPosition(p);
+    const fwd = new THREE.Vector3(); base.model.getWorldDirection(fwd); fwd.y = 0;
+    if (fwd.lengthSq() < 1e-4) fwd.set(0, 0, 1); fwd.normalize();
+    const right = new THREE.Vector3().crossVectors(fwd.clone().negate(), new THREE.Vector3(0, 1, 0)).normalize();
+    const portrait = innerWidth / innerHeight < 0.9;
+    if (portrait) {
+      camGoal.copy(p).addScaledVector(fwd, 7.2).add(new THREE.Vector3(0, 1.6, 0));
+      lookGoal.copy(p).add(new THREE.Vector3(0, -1.25, 0));
+    } else {
+      camGoal.copy(p).addScaledVector(fwd, 5.4).addScaledVector(right, 1.7).add(new THREE.Vector3(0, 1.5, 0));
+      lookGoal.copy(p).addScaledVector(right, 1.7).add(new THREE.Vector3(0, 0.85, 0));
+    }
+  } else focusTitleCam();
+}
+function refreshWalletUI() {
+  const b = Wallet.balance().toLocaleString("he-IL");
+  ["title-coins", "map-coins"].forEach((id) => { const el = $(id); if (el) el.textContent = b; });
+  if (appMode === "run" && run) { const el = $("hud-coins"); if (el) el.innerHTML = coinHtml(Wallet.balance()); updateHud(); }
+}
+initShop({
+  sfx: () => sfx.click(),
+  preview: (it) => shopPreview(it),
+  onEquip: () => { tcos.preview = null; refreshTitleHero(); },
+  bought: () => sfx.good(),
+  onClose: () => { tcos.preview = null; refreshTitleHero(); focusShopCam(false); }
+});
+Wallet.onChange(() => refreshWalletUI());
+["btn-shop", "btn-map-shop"].forEach((id) => { const b = $(id); if (b) b.onclick = () => { sfx.click(); openShopUI(); }; });
+if ($("btn-magic")) $("btn-magic").onclick = () => useMagicHint();
+try {
+  const ui = document.querySelector(".ui");
+  if (ui) startEmojiSweep(ui);
+  ["mute", "btn-settings", "s-settings"].forEach((id) => { const el = $(id); if (el && !(ui && ui.contains(el))) startEmojiSweep(el); });
+} catch (e) { console.warn(e); }
+
 /* ===== BOOT ===== */
 const ready = (async function boot() {
   initDevTools();
@@ -3939,7 +4502,28 @@ const ready = (async function boot() {
   refreshPlayNext();
   refreshPlayerChip();
   requestAnimationFrame(tick);
+  // v12 wallet: signed-in = Englishia account (Firestore), guest = this device's profile
+  await syncWalletAccount(true);
+  if (window.EnglishiaAuth && EnglishiaAuth.onChange) EnglishiaAuth.onChange(() => { syncWalletAccount(false); });
 })();
+/* (re)open the wallet for whoever is signed in now; waits briefly for the auth SDK on first load */
+let walletSync = Promise.resolve();
+function syncWalletAccount(first) {
+  walletSync = walletSync.then(async () => {
+    try {
+      if (first && window.EnglishiaAuth && EnglishiaAuth.ready) await Promise.race([EnglishiaAuth.ready().catch(() => {}), new Promise((r) => setTimeout(r, 4000))]);
+      const u = window.EnglishiaAuth && EnglishiaAuth.user;
+      const uid = (u && u.uid) || null;
+      if (!first && uid === (Wallet.uid || null)) return;
+      if (!first) { try { await flushEarn(); } catch (e) {} }
+      await initWallet({ uid, profileId: window.Englishia && Englishia.getActiveId && Englishia.getActiveId(), seed: S.coins, gameId: GAME_ID });
+    } catch (e) { console.warn("wallet", e); }
+    refreshWalletUI();
+    if (appMode !== "run") refreshTitleHero();
+  });
+  return walletSync;
+}
+addEventListener("pagehide", () => { try { flushEarn(); } catch (e) {} });
 
 
 function checkLaneAlignment() {
@@ -4055,6 +4639,12 @@ function checkLaneAlignment() {
 
 window.MQ = {
   ready,
+  getCoins: () => coins,
+  spawnAirArc: (s, lane) => spawnAirArc(s, lane),
+  spawnCoinRow: (s) => spawnCoinRow(s),
+  spawnObstacle: (s) => spawnObstacle(s),
+  showCampaignDone: () => showCampaignDone(),
+  nextDiffKey,
   startLevel,
   goMapMode,
   goTitle,
@@ -4123,12 +4713,12 @@ window.MQ = {
       obstacles.push({ mesh, lane, type, hit: false, spin: type === "roll" ? 4 : 0, s: ps });
     });
   },
-  spawnTypedObstacle: (type, s, lane) => {
+  spawnTypedObstacle: (type, s, lane, forceKind) => {
     lane = lane == null ? 1 : lane;
     const ps = s == null ? (player.s || 0) + 10 : s;
     let mesh, move = null, kind = null;
     if (type === "animal") {
-      kind = pickAnimalKind(run && run.world);
+      kind = forceKind || pickAnimalKind(run && run.world);
       mesh = buildAnimal(kind);
       move = animalMove(kind);
     } else mesh = type === "low" ? hazardMark("low") : hazardMark(type);
@@ -4258,5 +4848,21 @@ window.MQ = {
   openProfilePanel,
   askPlayerName,
   formatPlayTime,
-  coinHtml
+  coinHtml,
+  openShop: (t) => openShopUI(t),
+  closeShop: () => closeShop(),
+  shopTab: (t) => shopTab(t),
+  Wallet,
+  CATALOG,
+  walletEquip: (slot, id) => walletEquip(slot, id),
+  // test hook (DEVELOPER only): give the local test wallet coins and show a full look
+  shopDebugEquip: (look) => {
+    if (!isDev() || Wallet.mode !== "local") return false;
+    look = look || { skin: "mq.skin.gold", aura: "mq.aura.rainbow", trail: "mq.trail.rainbow", fx: "mq.fx.stars" };
+    Object.keys(look).forEach((k) => { if (look[k]) { Wallet.st.owned[look[k]] = true; Wallet.st.equip[k] = look[k]; } else Wallet.st.equip[k] = ""; });
+    Wallet.emit(); syncCosmetics(); if (appMode !== "run") refreshTitleHero(); return true;
+  },
+  devGrant: (n) => { if (!isDev() || Wallet.mode !== "local") return false; walletEarn(n); return Wallet.balance(); },
+  getTrackP: () => run && run.barP,
+  useMagicHint
 };

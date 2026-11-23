@@ -131,14 +131,14 @@
     </section>
   </div>
 </main>
-<script src="../js/englishia-auth.js?v=12.7"></script>
+<script src="../js/englishia-auth.js?v=12.8"></script>
 <script>
 (function () {
   "use strict";
   var E = window.EnglishiaAuth, A = E.admin, R = E.ranks;
   // v12.6: this page needs englishia-auth.js 12.6+. A stale cached copy silently dropped new fields
   // (that is why the custom rank name "did not save" right after the 12.5 release).
-  var NEED_VER = [12, 7];
+  var NEED_VER = [12, 8];
   function verOk(v) { var p = String(v || "0").split(".").map(Number); return p[0] > NEED_VER[0] || (p[0] === NEED_VER[0] && (p[1] || 0) >= NEED_VER[1]); }
   if (!verOk(E.version)) {
     var st = document.getElementById("stale");

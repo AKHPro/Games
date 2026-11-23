@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#20356e">
 <title>Word Detective (Demo) · בלש המילים (דמו)</title>
+<script src="../../js/englishia-lang.js?v=1.0" data-mount="#home .title" data-prepend></script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='26' cy='26' r='17' fill='%23ffd34d' stroke='%2320356e' stroke-width='6'/%3E%3Cpath d='M39 39l17 17' stroke='%2320356e' stroke-width='8' stroke-linecap='round'/%3E%3C/svg%3E">
 <link rel="stylesheet" href="css/style.css">
 </head>
@@ -51,6 +52,7 @@
       <div id="qTag"></div>
       <div class="qprompt" id="qPrompt"></div>
       <div class="sent" id="qSent"></div>
+      <button type="button" class="saybtn" id="sayBtn" hidden aria-label="הקראה באנגלית" title="הקראה באנגלית"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
     </div>
     <div>
       <div id="answerArea"></div>
@@ -258,14 +260,14 @@
 </script>
 <script>
 (function(){var demo=true;
-var V="1.2";var el=document.getElementById("wd-credit");
+var V="1.4";var el=document.getElementById("wd-credit");
 var l1=document.createElement("div");l1.dir="ltr";l1.textContent="\u00A9 2026 Amir \u00B7 Englishia \u00B7 All rights reserved \u00B7 "+(demo?"Demo version "+V:"Version "+V);
 var l2=document.createElement("div");l2.dir="rtl";l2.textContent="\u00A9 2026 \u05D0\u05DE\u05D9\u05E8 \u00B7 \u05D0\u05D9\u05E0\u05D2\u05DC\u05D9\u05E9\u05D9\u05D4 \u00B7 \u05DB\u05DC \u05D4\u05D6\u05DB\u05D5\u05D9\u05D5\u05EA \u05E9\u05DE\u05D5\u05E8\u05D5\u05EA \u00B7 "+(demo?"\u05D2\u05E8\u05E1\u05EA \u05D3\u05DE\u05D5 "+V:"\u05D2\u05E8\u05E1\u05D4 "+V);
 el.appendChild(l1);el.appendChild(l2);})();
 </script>
 <script>
 /* Englishia account (one login for all games). Guests still play if it can't load. */
-(function(){var s=document.createElement("script");s.src="../../js/englishia-auth.js?v=12.7";
+(function(){var s=document.createElement("script");s.src="../../js/englishia-auth.js?v=12.8";
 s.onload=function(){try{EnglishiaAuth.init({gameId:"word-detective",gameTitle:"\u05D1\u05DC\u05E9 \u05D4\u05DE\u05D9\u05DC\u05D9\u05DD",mount:"#engSlot"});EnglishiaAuth.mountMenu("#engSlotEnd");if(window.WDApp)WDApp.onAuth();}catch(e){console.warn(e);}};
 s.onerror=function(){};document.head.appendChild(s);})();
 </script>

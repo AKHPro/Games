@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Grammar Maze 2 – Classroom Edition</title>
+<script src="../../js/englishia-lang.js?v=1.0" data-mount="#startScreen .card" data-prepend></script>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -43,6 +44,12 @@ h1{font-size:1.3rem}
 #stage{position:relative; flex:1; min-height:0; margin:0 8px; border-radius:12px; overflow:hidden; background:#000; touch-action:none}
 #view{position:absolute; inset:0; width:100%; height:100%; display:block; touch-action:none}
 #map{position:absolute; right:10px; top:10px; width:110px; height:110px; background:rgba(8,10,14,.6); border:1px solid var(--line); border-radius:8px; pointer-events:none}
+#panel{position:relative}
+.say-btn{position:absolute;top:6px;right:10px;width:40px;height:40px;border-radius:50%;border:2px solid rgba(255,255,255,.35);background:rgba(0,0,0,.35);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:2}
+.say-btn[hidden],.iconbtn[hidden]{display:none}
+.say-btn:hover{background:rgba(255,255,255,.15)}
+.lv-next{display:block;margin:10px auto;padding:12px 16px;border-radius:12px;background:rgba(255,215,0,.12);border:1px solid rgba(255,215,0,.45)}
+.lv-next svg{width:40px;height:40px;display:block;margin:0 auto 4px}
 #panel{padding:8px 12px 10px; overscroll-behavior:contain; touch-action:pan-y}
 .topic{color:var(--torch); font-size:.9rem; min-height:1.2em}
 .topic.fight{color:#ff9a90; font-weight:700}
@@ -348,6 +355,7 @@ body.pseudo-full #app{height:100%; height:100svh; height:100dvh; padding-left:en
   <div id="panel">
     <div class="topic" id="topic">&nbsp;</div>
     <div id="question" aria-live="polite">&nbsp;</div>
+    <button type="button" id="sayBtn" class="say-btn noprint" hidden aria-label="Read aloud" title="Read aloud"><svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z" fill="currentColor"/><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
     <div id="hint"></div>
     <div class="choices">
       <button class="choice" id="btnL"><span class="arrow">◀</span><span id="txtL"></span><span class="k">1</span></button>
@@ -433,7 +441,12 @@ body.pseudo-full #app{height:100%; height:100svh; height:100dvh; padding-left:en
 </div>
 <div id="rotateTip" hidden>🔄 Turn your phone sideways (landscape) for the best view</div>
 
-<script src="../../js/englishia-auth.js?v=12.7"></script>
+<script src="../../js/englishia-auth.js?v=12.8"></script>
+<script>
+(function(){var demo=/\/demo\//.test(location.pathname),V="2.2";var c=document.querySelector("#startScreen .card")||document.querySelector(".overlay .card");if(!c)return;
+var d=document.createElement("p");d.id="gm-credit";d.className="noprint";d.dir="ltr";d.style.cssText="margin:14px 0 0;font-size:12px;opacity:.7;text-align:center";
+d.textContent="\u00A9 2026 Amir \u00B7 Englishia \u00B7 All rights reserved \u00B7 "+(demo?"Demo version "+V:"Version "+V);c.appendChild(d);})();
+</script>
 <script>EnglishiaAuth.init({ gameId: "grammar-maze", gameTitle: "מבוך הדקדוק", mount: "#engSlotStart" }); EnglishiaAuth.mountMenu("#engSlotEnd");</script>
 <script src="firebase-config.js"></script>
 <script>
@@ -1332,18 +1345,19 @@ function refreshBank(){ BANK = STATIC.concat(genBank()); }
 
 /* ---------- Settings ---------- */
 const LEVELS = {
-  veryeasy: {label:"Very easy", q:[1,1], goal:6,  lives:5, hits:5, forkTime:0,  enemy:.15, enemyTime:20, heal:true, forks:"off",
-             desc:"Beginner questions (A1). 6 forks, 5 wrong turns and 5 hearts, no time limit, very few monsters."},
-  easy:     {label:"Easy",      q:[1,2], goal:8,  lives:4, hits:4, forkTime:0,  enemy:.3,  enemyTime:12, heal:true, forks:"off",
-             desc:"Elementary questions (A1–A2). 8 forks, 4 wrong turns and 4 hearts, no time limit."},
-  normal:   {label:"Normal",    q:[2,3], goal:10, lives:3, hits:3, forkTime:0,  enemy:.5,  enemyTime:8,  heal:false, forks:"mix",
-             desc:"Pre-intermediate questions (A2–B1). 10 forks, 3 wrong turns and 3 hearts. Monsters give you 8 seconds."},
-  hard:     {label:"Hard",      q:[3,4], goal:12, lives:2, hits:2, forkTime:30, enemy:.5,  enemyTime:6,  heal:false, forks:"on",
-             desc:"Intermediate questions (B1–B2). 12 forks, 2 wrong turns and 2 hearts, 30 seconds for each question."},
-  veryhard: {label:"Very hard", q:[4,5], goal:15, lives:2, hits:2, forkTime:15, enemy:.7,  enemyTime:5,  heal:false, forks:"on",
-             desc:"Upper-intermediate and advanced questions (B2–C1). 15 forks, 2 wrong turns and 2 hearts, 15 seconds for each question."},
-  nightmare:{label:"Nightmare 💀", q:[5,5], goal:20, lives:1, hits:1, forkTime:10, enemy:.9, enemyTime:4, heal:false, forks:"on",
-             desc:"Advanced questions only (C1). 20 forks, one wrong turn or one monster hit and you're dead, 10 seconds for each question, monsters everywhere."}
+  // v2.1: same six levels as Mila Quest (names, x points, hints, read-aloud on the two easy levels). Keys unchanged so saved bests stay.
+  veryeasy: {label:"Very easy", he:"קל מאוד", mul:0.5, hint:"auto", q:[1,1], goal:5,  lives:6, hits:6, forkTime:0,  enemy:0,   enemyTime:25, heal:true, forks:"off",
+             desc:"For beginners (A1). A small maze: 5 forks, 2 signs, 6 wrong turns and 6 hearts, no monsters, no time limit. The hint opens by itself and every question is read aloud."},
+  easy:     {label:"Easy",      he:"קל",       mul:0.75, hint:"auto", q:[1,2], goal:7,  lives:5, hits:5, forkTime:0,  enemy:.15, enemyTime:20, heal:true, forks:"off",
+             desc:"Elementary questions (A1–A2). 7 forks, 2 signs, 5 wrong turns and 5 hearts, few slow monsters, no time limit. The hint opens by itself and every question is read aloud."},
+  normal:   {label:"Normal",    he:"רגיל",     mul:1, hint:"button", q:[2,3], goal:10, lives:3, hits:3, forkTime:0,  enemy:.5,  enemyTime:8,  heal:false, forks:"mix",
+             desc:"Pre-intermediate questions (A2–B1). 10 forks, 3 wrong turns and 3 hearts. Monsters give you 8 seconds. Hint button."},
+  hard:     {label:"Hard",      he:"קשה",      mul:1.5, hint:"off", q:[3,4], goal:12, lives:2, hits:2, forkTime:30, enemy:.5,  enemyTime:6,  heal:false, forks:"on",
+             desc:"Intermediate questions (B1–B2). 12 forks, 2 wrong turns and 2 hearts, 30 seconds for each question, no hints."},
+  veryhard: {label:"Very hard", he:"קשה מאוד", mul:2, hint:"off", q:[4,5], goal:15, lives:2, hits:2, forkTime:15, enemy:.7,  enemyTime:5,  heal:false, forks:"on",
+             desc:"Upper-intermediate and advanced questions (B2–C1). 15 forks, 2 wrong turns and 2 hearts, 15 seconds for each question, no hints."},
+  nightmare:{label:"Champion",  he:"אלוף",     mul:3, hint:"off", q:[5,5], goal:20, lives:1, hits:1, forkTime:10, enemy:.9, enemyTime:4, heal:false, forks:"on",
+             desc:"Advanced questions only (C1). 20 forks, one wrong turn or one monster hit and you're dead, 10 seconds for each question, monsters everywhere, no hints."}
 };
 const settings = { level:"normal", topics:new Set(TOPICS), types:new Set(Object.keys(TYPES)), custom:"off", customText:"", speak:false, tweaked:false,
   mode:"solo", teamNames:["Team Blue","Team Orange"], forks:"mix", hebrew:true, big:false };
@@ -1398,7 +1412,7 @@ function opt(id,name,list,key){
   makeChips($(id), list.map(([v,t])=>({t,v})), "radio", name, v=>v===settings[key], v=>{ settings[key]=v; changed(true); });
 }
 function renderSettings(){
-  makeChips($("levelChips"), Object.entries(LEVELS).map(([v,l])=>({t:l.label,v})), "radio","level",
+  makeChips($("levelChips"), Object.entries(LEVELS).map(([v,l])=>({t:l.label+" · "+l.he+" · ×"+l.mul+" points",v})), "radio","level",
     v=>v===settings.level, v=>{ applyLevel(v); renderSettings(); saveSettings(); });
   const tc=$("topicChips"); tc.innerHTML="";
   TOPIC_GROUPS.forEach(([g,list])=>{
@@ -1427,7 +1441,7 @@ function renderSettings(){
   $("customText").value=settings.customText;
   updateLevelDesc(); updatePoolInfo();
 }
-function updateLevelDesc(){ $("levelDesc").textContent=LEVELS[settings.level].desc+(settings.tweaked?" You changed some options under More options.":""); }
+function updateLevelDesc(){ $("levelDesc").textContent=LEVELS[settings.level].desc+" Points ×"+LEVELS[settings.level].mul+"."+(settings.tweaked?" You changed some options under More options.":""); }
 function changed(tweak){ if(tweak){ settings.tweaked=true; updateLevelDesc(); } updatePoolInfo(); saveSettings(); }
 function updatePoolInfo(){
   const {pool,widened}=buildPool(), c=parseCustom(settings.customText);
@@ -1666,8 +1680,14 @@ function tween(dur, fn){
 }
 
 /* read aloud */
-function speak(text){ try{ if(!settings.speak || !("speechSynthesis" in window) || typeof SpeechSynthesisUtterance==="undefined") return; }catch(e){ return; }
-  try{ speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(text); u.lang="en-US"; u.rate=.92; speechSynthesis.speak(u); }catch(e){} }
+const lvMul=()=>(LEVELS[settings.level]&&LEVELS[settings.level].mul)||1;
+/* v2.1: "Very easy" and "Easy" always read the question and the answers aloud (slower). Speaker button replays. */
+const easyLv=()=>settings.level==="veryeasy"||settings.level==="easy";
+const canSpeak=()=>{ try{ return ("speechSynthesis" in window) && typeof SpeechSynthesisUtterance!=="undefined"; }catch(e){ return false; } };
+let lastSpoken="";
+function speak(text,force){ if(!canSpeak()) return; lastSpoken=text; syncSayBtn(); if(!force && !settings.speak && !easyLv()) return;
+  try{ speechSynthesis.cancel(); const u=new SpeechSynthesisUtterance(text); u.lang="en-US"; u.rate=easyLv()?.82:.92; speechSynthesis.speak(u); }catch(e){} }
+function syncSayBtn(){ const b=$("sayBtn"); if(b) b.hidden=!(canSpeak() && lastSpoken && (easyLv()||settings.speak) && G.phase!=="end"); }
 function hush(){ try{ if("speechSynthesis" in window) speechSynthesis.cancel(); }catch(e){} }
 function speakQ(q,a){ speak(`${q[1].replace("___","blank")}. Left: ${a.L}.${a.M?` Straight on: ${a.M}.`:""} Right: ${a.R}.`); }
 
@@ -1682,7 +1702,8 @@ function getBest(){ try{ return +(store.get(bestKey())||0); }catch(e){ return 0;
 function saveBest(v){ try{ store.set(bestKey(),v); }catch(e){} }
 function award(base,left){
   G.streak++; G.bestStreak=Math.max(G.bestStreak,G.streak);
-  const pts = base + (left?Math.round(base*.5*left/G.total):0) + Math.min(G.streak-1,10)*10;
+  // v2.1: harder levels score more (LEVELS[*].mul, shown on the level chips). Normal stays x1.
+  const pts = Math.round((base + (left?Math.round(base*.5*left/G.total):0) + Math.min(G.streak-1,10)*10) * lvMul());
   G.score+=pts; if(settings.mode==="teams"){ G.ts[G.team]+=pts; } return pts;
 }
 function healCheck(){
@@ -1777,7 +1798,7 @@ async function arrive(run){
   showQuestion();
   await tween(350,k=>view.signsAlpha=k);
   if(run!==G.run) return;
-  G.phase="fork"; setButtons(true); startTimer(settings.forkTime);
+  G.phase="fork"; setButtons(true); startTimer(settings.forkTime); applyHintMode();
 }
 function walkTo(x,y){ const c=view.cam; c.walk+=Math.hypot(x-c.x,y-c.y); c.x=x; c.y=y; c.bob=reduce?0:Math.sin(c.walk*Math.PI*1.7)*.012; }
 
@@ -1788,7 +1809,10 @@ function showQuestion(){
   $("topic").className="topic"; $("topic").innerHTML=teamTag()+esc(topicLabel(q)); $("hint").textContent="";
   const qe=$("question"); qe.className=""; qe.innerHTML=esc(q[1]).replace("___","<b>___</b>");
   updateHud(); speakQ(q,view.signs); markSeen(q);
+  applyHintMode();
 }
+function hintMode(){ return (LEVELS[settings.level]&&LEVELS[settings.level].hint)||"button"; }
+function applyHintMode(){ const m=hintMode(), b=$("hintBtn"); if(b) b.hidden = m==="off"; if(m==="auto") showHint(); }
 
 /* v12.6: Englishia performance report (signed-in player on this device; not in team mode) */
 function gmReport(q, picked, ok, timedOut){
@@ -1910,7 +1934,7 @@ async function endGame(kind,run){
   G.phase="end"; G.deadline=0; setButtons(false); view.signsAlpha=0; view.fightAns=null; hush();
   $("topic").innerHTML="&nbsp;";
   if(kind==="gold"){
-    G.score += 500 + (isFinite(G.maxWrong) ? 100*(G.maxWrong-G.wrong) : 0) + (isFinite(G.maxHits) ? 100*(G.maxHits-G.hits) : 0); updateHud();
+    G.score += Math.round((500 + (isFinite(G.maxWrong) ? 100*(G.maxWrong-G.wrong) : 0) + (isFinite(G.maxHits) ? 100*(G.maxHits-G.hits) : 0)) * lvMul()); updateHud();
     view.mode="gold"; stopMusic(.4); sfx.fanfare();
     setTimeout(()=>{ if(view.mode==="gold" && run===G.run) setMusic("victory"); },3800);
     $("question").className="ok"; $("question").textContent="You found the mountain of gold!";
@@ -1935,6 +1959,7 @@ async function endGame(kind,run){
   showEnd(kind);
 }
 function showEnd(kind){
+  { const sb=$("sayBtn"); if(sb) sb.hidden=true; }
   const asked=G.right+G.mistakes.length;
   $("endTitle").textContent = kind==="gold"?"You found the gold!" : kind==="trap"?"You fell into the trap!" : "You were defeated!";
   $("endText").textContent = (kind==="gold"
@@ -1946,6 +1971,20 @@ function showEnd(kind){
   if(settings.mode==="teams"){ const [a,b]=G.ts, n=settings.teamNames;
     win = a===b ? `🤝 It's a draw! ${a} – ${b}` : `🏆 ${esc(a>b?n[0]:n[1])} wins! ${Math.max(a,b)} – ${Math.min(a,b)}`; }
   $("endText").insertAdjacentHTML("beforeend", win?`<span class="winner" style="display:block">${win}</span>`:"");
+  // v2.1: after finding the gold, offer the next harder level (fresh maze). Scores and bests are kept.
+  const old=document.getElementById("lvNext"); if(old) old.remove();
+  if(kind==="gold" && settings.mode!=="teams"){
+    const ks=Object.keys(LEVELS), nk=ks[ks.indexOf(settings.level)+1];
+    const box=document.createElement("div"); box.id="lvNext"; box.className="lv-next noprint";
+    const cup='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10v3a5 5 0 0 1-10 0z" fill="#ffd23d" stroke="#7a5200" stroke-width="1.2"/><path d="M7 5H4.5a2.5 2.5 0 0 0 2.6 3.6M17 5h2.5a2.5 2.5 0 0 1-2.6 3.6" fill="none" stroke="#7a5200" stroke-width="1.4"/><path d="M10.5 12h3v4h-3zM8 20h8v-2.6H8z" fill="#ffd23d" stroke="#7a5200" stroke-width="1.2"/></svg>';
+    box.innerHTML = nk
+      ? `${cup}<b>Congratulations! Ready for a harder level?</b><br>Next: <b>${LEVELS[nk].label} · ${LEVELS[nk].he}</b> · ×${LEVELS[nk].mul} points. A new maze starts. Your scores and bests are kept.<br><button class="go" id="lvNextYes">Yes, next level ▶</button> <button class="go secondary" id="lvNextNo">No, thanks</button>`
+      : `${cup}<b>Congratulations! You beat the hardest level.</b><br><button class="go" id="lvReplay">Play again</button>`;
+    $("endText").after(box);
+    const y=document.getElementById("lvNextYes"); if(y) y.onclick=()=>{ applyLevel(nk); saveSettings(); try{ renderSettings(); }catch(e){} startGame(); };
+    const n=document.getElementById("lvNextNo"); if(n) n.onclick=()=>box.remove();
+    const r=document.getElementById("lvReplay"); if(r) r.onclick=()=>startGame();
+  }
   $("stats").innerHTML=
     `<div><strong>${G.score}</strong>score${G.newBest?' <em class="newbest">New best!</em>':""}</div>`+
     `<div><strong>${G.best}</strong>best on this level</div>`+
@@ -1974,7 +2013,7 @@ $("btnL").addEventListener("click",()=>choose("L"));
 $("btnR").addEventListener("click",()=>choose("R"));
 $("btnM").addEventListener("click",()=>choose("M"));
 function heLine(q){ return settings.hebrew && HE[q[0]] ? `<span class="he">💡 ${esc(HE[q[0]])}</span>` : ""; }
-function showHint(){ if(!(G.phase==="fork"||G.phase==="fight") || !G.cur) return; const h=HE[G.cur[0]];
+function showHint(){ if(!(G.phase==="fork"||G.phase==="fight") || !G.cur || hintMode()==="off") return; const h=HE[G.cur[0]];
   $("hint").textContent = h ? "💡 "+h : "💡 אין רמז לשאלה הזאת – קראו שוב את המשפט בעיון."; }
 function togglePause(force){
   const inGame = $("startScreen").hidden && $("endScreen").hidden && G.phase!=="idle" && G.phase!=="end";
@@ -2039,6 +2078,7 @@ document.addEventListener("keydown",e=>{
 });
 $("startBtn").addEventListener("click",startGame);
 $("againBtn").addEventListener("click",startGame);
+$("sayBtn").addEventListener("click",e=>{ e.stopPropagation(); if(lastSpoken) speak(lastSpoken,true); });
 function openMenu(){ if(G.paused) togglePause(false); G.run++; G.phase="idle"; G.deadline=0; E=null; setButtons(false); hush(); AU.battle=false; if(AU.ctx) setMusic("menu");
   updatePoolInfo(); $("deathCount").textContent=getDeaths(); $("endScreen").hidden=true; $("startScreen").hidden=false; try{ $("startBtn").focus({preventScroll:true}); }catch(e){} }
 $("settingsBtn").addEventListener("click",openMenu);

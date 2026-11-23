@@ -34,7 +34,7 @@
     messagingSenderId: "62739653603",
     appId: "1:62739653603:web:bb5d73d2a343357aa536d6"
   };
-  var VERSION = "12.7";
+  var VERSION = "12.8";
   var SDK = "https://www.gstatic.com/firebasejs/10.14.1/";
   var EMAIL_DOMAIN = "englishia.app";
   var ACTIVITY_DAYS = 7;
@@ -138,11 +138,11 @@
   }
 
   /* ---------- usernames ---------- */
-  function normUsername(u) { return String(u == null ? "" : u).trim().toLowerCase().replace(/\s+/g, ""); }
+  function normUsername(u) { u = String(u == null ? "" : u); if (u.normalize) u = u.normalize("NFC"); return u.trim().toLowerCase().replace(/\s+/g, ""); }
   function checkUsername(u) {
     if (u.length < 3) return "שם המשתמש קצר מדי. צריך לפחות 3 אותיות.";
     if (u.length > 15) return "שם המשתמש ארוך מדי. עד 15 אותיות.";
-    if (!/^[a-z0-9._\-\u05d0-\u05ea]+$/.test(u)) return "בשם המשתמש אפשר אותיות, מספרים, נקודה, מקף וקו תחתון. בלי רווחים.";
+    if (!/^[a-z0-9._\-\u05d0-\u05ea\u0621-\u064a\u0430-\u045f]+$/.test(u)) return "בשם המשתמש אפשר אותיות, מספרים, נקודה, מקף וקו תחתון. בלי רווחים.";
     if (/^x-/.test(u)) return "שם משתמש לא יכול להתחיל ב-x-";
     return "";
   }
@@ -156,10 +156,10 @@
     n = String(n == null ? "" : n).replace(/\s+/g, " ").trim();
     return n.length > 20 ? n.slice(0, 20).trim() : n;
   }
-  // free-text rank label: Hebrew/English letters, digits, spaces and a few punctuation marks, up to 24 chars
+  // free-text rank label: Hebrew/Arabic/Russian/English letters, digits, spaces and a few punctuation marks, up to 24 chars
   function cleanCustomName(n) {
     n = String(n == null ? "" : n).replace(/\s+/g, " ").trim();
-    n = n.replace(/[^\u0590-\u05FFa-zA-Z0-9 \-'׳״·.]/g, "");
+    n = n.replace(/[^\u0590-\u05FF\u0600-\u06FF\u0400-\u04FFa-zA-Z0-9 \-'׳״·.]/g, "");
     n = n.replace(/\s+/g, " ").trim();
     return n.length > 24 ? n.slice(0, 24).trim() : n;
   }
