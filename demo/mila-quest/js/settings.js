@@ -96,6 +96,7 @@ export const normAge = (v) => (AGES.some((a) => a.key === v) ? v : "de");
 
 export const GFX_OPTS = [
   { v: "auto", label: "אוטומטי" },
+  { v: "pixel", label: "מפוקסל" },
   { v: "low", label: "חסכונית" },
   { v: "medium", label: "בינונית" },
   { v: "high", label: "גבוהה" }

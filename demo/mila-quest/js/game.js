@@ -339,7 +339,7 @@ function computeAutoTier() {
 }
 function tier() {
   const g = S.settings.gfx;
-  if (g === "low" || g === "medium" || g === "high") return g;
+  if (g === "pixel" || g === "low" || g === "medium" || g === "high") return g;
   if (!autoTier) autoTier = computeAutoTier();
   return autoTier;
 }
@@ -355,15 +355,21 @@ function markMaterialsDirty() {
   const touch = (o) => { const ms = [].concat(o.material || []); ms.forEach((m) => { if (m) m.needsUpdate = true; }); };
   if (lightsReady) { mapScene.traverse(touch); runScene.traverse(touch); }
 }
+/* v12.4 PIXEL (מפוקסל): ~0.35–0.5 of the CSS resolution (about 320–360 rows), upscaled with sharp pixels. */
+function pixelRatioPx() {
+  return Math.max(0.35, Math.min(0.5, 340 / Math.max(1, innerHeight)));
+}
 function applyQuality() {
-  const t = tier();
-  setGfxLevel(t);
+  const tt = tier();
+  setGfxLevel(tt);
+  const px = tt === "pixel";
+  const t = px ? "low" : tt; // PIXEL keeps every LOW saving
   const dpr = devicePixelRatio || 1;
-  const pr = t === "high" ? Math.min(dpr, 1.75) : t === "medium" ? Math.min(dpr, 1.25) : lowPixelRatio();
+  const pr = px ? pixelRatioPx() : t === "high" ? Math.min(dpr, 1.75) : t === "medium" ? Math.min(dpr, 1.25) : lowPixelRatio();
   renderer.setPixelRatio(pr);
   renderer.setSize(innerWidth, innerHeight);
-  canvas.style.imageRendering = "auto";
-  canvas.classList.remove("pixelated");
+  canvas.style.imageRendering = px ? "pixelated" : "auto";
+  canvas.classList.toggle("pixelated", px);
   GFX.px.value = pr;
   setupPost(t);
   [runFx, mapFx].forEach((f) => { if (f) f.setScale(camera, innerHeight * pr); });
@@ -385,20 +391,28 @@ function applyQuality() {
 /* v12: bloom post-processing (HIGH only; weak PCs never pay for it) */
 let post = null;
 function setupPost(t) {
-  const want = t === "high" && S.settings.fx !== false && renderer.capabilities.isWebGL2;
+  const want = t === "high" && fxAllowed() && renderer.capabilities.isWebGL2;
   if (!want) { if (post) { post.dispose(); post = null; } return; }
   if (!post) post = makeComposer(renderer, innerWidth, innerHeight);
   post.comp.setPixelRatio(renderer.getPixelRatio());
   post.setSize(innerWidth, innerHeight);
 }
+/* v12.4: particles / sparkles / bloom are off in PIXEL even when the "effects" switch is on */
+function fxAllowed() { return S.settings.fx !== false && !GFX.pixel; }
+/* PIXEL draws the run scene only to a short distance (sky dome shrunk to match; fog hides the edge) */
+const PIXEL_SKY = 0.5, PIXEL_FAR = 160;
 function renderFrame(scene) {
+  const far = GFX.pixel && scene === runScene ? PIXEL_FAR : GFX.level === "low" ? 320 : 520;
+  if (camera.far !== far) { camera.far = far; camera.updateProjectionMatrix(); }
+  if (scene === runScene && runSky) { const k = GFX.pixel ? PIXEL_SKY : 1; if (runSky.scale.x !== k) runSky.scale.setScalar(k); }
+  if (scene === runScene && runHills) runHills.visible = !GFX.pixel; // far hills sit beyond the PIXEL draw distance
   if (post) post.render(scene, camera);
   else renderer.render(scene, camera);
 }
 let runFx = null, mapFx = null;
 function applyLightTier() {
   if (!lightsReady) return;
-  const t = tier();
+  const t = GFX.level;
   const before = [runLights.rim.visible, playerFill.visible, playerKey.visible].join();
   runLights.rim.visible = t !== "low";
   mapLights.rim.visible = t !== "low";
@@ -1299,10 +1313,10 @@ function applyStageLook(world) {
 function applyDrawDistance() {
   const low = GFX.level === "low";
   if (low) {
-    runScene.fog.far = Math.min(runScene.fog.far, 190);
-    runScene.fog.near = Math.min(runScene.fog.near, 34);
+    runScene.fog.far = Math.min(runScene.fog.far, GFX.pixel ? 120 : 190);
+    runScene.fog.near = Math.min(runScene.fog.near, GFX.pixel ? 22 : 34);
   }
-  const far = low ? 320 : 520;
+  const far = GFX.pixel ? PIXEL_FAR : low ? 320 : 520;
   if (camera.far !== far) { camera.far = far; camera.updateProjectionMatrix(); }
 }
 function makeStars() {
@@ -1357,7 +1371,7 @@ function emitTrail(dt) {
   trailAcc += dt;
   if (trailAcc < 0.14) return;
   trailAcc = 0;
-  if (!player || !runFx || GFX.level === "low" || player.jumping || S.settings.fx === false) return;
+  if (!player || !runFx || GFX.level === "low" || player.jumping || !fxAllowed()) return;
   player.group.getWorldPosition(_feet);
   runFx.step(_feet.setY(_feet.y + 0.06), (run && run.layout && themeOf(run.world) === "jungle") ? 0xc8a878 : 0xd8d0c0);
 }
@@ -3089,7 +3103,7 @@ async function startLevel(wid, st, lost, opt) {
     runFx.clear();
     const AMB = { 1: ["pollen", 0xfff4c0], 2: ["pollen", 0xffffff], 3: ["pollen", 0xffb8f0], 4: ["pollen", 0xb8c8ff], 5: ["snow", 0xffffff], 6: ["pollen", 0xffe0a0], 7: ["bubbles", 0xa8f0ff], 8: ["embers", 0xff7a2a] };
     const a = AMB[wid] || AMB[1];
-    runFx.ambient(S.settings.fx !== false, a[1], a[0]);
+    runFx.ambient(fxAllowed(), a[1], a[0]);
   }
   run.obsProtos = {};
   for (const f of world.obstacle) run.obsProtos[f] = await createProp(MP(f), 0.7);
@@ -3232,7 +3246,7 @@ function syncCosmetics() {
 function updateCosmetics(dt) {
   if (appMode !== "run" || !player) return;
   syncCosmetics();
-  const fxOn = S.settings.fx !== false;
+  const fxOn = fxAllowed();
   player.group.getWorldPosition(_pp);
   if (cos.aura) { cos.aura.visible = fxOn; if (fxOn) updateAura(cos.aura, dt, camera, runFx, _pp); }
   if (cos.trail) {
@@ -3299,7 +3313,7 @@ function updateTitleCosmetics(dt) {
   if (!base || appMode !== "title") { if (tcos.aura) tcos.aura.visible = false; if (tcos.trail) tcos.trail.visible = false; return; }
   const shown = tcos.actor || base;
   if (tcos.actor) { tcos.actor.model.position.copy(base.model.position); tcos.actor.model.rotation.y = base.model.rotation.y; }
-  const fxOn = S.settings.fx !== false;
+  const fxOn = fxAllowed();
   if (tcos.aura) { tcos.aura.visible = fxOn; tcos.aura.position.copy(shown.model.position); updateAura(tcos.aura, dt, camera, mapFx, shown.model.position); }
   if (tcos.trail) {
     tcos.trail.visible = fxOn;
@@ -4266,7 +4280,7 @@ function initDevTools() {
 }
 
 /* ===== SETTINGS + PAUSE (v8) ===== */
-const TIER_HE = { low: "חסכונית", medium: "בינונית", high: "גבוהה" };
+const TIER_HE = { pixel: "מפוקסל", low: "חסכונית", medium: "בינונית", high: "גבוהה" };
 let settingsBack = null;
 let settingsTab = "game";
 const SET_TABS = [
@@ -4278,7 +4292,8 @@ const SET_TABS = [
 ];
 const GFX_DESC = {
   auto: "המשחק בוחר לבד לפי המחשב, ויורד רמה אם הוא מרגיש איטיות.",
-  low: "תמונה חדה (לא מפוקסלת). בלי צללים ובלי זוהר, פחות חלקיקים ועצים, ראות קצרה יותר. הכי קלה למחשב.",
+  pixel: "למחשבים חלשים מאוד: תמונה מפוקסלת ברזולוציה נמוכה, בלי צללים, בלי חלקיקים וזוהר, ראות קצרה ומעט קישוטים. הכי מהירה.",
+  low: "תמונה חדה (לא מפוקסלת). בלי צללים ובלי זוהר, פחות חלקיקים ועצים, ראות קצרה יותר. קלה מאוד למחשב.",
   medium: "צללים פשוטים, חלקיקים והילה. מתאימה לרוב המחשבים בכיתה.",
   high: "צללים רכים, זוהר (Bloom), החלקת קצוות והכי הרבה פרטים."
 };
@@ -4339,7 +4354,7 @@ function applySettingChange(kind) {
   save();
   if (kind === "gfx") { autoTier = null; if (S.settings.gfx === "auto") { S.autoTier = null; fpsMon.drops = 0; save(); } applyQuality(); if (appMode === "run" && run) applyStageLook(WORLDS[run.world - 1]); }
   if (kind === "types" || kind === "difficulty" || kind === "age") { if (appMode === "map") renderStages(); fillDevGrid(); refreshPlayNext(); refreshWordcount(); }
-  if (kind === "flag") { applyQuality(); if (runFx) runFx.ambient(S.settings.fx !== false && appMode === "run", (runFx.amb && runFx.amb.color) || 0xfff4c0, (runFx.amb && runFx.amb.kind) || "pollen"); }
+  if (kind === "flag") { applyQuality(); if (runFx) runFx.ambient(fxAllowed() && appMode === "run", (runFx.amb && runFx.amb.color) || 0xfff4c0, (runFx.amb && runFx.amb.kind) || "pollen"); }
   if (kind === "flag" && appMode === "run") $("btn-hint").classList.toggle("hidden", !(S.settings.hints && !(run && run.layout && run.layout.diff && run.layout.diff.hints === false)));
 }
 function openSettings(back) {

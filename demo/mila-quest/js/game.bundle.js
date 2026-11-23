@@ -34238,6 +34238,7 @@
   var normAge = (v) => AGES.some((a) => a.key === v) ? v : "de";
   var GFX_OPTS = [
     { v: "auto", label: "\u05D0\u05D5\u05D8\u05D5\u05DE\u05D8\u05D9" },
+    { v: "pixel", label: "\u05DE\u05E4\u05D5\u05E7\u05E1\u05DC" },
     { v: "low", label: "\u05D7\u05E1\u05DB\u05D5\u05E0\u05D9\u05EA" },
     { v: "medium", label: "\u05D1\u05D9\u05E0\u05D5\u05E0\u05D9\u05EA" },
     { v: "high", label: "\u05D2\u05D1\u05D5\u05D4\u05D4" }
@@ -34592,10 +34593,11 @@
   ];
 
   // js/gfx.js
-  var GFX = { level: "high", scale: 1 };
+  var GFX = { level: "high", scale: 1, pixel: false };
   function setGfxLevel(level) {
-    GFX.level = level === "low" || level === "medium" ? level : "high";
-    GFX.scale = GFX.level === "low" ? 0.5 : 1;
+    GFX.pixel = level === "pixel";
+    GFX.level = GFX.pixel || level === "low" ? "low" : level === "medium" ? "medium" : "high";
+    GFX.scale = GFX.pixel ? 0.3 : GFX.level === "low" ? 0.5 : 1;
   }
   function N(high, a, b) {
     return high ? a : Math.max(1, Math.round(b * GFX.scale));
@@ -35119,7 +35121,7 @@
   function populateValley(course, theme = "jungle", high = true) {
     const group = new Group();
     group.name = "valleyDecor";
-    const step = high ? 2 : GFX.level === "low" ? 7 : 4;
+    const step = high ? 2 : GFX.pixel ? 12 : GFX.level === "low" ? 7 : 4;
     for (let i = 0; i < course.samples.length; i += step) {
       const s = course.samples[i];
       if (s.kind !== "causeway") continue;
@@ -35323,7 +35325,7 @@
     if (course.landmarks && course.landmarks.hill != null) {
       spots.push({ s: course.landmarks.hill, kind: "hill", size: 1.1 });
     }
-    const gap = high ? 108 : GFX.level === "low" ? 210 : 140;
+    const gap = high ? 108 : GFX.pixel ? 320 : GFX.level === "low" ? 210 : 140;
     for (let s = 6 + gap; s < len - 36; s += gap) {
       spots.push({ s, kind: "road", size: 1 });
     }
@@ -41417,7 +41419,7 @@ void main(){ vec2 p=vUv-0.5; float d=length(p)*2.0; float a=atan(p.y,p.x);
   }
   function tier() {
     const g = S2.settings.gfx;
-    if (g === "low" || g === "medium" || g === "high") return g;
+    if (g === "pixel" || g === "low" || g === "medium" || g === "high") return g;
     if (!autoTier) autoTier = computeAutoTier();
     return autoTier;
   }
@@ -41445,15 +41447,20 @@ void main(){ vec2 p=vUv-0.5; float d=length(p)*2.0; float a=atan(p.y,p.x);
       runScene.traverse(touch);
     }
   }
+  function pixelRatioPx() {
+    return Math.max(0.35, Math.min(0.5, 340 / Math.max(1, innerHeight)));
+  }
   function applyQuality() {
-    const t = tier();
-    setGfxLevel(t);
+    const tt = tier();
+    setGfxLevel(tt);
+    const px2 = tt === "pixel";
+    const t = px2 ? "low" : tt;
     const dpr = devicePixelRatio || 1;
-    const pr = t === "high" ? Math.min(dpr, 1.75) : t === "medium" ? Math.min(dpr, 1.25) : lowPixelRatio();
+    const pr = px2 ? pixelRatioPx() : t === "high" ? Math.min(dpr, 1.75) : t === "medium" ? Math.min(dpr, 1.25) : lowPixelRatio();
     renderer.setPixelRatio(pr);
     renderer.setSize(innerWidth, innerHeight);
-    canvas.style.imageRendering = "auto";
-    canvas.classList.remove("pixelated");
+    canvas.style.imageRendering = px2 ? "pixelated" : "auto";
+    canvas.classList.toggle("pixelated", px2);
     GFX.px.value = pr;
     setupPost(t);
     [runFx, mapFx].forEach((f) => {
@@ -41483,7 +41490,7 @@ void main(){ vec2 p=vUv-0.5; float d=length(p)*2.0; float a=atan(p.y,p.x);
   }
   var post = null;
   function setupPost(t) {
-    const want = t === "high" && S2.settings.fx !== false && renderer.capabilities.isWebGL2;
+    const want = t === "high" && fxAllowed() && renderer.capabilities.isWebGL2;
     if (!want) {
       if (post) {
         post.dispose();
@@ -41495,7 +41502,22 @@ void main(){ vec2 p=vUv-0.5; float d=length(p)*2.0; float a=atan(p.y,p.x);
     post.comp.setPixelRatio(renderer.getPixelRatio());
     post.setSize(innerWidth, innerHeight);
   }
+  function fxAllowed() {
+    return S2.settings.fx !== false && !GFX.pixel;
+  }
+  var PIXEL_SKY = 0.5;
+  var PIXEL_FAR = 160;
   function renderFrame(scene) {
+    const far = GFX.pixel && scene === runScene ? PIXEL_FAR : GFX.level === "low" ? 320 : 520;
+    if (camera.far !== far) {
+      camera.far = far;
+      camera.updateProjectionMatrix();
+    }
+    if (scene === runScene && runSky) {
+      const k = GFX.pixel ? PIXEL_SKY : 1;
+      if (runSky.scale.x !== k) runSky.scale.setScalar(k);
+    }
+    if (scene === runScene && runHills) runHills.visible = !GFX.pixel;
     if (post) post.render(scene, camera);
     else renderer.render(scene, camera);
   }
@@ -41503,7 +41525,7 @@ void main(){ vec2 p=vUv-0.5; float d=length(p)*2.0; float a=atan(p.y,p.x);
   var mapFx = null;
   function applyLightTier() {
     if (!lightsReady) return;
-    const t = tier();
+    const t = GFX.level;
     const before = [runLights.rim.visible, playerFill.visible, playerKey.visible].join();
     runLights.rim.visible = t !== "low";
     mapLights.rim.visible = t !== "low";
@@ -42432,10 +42454,10 @@ void main(){ vec2 p=vUv-0.5; float d=length(p)*2.0; float a=atan(p.y,p.x);
   function applyDrawDistance() {
     const low = GFX.level === "low";
     if (low) {
-      runScene.fog.far = Math.min(runScene.fog.far, 190);
-      runScene.fog.near = Math.min(runScene.fog.near, 34);
+      runScene.fog.far = Math.min(runScene.fog.far, GFX.pixel ? 120 : 190);
+      runScene.fog.near = Math.min(runScene.fog.near, GFX.pixel ? 22 : 34);
     }
-    const far = low ? 320 : 520;
+    const far = GFX.pixel ? PIXEL_FAR : low ? 320 : 520;
     if (camera.far !== far) {
       camera.far = far;
       camera.updateProjectionMatrix();
@@ -42489,7 +42511,7 @@ void main(){ vec2 p=vUv-0.5; float d=length(p)*2.0; float a=atan(p.y,p.x);
     trailAcc += dt;
     if (trailAcc < 0.14) return;
     trailAcc = 0;
-    if (!player || !runFx || GFX.level === "low" || player.jumping || S2.settings.fx === false) return;
+    if (!player || !runFx || GFX.level === "low" || player.jumping || !fxAllowed()) return;
     player.group.getWorldPosition(_feet);
     runFx.step(_feet.setY(_feet.y + 0.06), run && run.layout && themeOf(run.world) === "jungle" ? 13150328 : 14209216);
   }
@@ -44364,7 +44386,7 @@ void main(){ vec2 p=vUv-0.5; float d=length(p)*2.0; float a=atan(p.y,p.x);
       runFx.clear();
       const AMB = { 1: ["pollen", 16774336], 2: ["pollen", 16777215], 3: ["pollen", 16759024], 4: ["pollen", 12110079], 5: ["snow", 16777215], 6: ["pollen", 16769184], 7: ["bubbles", 11071743], 8: ["embers", 16742954] };
       const a = AMB[wid] || AMB[1];
-      runFx.ambient(S2.settings.fx !== false, a[1], a[0]);
+      runFx.ambient(fxAllowed(), a[1], a[0]);
     }
     run.obsProtos = {};
     for (const f of world.obstacle) run.obsProtos[f] = await createProp(MP(f), 0.7);
@@ -44541,7 +44563,7 @@ void main(){ vec2 p=vUv-0.5; float d=length(p)*2.0; float a=atan(p.y,p.x);
   function updateCosmetics(dt) {
     if (appMode !== "run" || !player) return;
     syncCosmetics();
-    const fxOn = S2.settings.fx !== false;
+    const fxOn = fxAllowed();
     player.group.getWorldPosition(_pp);
     if (cos.aura) {
       cos.aura.visible = fxOn;
@@ -44634,7 +44656,7 @@ void main(){ vec2 p=vUv-0.5; float d=length(p)*2.0; float a=atan(p.y,p.x);
       tcos.actor.model.position.copy(base.model.position);
       tcos.actor.model.rotation.y = base.model.rotation.y;
     }
-    const fxOn = S2.settings.fx !== false;
+    const fxOn = fxAllowed();
     if (tcos.aura) {
       tcos.aura.visible = fxOn;
       tcos.aura.position.copy(shown.model.position);
@@ -45812,7 +45834,7 @@ void main(){ vec2 p=vUv-0.5; float d=length(p)*2.0; float a=atan(p.y,p.x);
       };
     }
   }
-  var TIER_HE = { low: "\u05D7\u05E1\u05DB\u05D5\u05E0\u05D9\u05EA", medium: "\u05D1\u05D9\u05E0\u05D5\u05E0\u05D9\u05EA", high: "\u05D2\u05D1\u05D5\u05D4\u05D4" };
+  var TIER_HE = { pixel: "\u05DE\u05E4\u05D5\u05E7\u05E1\u05DC", low: "\u05D7\u05E1\u05DB\u05D5\u05E0\u05D9\u05EA", medium: "\u05D1\u05D9\u05E0\u05D5\u05E0\u05D9\u05EA", high: "\u05D2\u05D1\u05D5\u05D4\u05D4" };
   var settingsBack = null;
   var settingsTab = "game";
   var SET_TABS = [
@@ -45824,7 +45846,8 @@ void main(){ vec2 p=vUv-0.5; float d=length(p)*2.0; float a=atan(p.y,p.x);
   ];
   var GFX_DESC = {
     auto: "\u05D4\u05DE\u05E9\u05D7\u05E7 \u05D1\u05D5\u05D7\u05E8 \u05DC\u05D1\u05D3 \u05DC\u05E4\u05D9 \u05D4\u05DE\u05D7\u05E9\u05D1, \u05D5\u05D9\u05D5\u05E8\u05D3 \u05E8\u05DE\u05D4 \u05D0\u05DD \u05D4\u05D5\u05D0 \u05DE\u05E8\u05D2\u05D9\u05E9 \u05D0\u05D9\u05D8\u05D9\u05D5\u05EA.",
-    low: "\u05EA\u05DE\u05D5\u05E0\u05D4 \u05D7\u05D3\u05D4 (\u05DC\u05D0 \u05DE\u05E4\u05D5\u05E7\u05E1\u05DC\u05EA). \u05D1\u05DC\u05D9 \u05E6\u05DC\u05DC\u05D9\u05DD \u05D5\u05D1\u05DC\u05D9 \u05D6\u05D5\u05D4\u05E8, \u05E4\u05D7\u05D5\u05EA \u05D7\u05DC\u05E7\u05D9\u05E7\u05D9\u05DD \u05D5\u05E2\u05E6\u05D9\u05DD, \u05E8\u05D0\u05D5\u05EA \u05E7\u05E6\u05E8\u05D4 \u05D9\u05D5\u05EA\u05E8. \u05D4\u05DB\u05D9 \u05E7\u05DC\u05D4 \u05DC\u05DE\u05D7\u05E9\u05D1.",
+    pixel: "\u05DC\u05DE\u05D7\u05E9\u05D1\u05D9\u05DD \u05D7\u05DC\u05E9\u05D9\u05DD \u05DE\u05D0\u05D5\u05D3: \u05EA\u05DE\u05D5\u05E0\u05D4 \u05DE\u05E4\u05D5\u05E7\u05E1\u05DC\u05EA \u05D1\u05E8\u05D6\u05D5\u05DC\u05D5\u05E6\u05D9\u05D4 \u05E0\u05DE\u05D5\u05DB\u05D4, \u05D1\u05DC\u05D9 \u05E6\u05DC\u05DC\u05D9\u05DD, \u05D1\u05DC\u05D9 \u05D7\u05DC\u05E7\u05D9\u05E7\u05D9\u05DD \u05D5\u05D6\u05D5\u05D4\u05E8, \u05E8\u05D0\u05D5\u05EA \u05E7\u05E6\u05E8\u05D4 \u05D5\u05DE\u05E2\u05D8 \u05E7\u05D9\u05E9\u05D5\u05D8\u05D9\u05DD. \u05D4\u05DB\u05D9 \u05DE\u05D4\u05D9\u05E8\u05D4.",
+    low: "\u05EA\u05DE\u05D5\u05E0\u05D4 \u05D7\u05D3\u05D4 (\u05DC\u05D0 \u05DE\u05E4\u05D5\u05E7\u05E1\u05DC\u05EA). \u05D1\u05DC\u05D9 \u05E6\u05DC\u05DC\u05D9\u05DD \u05D5\u05D1\u05DC\u05D9 \u05D6\u05D5\u05D4\u05E8, \u05E4\u05D7\u05D5\u05EA \u05D7\u05DC\u05E7\u05D9\u05E7\u05D9\u05DD \u05D5\u05E2\u05E6\u05D9\u05DD, \u05E8\u05D0\u05D5\u05EA \u05E7\u05E6\u05E8\u05D4 \u05D9\u05D5\u05EA\u05E8. \u05E7\u05DC\u05D4 \u05DE\u05D0\u05D5\u05D3 \u05DC\u05DE\u05D7\u05E9\u05D1.",
     medium: "\u05E6\u05DC\u05DC\u05D9\u05DD \u05E4\u05E9\u05D5\u05D8\u05D9\u05DD, \u05D7\u05DC\u05E7\u05D9\u05E7\u05D9\u05DD \u05D5\u05D4\u05D9\u05DC\u05D4. \u05DE\u05EA\u05D0\u05D9\u05DE\u05D4 \u05DC\u05E8\u05D5\u05D1 \u05D4\u05DE\u05D7\u05E9\u05D1\u05D9\u05DD \u05D1\u05DB\u05D9\u05EA\u05D4.",
     high: "\u05E6\u05DC\u05DC\u05D9\u05DD \u05E8\u05DB\u05D9\u05DD, \u05D6\u05D5\u05D4\u05E8 (Bloom), \u05D4\u05D7\u05DC\u05E7\u05EA \u05E7\u05E6\u05D5\u05D5\u05EA \u05D5\u05D4\u05DB\u05D9 \u05D4\u05E8\u05D1\u05D4 \u05E4\u05E8\u05D8\u05D9\u05DD."
   };
@@ -45900,7 +45923,7 @@ void main(){ vec2 p=vUv-0.5; float d=length(p)*2.0; float a=atan(p.y,p.x);
     }
     if (kind === "flag") {
       applyQuality();
-      if (runFx) runFx.ambient(S2.settings.fx !== false && appMode === "run", runFx.amb && runFx.amb.color || 16774336, runFx.amb && runFx.amb.kind || "pollen");
+      if (runFx) runFx.ambient(fxAllowed() && appMode === "run", runFx.amb && runFx.amb.color || 16774336, runFx.amb && runFx.amb.kind || "pollen");
     }
     if (kind === "flag" && appMode === "run") $("btn-hint").classList.toggle("hidden", !(S2.settings.hints && !(run && run.layout && run.layout.diff && run.layout.diff.hints === false)));
   }

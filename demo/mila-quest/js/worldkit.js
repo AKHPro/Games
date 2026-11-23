@@ -530,7 +530,7 @@ export function makeGrassTuft(color = 0x2f8a3a) {
 export function populateValley(course, theme = "jungle", high = true) {
   const group = new THREE.Group();
   group.name = "valleyDecor";
-  const step = high ? 2 : (GFX.level === "low" ? 7 : 4);
+  const step = high ? 2 : (GFX.pixel ? 12 : GFX.level === "low" ? 7 : 4);
   for (let i = 0; i < course.samples.length; i += step) {
     const s = course.samples[i];
     if (s.kind !== "causeway") continue;
@@ -742,7 +742,7 @@ export function plantCourseFlags(course, high = true) {
   if (course.landmarks && course.landmarks.hill != null) {
     spots.push({ s: course.landmarks.hill, kind: "hill", size: 1.1 });
   }
-  const gap = high ? 108 : (GFX.level === "low" ? 210 : 140);
+  const gap = high ? 108 : (GFX.pixel ? 320 : GFX.level === "low" ? 210 : 140);
   for (let s = 6 + gap; s < len - 36; s += gap) {
     spots.push({ s, kind: "road", size: 1 });
   }

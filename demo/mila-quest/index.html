@@ -142,6 +142,16 @@ html.short .say-btn{width:34px;height:34px;top:3px}
 .camp-done h2{margin:6px 0}
 .camp-ico svg{width:76px;height:76px}
 .camp-keep{font-size:.9em;opacity:.8}
+/* v12.4: map "back" button: big, high-contrast pill at the bottom centre, right above the world name */
+#s-map .map-back-big{align-self:center;display:inline-flex;align-items:center;gap:10px;min-height:54px;padding:8px 30px;border-radius:999px;
+  font-size:clamp(20px,2.4vw,26px);font-weight:800;background:#ffd23d;color:#1a1000;border:3px solid #1a1000;
+  box-shadow:0 4px 0 #1a1000,0 10px 26px rgba(0,0,0,.45);text-shadow:none;letter-spacing:.01em}
+#s-map .map-back-big:hover{filter:brightness(1.06)}
+#s-map .map-back-big:focus-visible{outline:4px solid #fff;outline-offset:3px}
+#s-map .mbb-ico{width:1.15em;height:1.15em;flex:none}
+html[dir=ltr] #s-map .mbb-ico{transform:scaleX(-1)}
+html.short #s-map .map-back-big{min-height:44px;padding:5px 24px;font-size:19px}
+html.portrait #s-map .map-back-big{min-height:48px;padding:6px 26px;font-size:20px}
 .replay-btn{font-size:clamp(22px,3.2vw,32px);padding:8px 26px}
 .replay-btn small{font-size:.55em;opacity:.8}
 .lane-opt.closed{background:#bdbdbd;color:#555;box-shadow:0 6px 0 #555}
@@ -652,7 +662,6 @@ html.short .shop-desc{display:none}
         <span class="pill">🔑 <span id="map-keys">0</span></span>
         <button class="btn s mq-lb-btn" id="btn-map-lb"><svg class="mq-ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M7 3.5h10v4.2a5 5 0 0 1-10 0z" fill="#ffd43b" stroke="#5b3a00" stroke-width="1.6" stroke-linejoin="round"/><path d="M7 5.5H4.2a3 3 0 0 0 3.3 4.2M17 5.5h2.8a3 3 0 0 1-3.3 4.2" fill="none" stroke="#5b3a00" stroke-width="1.6" stroke-linecap="round"/><path d="M12 12.7v3.3" stroke="#5b3a00" stroke-width="1.8"/><path d="M8.5 20.5h7l-.8-3.6H9.3z" fill="#ffd43b" stroke="#5b3a00" stroke-width="1.6" stroke-linejoin="round"/></svg><span>טבלת דירוג</span></button>
         <button class="btn s mq-shop-btn" id="btn-map-shop"><svg class="mq-ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 9h16l-1.5 11h-13z" fill="#ffd43b" stroke="#5b3a00" stroke-width="1.6" stroke-linejoin="round"/><path d="M8.5 9V7a3.5 3.5 0 0 1 7 0v2" fill="none" stroke="#5b3a00" stroke-width="1.8"/></svg><span>חנות</span></button>
-        <button class="btn s" id="btn-map-back">חזרה</button>
       </div>
     </div>
     <aside class="map-side">
@@ -667,6 +676,7 @@ html.short .shop-desc{display:none}
       <div class="glass side-card"><h3>📚 ספריית המילים האבודות</h3><p>תרגול נוסף למילים שברחו בדרך.</p><button class="btn s" id="btn-library">כניסה לספרייה</button></div>
     </aside>
     <div class="map-bottom">
+      <button class="btn map-back-big" id="btn-map-back"><svg class="mbb-ico" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/><path d="M4 12h11" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"/></svg><span>חזרה</span></button>
       <div class="world-type glass" id="world-type"></div>
       <div class="world-chips" id="world-chips"></div>
       <div class="stage-bar" id="stage-bar"></div>
@@ -768,7 +778,7 @@ html.short .shop-desc{display:none}
       return Promise.race([wait, new Promise(function (r) { setTimeout(r, 9000); })]).then(syncOwner);
     });
   if (location.protocol === "file:") chain = chain.then(function () { return loadScript("./js/embed.js"); });
-  chain.then(function () { return loadScript("./js/game.bundle.js"); })
+  chain.then(function () { return loadScript("./js/game.bundle.js?v=12.4"); })
     .catch(function (e) { console.error(e); });
 })();
 </script>
@@ -787,7 +797,7 @@ html.short .shop-desc{display:none}
 <div id="mq-credit" style="position:fixed;left:0;right:0;bottom:4px;text-align:center;font:600 12px/1.2 system-ui,sans-serif;color:rgba(255,255,255,.75);text-shadow:0 1px 2px rgba(0,0,0,.6);pointer-events:none;z-index:3;direction:ltr"></div>
 <script>
 (function(){var demo=/\/demo\//.test(location.pathname);
-var V="12.3";var el=document.getElementById("mq-credit");
+var V="12.4";var el=document.getElementById("mq-credit");
 var l1=document.createElement("div");l1.textContent="\u00A9 2026 Amir \u00B7 Englishia \u00B7 All rights reserved \u00B7 "+(demo?"Demo version "+V:"Version "+V);
 var l2=document.createElement("div");l2.dir="rtl";l2.textContent="\u00A9 2026 \u05D0\u05DE\u05D9\u05E8 \u00B7 \u05D0\u05D9\u05E0\u05D2\u05DC\u05D9\u05E9\u05D9\u05D4 \u00B7 \u05DB\u05DC \u05D4\u05D6\u05DB\u05D5\u05D9\u05D5\u05EA \u05E9\u05DE\u05D5\u05E8\u05D5\u05EA \u00B7 "+(demo?"\u05D2\u05E8\u05E1\u05EA \u05D3\u05DE\u05D5 "+V:"\u05D2\u05E8\u05E1\u05D4 "+V);
 el.appendChild(l1);el.appendChild(l2);})();
