@@ -407,6 +407,7 @@ html.short #mq-home{font-size:14px;padding:6px 10px;min-height:38px;top:calc(max
 .sign{background:none;border:0;box-shadow:none;transform:none;padding:0 10px}
 .sign h1{background:linear-gradient(180deg,#fff7c8 0%,#ffd23d 45%,#ff9a1a 100%);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-stroke:0;text-shadow:none;filter:drop-shadow(0 4px 0 #6a2a00) drop-shadow(0 10px 24px rgba(255,160,40,.55));font-size:clamp(44px,8.5vw,92px);letter-spacing:.01em;animation:logoFloat 4s ease-in-out infinite}
 @keyframes logoFloat{50%{transform:translateY(-4px)}}
+.sign h1{font-family:Rubik,"Segoe UI",Tahoma,Arial,sans-serif;font-weight:800;background:none;-webkit-background-clip:border-box;background-clip:border-box;color:#ffd23d;-webkit-text-stroke:0;filter:none;text-shadow:0 2px 0 #ffb21a,0 4px 0 #b05a00,0 6px 0 #6a2a00,0 10px 26px rgba(255,160,40,.55)}
 .sub{background:rgba(30,20,80,.55);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.35);box-shadow:0 8px 24px rgba(10,6,40,.3);font-size:clamp(16px,2.2vw,22px)}
 .hero-btn{background:rgba(255,255,255,.9);border:3px solid transparent;border-radius:16px;font-size:clamp(17px,2.2vw,21px);transition:transform .2s,box-shadow .2s}
 .hero-btn.sel{border-color:#ffd23d;box-shadow:0 0 0 4px rgba(255,210,61,.45),0 0 24px rgba(255,210,61,.6);transform:translateY(-2px)}
@@ -786,7 +787,7 @@ html.short .shop-desc{display:none}
 <div id="mq-credit" style="position:fixed;left:0;right:0;bottom:4px;text-align:center;font:600 12px/1.2 system-ui,sans-serif;color:rgba(255,255,255,.75);text-shadow:0 1px 2px rgba(0,0,0,.6);pointer-events:none;z-index:3;direction:ltr"></div>
 <script>
 (function(){var demo=/\/demo\//.test(location.pathname);
-var V="12.1";var el=document.getElementById("mq-credit");
+var V="12.2";var el=document.getElementById("mq-credit");
 var l1=document.createElement("div");l1.textContent="\u00A9 2026 Amir \u00B7 Englishia \u00B7 All rights reserved \u00B7 "+(demo?"Demo version "+V:"Version "+V);
 var l2=document.createElement("div");l2.dir="rtl";l2.textContent="\u00A9 2026 \u05D0\u05DE\u05D9\u05E8 \u00B7 \u05D0\u05D9\u05E0\u05D2\u05DC\u05D9\u05E9\u05D9\u05D4 \u00B7 \u05DB\u05DC \u05D4\u05D6\u05DB\u05D5\u05D9\u05D5\u05EA \u05E9\u05DE\u05D5\u05E8\u05D5\u05EA \u00B7 "+(demo?"\u05D2\u05E8\u05E1\u05EA \u05D3\u05DE\u05D5 "+V:"\u05D2\u05E8\u05E1\u05D4 "+V);
 el.appendChild(l1);el.appendChild(l2);})();
