@@ -34,6 +34,17 @@
       "level": "Grades 10–12",
       "path": "word-detective/",
       "thumbnail": "assets/thumbs/word-detective.jpg"
+    },
+    {
+      "id": "word-race",
+      "title": "Word Race",
+      "subtitleHe": "מירוץ המילים",
+      "description": "A live English quiz race for the whole class. The teacher opens a room (online, or on the projector with a big code and QR), students join from any device with a name and one of 8 runners, and every correct answer moves their runner up the track. Translation, vocabulary, grammar, missing-letter and listening questions, six difficulty levels, and a podium at the finish.",
+      "category": "Quiz",
+      "tags": ["Multiplayer", "Words", "Grammar", "Projector"],
+      "level": "בחירת גיל בהגדרות",
+      "path": "word-race/",
+      "thumbnail": "assets/thumbs/word-race.jpg"
     }
   ]
 }
