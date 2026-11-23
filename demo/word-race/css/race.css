@@ -411,3 +411,13 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:4px solid var(-
 .ltr .hb-s{font-size:17px}
 .ltr.m .homebtn .hb-t{font-size:16px;white-space:normal;line-height:1.15}
 .ltr .title{font-size:34px}
+/* 1.0.1: phone answer labels never collapse (iOS Safari short viewport bug) */
+.m .panel .ans .at{flex:none;max-width:100%;white-space:nowrap}
+.m .panel .ans .sb{flex:none}
+.m .panel .answers.compact .ans{flex-direction:row;justify-content:flex-start;gap:10px;padding:0 12px;text-align:start}
+.m .panel .answers.compact .ans .sb{width:40px;height:40px;border-radius:12px}
+.m .panel .answers.compact .ans .sb svg{width:22px;height:22px}
+.m .panel .answers.compact .ans .at{max-width:calc(100% - 50px)}
+.panel .ans.tiny{font-size:52px}
+.m .panel .ans.tiny{font-size:46px}
+.pq .ans.tiny{font-size:40px}

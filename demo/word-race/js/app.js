@@ -3,7 +3,7 @@
    © 2026 Amir · Englishia · All rights reserved */
 import { LEVELS, levelOf, AGES, QTYPES, buildRace, publicQ, localize } from "./questions.js";
 
-const VERSION = "1.0", GAME_ID = "word-race", MAX_PLAYERS = 30;
+const VERSION = "1.0.1", GAME_ID = "word-race", MAX_PLAYERS = 30;
 const DEMO = /\/demo\//.test(location.pathname);
 const HUB = DEMO ? "../" : "../../";
 const URLP = new URLSearchParams(location.search);
@@ -211,7 +211,7 @@ function fit() {
 let VIEW = { name: "", render: null };
 function show(name, render) { VIEW = { name, render }; render(); stage.scrollTop = 0; stage.scrollLeft = 0; }
 let rsz = 0;
-window.addEventListener("resize", () => { clearTimeout(rsz); rsz = setTimeout(() => { if (fit() && VIEW.render) { if (VIEW.name === "race" && PS.st) raceScreen(PS.st, RACE && RACE.projector); else VIEW.render(); } }, 120); });
+window.addEventListener("resize", () => { clearTimeout(rsz); rsz = setTimeout(() => { const ch = fit(); if (VIEW.name === "race") fitAnswers(); if (ch && VIEW.render) { if (VIEW.name === "race" && PS.st) raceScreen(PS.st, RACE && RACE.projector); else VIEW.render(); } }, 120); });
 const T_ = (s) => { try { return window.EnglishiaLang ? EnglishiaLang.t(s) : s; } catch (e) { return s; } };
 /* count words that follow a number in another element: Hebrew as in the design, ar/ru from their own dictionary key */
 const W_OK = () => (LANG === "he" ? "נכונות" : T_("מספר תשובות נכונות")), W_PL = () => (LANG === "he" ? "שחקנים" : T_("מספר שחקנים"));
@@ -653,12 +653,45 @@ function trackSpec(projector) {
   if (projector) return { W: 1280, H: 800, y0: 880, y1: 300, bw: 1160, tw: 580, base: 150, tag: 22, feet: 772 };
   return { W: 1280, H: 520, y0: 560, y1: 118, bw: 980, tw: 500, base: 124, tag: 19, cx: 590, feet: 500 };
 }
+/* Phone answer buttons: the label must always be readable. When the buttons are too short for
+   shape-above-text (short Safari viewports), switch to shape-beside-text, then shrink each label
+   only as much as needed to fit its button (never below 15px). */
+function fitAnswers() {
+  const box = $("#answers");
+  if (!box || !MOBILE || (RACE && RACE.projector)) return;
+  const btns = $$(".ans", box);
+  if (!btns.length) return;
+  const reset = () => btns.forEach((b) => { const t = $(".at", b); t.style.fontSize = ""; t.style.whiteSpace = ""; });
+  const shrink = () => { /* largest common size (>=15px) at which every label fits its button */
+    let min = 99;
+    btns.forEach((b) => {
+      const t = $(".at", b);
+      let fs = parseFloat(getComputedStyle(t).fontSize) || 24;
+      const over = () => t.scrollWidth > t.clientWidth + 1 || t.offsetHeight > b.clientHeight - 6;
+      while (fs > 15 && over()) { fs -= 1; t.style.fontSize = fs + "px"; }
+      if (over()) t.style.whiteSpace = "normal";
+      min = Math.min(min, fs);
+    });
+    btns.forEach((b) => { $(".at", b).style.fontSize = min + "px"; });
+    return min;
+  };
+  box.classList.remove("compact"); box.style.gridTemplateColumns = "1fr 1fr"; reset();
+  const b0 = btns[0], at0 = $(".at", b0), sb0 = $(".sb", b0);
+  if (b0.clientHeight >= sb0.offsetHeight + at0.offsetHeight + 10 + 16) { shrink(); return; }
+  box.classList.add("compact");
+  const two = shrink();
+  if (btns.length !== 3) return;
+  /* three options in a short panel: one full-width row each, if that gives bigger text */
+  box.style.gridTemplateColumns = "1fr"; reset();
+  if (b0.clientHeight < 40 || shrink() <= two) { box.style.gridTemplateColumns = "1fr 1fr"; reset(); shrink(); }
+}
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => fitAnswers());
 function raceScreen(m, projector) {
   show("race", () => {
     const sp = trackSpec(projector), L = Math.max(4, m.pl.length);
     const T = new Track(sp.W, sp.H, sp.y0, sp.y1, sp.bw, sp.tw, L, sp.cx);
     RACE = { T, sp, projector, L, t0: Math.max(0, T.tAt(sp.feet)), runners: new Map(), n: m.n, qkey: "", picked: -1, fbk: "", end: 0, dur: 0 };
-    const trackH = MOBILE ? Math.round(MH * 0.39) : sp.H, k = trackH / sp.H;
+    const trackH = MOBILE ? Math.round(MH * (MH < 800 ? 0.33 : 0.39)) : sp.H, k = trackH / sp.H;
     const trackWrap = `<div class="trackwrap" id="trk" style="width:${sp.W}px;height:${sp.H}px;${MOBILE ? `transform-origin:50% 0;transform:scale(${k.toFixed(4)})` : ""}">${T.svg(m.n, LOW, sp.tmax)}<div id="runners"></div></div>`;
     let body;
     if (projector) {
@@ -766,8 +799,10 @@ function raceUpdate(m, projector) {
       (CAN_SPEAK && q.speak && !q.listen ? `<button class="saybtn" id="bSay" aria-label="Listen" style="width:40px;height:40px">${ico("volume", 20, 2.6, "#fff")}</button>` : "");
     const ans = $("#answers"); ans.style.gridTemplateColumns = MOBILE ? "1fr 1fr" : `repeat(${q.opts.length},1fr)`;
     const long = q.opts.some((o) => String(o).length > (MOBILE ? 9 : 12));
-    ans.innerHTML = q.opts.map((o, i) => `<button class="ans ${ACLS[i]} ${long ? "long" : ""}" data-a="${i}" aria-label="${SHNAME[i]}: ${esc(o)}" ${projector ? "disabled" : ""}><span class="sb">${shape(SH[i], projector ? 22 : MOBILE ? 26 : 30, i === 2 ? "#2b2140" : "#fff")}</span><span class="at ${q.optsEn ? "" : "nat"}" dir="auto">${esc(o)}</span></button>`).join("");
+    const tiny = q.opts.every((o) => String(o).length <= 2);
+    ans.innerHTML = q.opts.map((o, i) => `<button class="ans ${ACLS[i]} ${long ? "long" : ""} ${tiny ? "tiny" : ""}" data-a="${i}" aria-label="${SHNAME[i]}: ${esc(o)}" ${projector ? "disabled" : ""}><span class="sb">${shape(SH[i], projector ? 22 : MOBILE ? 26 : 30, i === 2 ? "#2b2140" : "#fff")}</span><span class="at ${q.optsEn ? "" : "nat"}" dir="auto">${esc(o)}</span></button>`).join("");
     if (!projector) $$(".ans", ans).forEach((b) => (b.onclick = () => pickAnswer(+b.dataset.a)));
+    fitAnswers(); requestAnimationFrame(fitAnswers);
     const lst = $("#bListen"), sb = $("#bSay");
     if (lst) lst.onclick = () => speak(q.speak);
     if (sb) sb.onclick = () => speak(q.speak);
