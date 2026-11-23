@@ -92,11 +92,13 @@ function itemById(id) { return BY_ID[id] || null; }
 function sentHTML(it, fill) {
   var h = esc(it.s).replace(/\*\*(.+?)\*\*/g, '<b class="hl">$1</b>');
   h = h.replace("___", '<span class="gap">' + (fill ? esc(fill) : "&nbsp;") + "</span>");
-  if (it.t === "type") h += ' <span class="base">(' + esc(it.w) + (it.h ? " – " + '<span dir="rtl">' + esc(it.h) + "</span>" : "") + ")</span>";
+  if ((it.t === "type" || it.fromType) && it.w) h += ' <span class="base">(' + esc(it.w) + (it.h ? " – " + '<span dir="rtl">' + esc(it.h) + "</span>" : "") + ")</span>";
   return h;
 }
 function promptOf(it) {
   if (it.t === "pos") return "מה חלק הדיבר של המילה המודגשת?";
+  if (it.fromType) return it.pf ? "בחרו את המילה עם התחילית הנכונה:" : "בחרו את הצורה הנכונה של המילה שבסוגריים:";
+  if (it.fromMc) return "הקלידו את המילה המתאימה למשפט:";
   if (it.t === "mc") return "בחרו את המילה המתאימה למשפט:";
   if (it.t === "tense") return "באיזה זמן הפועל המודגש?";
   if (it.pf) return "הוסיפו תחילית למילה שבסוגריים וכתבו אותה:";
@@ -122,7 +124,7 @@ function tenseOptsFor(it, lv) {
 function ltrRuns(html) {
   /* wrap each stretch with no Hebrew letters (tags allowed) that starts and ends with Latin text in one LTR isolate,
      so mixed explanations like "If + V1, <b>will + V1</b>" keep their English order inside RTL text */
-  var U = [], HEB = /[\u0590-\u05FF]/, LAT = /[A-Za-z0-9]/, END = /[A-Za-z0-9_.!?)]/;
+  var U = [], HEB = /[\u0590-\u05FF\u0600-\u06FF\u0400-\u04FF]/, LAT = /[A-Za-z0-9]/, END = /[A-Za-z0-9_.!?)]/;
   String(html).split(/(<[^>]+>)/).forEach(function (s) { if (!s) return; if (s.charAt(0) === "<") U.push({ tag: s }); else for (var k = 0; k < s.length; k++) U.push({ ch: s[k] }); });
   function prevCh(i) { for (var k = i - 1; k >= 0; k--) if (U[k].ch != null) return U[k].ch; return ""; }
   function nextCh(i) { for (var k = i + 1; k < U.length; k++) if (U[k].ch != null) return U[k].ch; return ""; }
@@ -247,7 +249,55 @@ var LV_HE = { 1: "מתחילים", 2: "קלה", 3: "בסיסית", 4: "בינו�
 function level() { var v = +LS.get("wd-level", 4); return (v >= 1 && v <= 5) ? v : 4; }
 function setLevel(v) { LS.set("wd-level", v); $$("#levels .chip").forEach(function (c) { c.classList.toggle("on", +c.dataset.lv === v); }); }
 $$("#levels .chip").forEach(function (c) { c.onclick = function () { setLevel(+c.dataset.lv); }; });
-function secItems(S, lv) { return S.list.filter(function (it) { return it.lv <= lv; }); }
+/* v1.3: each level is really different (before: level only capped the pool, so level 5 still mixed in all the easy items).
+   pool: which item levels are used · opts: max answer options · type: "mc" turns typing items into multiple choice,
+   "letter" shows the first letter, "type" turns multiple choice into typing · hint: hint button · secs: time per question (0 = none)
+   n: questions in V1-V2-V3 / exam. Competition (same questions for everyone) is not level-dependent. */
+var LVP = {
+  1: { pool: [1, 1], opts: 3, type: "mc", hint: true, secs: 0, forms: 8, exam: 15 },
+  2: { pool: [1, 2], opts: 4, type: "mc", hint: true, secs: 0, forms: 10, exam: 20 },
+  3: { pool: [2, 3], opts: 6, type: "letter", hint: true, secs: 0, forms: 12, exam: 25 },
+  4: { pool: [3, 4], opts: 99, type: "type", hint: true, secs: 0, forms: 15, exam: 30, mcType: 0 },
+  5: { pool: [4, 5], opts: 99, type: "type", hint: false, secs: 40, forms: 15, exam: 30, mcType: 0.5 }
+};
+function lvp(lv) { return LVP[lv] || LVP[4]; }
+function levelPool(list, lv, min) {
+  var P = lvp(lv), lo = P.pool[0], hi = P.pool[1], out = list.filter(function (it) { return it.lv >= lo && it.lv <= hi; });
+  min = min || 6;
+  for (var g = 0; g < 5 && out.length < min; g++) {          // widen toward easier (and for high levels also harder) items when a topic is thin
+    if (lo > 1) lo--; else if (hi < 5) hi++; else break;
+    out = list.filter(function (it) { return it.lv >= lo && it.lv <= hi; });
+  }
+  return out.length ? out : list.slice();
+}
+function secItems(S, lv) { return levelPool(S.list, lv); }
+/* make a level-adapted copy of an item (same id, so reports and scores keep the same keys) */
+function adaptItem(it, lv) {
+  if (!it || !G || G.mode === "comp" || G.mode === "team") return it;
+  var P = lvp(lv), c = Object.assign({}, it), r = Math.random;
+  if (it.t === "pos" && it.opts && it.opts.length > P.opts) {
+    c.opts = [it.a].concat(shuffle(it.opts.filter(function (k) { return k !== it.a; })).slice(0, P.opts - 1));
+    c.opts = it.opts.filter(function (k) { return c.opts.indexOf(k) >= 0; });
+  } else if (it.t === "mc" && it.o) {
+    if (P.mcType && r() < P.mcType && /^[A-Za-z' -]+$/.test(it.o[it.a])) {
+      c.t = "type"; c.a = [it.o[it.a]]; c.w = ""; c.fromMc = true;
+    } else if (it.o.length > P.opts) {
+      var keep = [it.a].concat(shuffle(it.o.map(function (_, i) { return i; }).filter(function (i) { return i !== it.a; })).slice(0, P.opts - 1)).sort(function (x, y) { return x - y; });
+      c.o = keep.map(function (i) { return it.o[i]; }); c.a = keep.indexOf(it.a);
+    }
+  } else if (it.t === "type" && P.type === "mc" && it.a && it.a[0]) {
+    var ans = it.a[0], seen = {}, cand = [];
+    seen[ans.toLowerCase()] = 1;
+    [it.w].concat(shuffle((it.S ? it.S.list : ITEMS).map(function (x) { return x.a && x.a[0]; }))).forEach(function (w) {
+      if (w && !seen[String(w).toLowerCase()]) { seen[String(w).toLowerCase()] = 1; cand.push(w); }
+    });
+    var o = shuffle([ans].concat(cand.slice(0, Math.max(1, Math.min(P.opts, 4) - 1))));
+    c.t = "mc"; c.o = o; c.a = o.indexOf(ans); c.fromType = true;
+  } else if (it.t === "type" && P.type === "letter" && it.a && it.a[0]) {
+    c.firstLetter = it.a[0].charAt(0);
+  }
+  return c;
+}
 
 /* ---------- home ---------- */
 var MODES = [
@@ -290,9 +340,9 @@ var G = null;
 function startGame(mode, opt) {
   opt = opt || {}; var q, lv = level();
   if (mode === "practice") q = shuffle(secItems(WD.SECTIONS[opt.sec - 1], lv));
-  else if (mode === "exam") q = EXAM_ITEMS.slice();
+  else if (mode === "exam") q = lvp(lv).exam >= EXAM_ITEMS.length ? EXAM_ITEMS.slice() : shuffle(EXAM_ITEMS).slice(0, lvp(lv).exam);
   else if (mode === "comp") q = compQueue(opt.code);
-  else if (mode === "forms") { var pool = ITEMS.filter(function (it) { return it.t === "tense" && formsOf(it); }); q = mixed(WD.TENSE_ORDER.map(function (k) { return pool.filter(function (it) { return it.a === k && (it.lv <= Math.max(lv, 4) || it.exam); }); }), 15, Math.random); }
+  else if (mode === "forms") { var pool = ITEMS.filter(function (it) { return it.t === "tense" && formsOf(it); }); pool = levelPool(pool, lv, 15); q = mixed(WD.TENSE_ORDER.map(function (k) { return pool.filter(function (it) { return it.a === k; }); }), lvp(lv).forms, Math.random); }
   G = { mode: mode, opt: opt, q: q, idx: 0, score: 0, streak: 0, best: 0, results: [], start: Date.now(), lv: lv, recorded: false,
     bd: { base: 0, speed: 0, streak: 0, fu: 0, partial: 0, forms: 0 } };
   G.withForms = mode === "forms" || (mode === "practice" && WD.SECTIONS[opt.sec - 1].type === "tense" && LS.get("wd-forms", false));
@@ -309,16 +359,42 @@ function lblFor() {
   if (G.mode === "exam") return "מבחן מסכם · שאלה " + n;
   return "שאלה " + n;
 }
+/* v1.3: harder levels score more in practice / forms (not in the competition, the exam or the team game,
+   which keep their own fixed scoring so results stay comparable). Level 4 (medium, the default) stays x1. */
+var LV_MUL = { 1: 0.5, 2: 0.6, 3: 0.8, 4: 1, 5: 1.5 };
+function lvMul() { return G && (G.mode === "practice" || G.mode === "forms") ? (LV_MUL[G.lv] || 1) : 1; }
+function lvPts(p) { return Math.max(p ? 1 : 0, Math.round(p * lvMul())); }
+(function () {
+  $$("#levels .chip").forEach(function (c) { var m = LV_MUL[+c.dataset.lv]; if (m && !c.querySelector(".lvmul")) c.insertAdjacentHTML("beforeend", '<small class="lvmul" dir="ltr">×' + m + " <span>ניקוד</span></small>"); });
+})();
+/* v1.3: levels 1-2 read the English sentence (and English answer options) aloud; the speaker button replays it. */
+var canSay = (function () { try { return "speechSynthesis" in window && typeof SpeechSynthesisUtterance !== "undefined"; } catch (e) { return false; } })();
+function sayEn(t) { if (!canSay || !t) return; try { speechSynthesis.cancel(); var u = new SpeechSynthesisUtterance(t); u.lang = "en-US"; u.rate = 0.82; speechSynthesis.speak(u); } catch (e) {} }
+function easyText(it) {
+  var sent = String(it.s || "").replace(/\*\*/g, "").replace(/_{2,}/g, " blank ").replace(/<[^>]+>/g, "");
+  var opts = it.t === "mc" && it.o ? it.o.filter(function (o) { return /^[\x20-\x7E]+$/.test(o); }) : [];
+  return sent + (opts.length ? ". " + opts.join(". ") + "." : "");
+}
+function easySay(it) {
+  var b = $("#sayBtn"), on = canSay && G && (G.lv === 1 || G.lv === 2) && G.mode !== "comp" && G.mode !== "exam";
+  if (b) b.hidden = !on;
+  if (!on) return;
+  G.sayText = easyText(it);
+  setTimeout(function () { if (G && G.it === it) sayEn(G.sayText); }, 250);
+}
 function nextQ() {
-  var it = G.q[G.idx]; G.it = it; G.answered = false; G.formsDone = !G.withForms || !formsOf(it); G.fuDone = false;
+  var it = adaptItem(G.q[G.idx], G.lv); G.it = it; G.answered = false; G.formsDone = !G.withForms || !formsOf(it); G.fuDone = false;
   $("#playLbl").textContent = lblFor(); $("#progBar").style.width = (G.idx / G.q.length * 100) + "%";
   $("#qTag").innerHTML = it.exam ? '<span class="srctag">שאלה בסגנון בגרות</span>' : "";
   $("#qSent").innerHTML = sentHTML(it); $("#qSent").className = "sent";
   $("#fbArea").innerHTML = ""; $("#nextArea").hidden = true;
   updScore();
   $("#qPrompt").textContent = promptOf(it);
-  if (!G.formsDone) renderForms(it); else renderAnswer(it, $("#answerArea"), { hint: G.mode === "practice", onAnswer: check });
+  if (!G.formsDone) renderForms(it); else renderAnswer(it, $("#answerArea"), { hint: G.mode === "practice" && lvp(G.lv).hint, onAnswer: check });
+  if (it.firstLetter && $("#ansLine")) $("#qTag").insertAdjacentHTML("beforeend", '<span class="srctag lvhint">' + icon("bulb") + ' האות הראשונה: <b dir="ltr">' + esc(it.firstLetter) + "</b></span>");
   show("play"); G.qStart = Date.now();
+  qTimer(it);
+  easySay(it);
 }
 function updScore() { $("#scorePill").innerHTML = (G.streak >= 2 ? '<span class="streak">' + icon("fire") + G.streak + "</span> " : "") + G.score; }
 
@@ -398,7 +474,7 @@ function renderForms(it) {
 function setActiveForm(i) { input.active = i; input.val = input.forms[i]; renderFormLines(); }
 function renderFormLines() { [0, 1, 2].forEach(function (i) { var el = $("#fl" + i); if (!el) return; el.className = "ansline" + (i === input.active ? " act" : ""); el.innerHTML = esc(input.forms[i]) + (i === input.active ? '<span class="cur"></span>' : ""); }); }
 function checkForms() {
-  if (!ui.formsMode) return; ui.formsMode = false; var it = G.it, f = formsOf(it), ok = f.map(function (t, i) { return formOk(t, input.forms[i]); }), n = ok.filter(Boolean).length, pts = n * 2;
+  if (!ui.formsMode) return; ui.formsMode = false; var it = G.it, f = formsOf(it), ok = f.map(function (t, i) { return formOk(t, input.forms[i]); }), n = ok.filter(Boolean).length, pts = lvPts(n * 2);
   G.score += pts; G.bd.forms += pts; G.formRes = { ok: ok, vals: input.forms.slice(), n: n }; updScore(); wdReport(it, input.forms.join(" / "), n === 3, { item: it.id + " forms " + f.join("/"), topic: "צורות הפועל (V1 V2 V3)", given: input.forms.join(" / "), expected: f.join(" / ") }); beep(n === 3 ? "ok" : n ? "partial" : "wrong");
   [0, 1, 2].forEach(function (i) { var el = $("#fl" + i); el.className = "ansline " + (ok[i] ? "good" : "bad"); el.innerHTML = ok[i] ? esc(f[i]) : (input.forms[i] ? '<s style="opacity:.6">' + esc(input.forms[i]) + "</s>&nbsp; " : "") + esc(f[i]); });
   var kb = $("#kb"); if (kb) kb.remove(); var act = $("#answerArea .actions"); if (act) act.remove();
@@ -413,20 +489,33 @@ function wdReport(it, v, ok, extra) {
   try {
     var A = window.EnglishiaAuth; if (!A || !A.recordAnswer || !A.user || !it) return;
     var sent = String(it.s || "").replace(/\*\*/g, "");
-    A.recordAnswer(GAME_ID, Object.assign({ item: it.id + (boldWords(it) ? " " + boldWords(it) : ""), prompt: sent, topic: it.S ? it.S.name : "מבחן מסכם",
+    A.recordAnswer(GAME_ID, Object.assign({ item: it.id + (boldWords(it) ? " " + boldWords(it) : ""), prompt: sent, topic: it.S ? (it.S._name || it.S.name) : "מבחן מסכם",
       level: "רמה " + (it.lv || 1), correct: !!ok, given: wdGiven(it, v), expected: answerText(it) }, extra || {}));
   } catch (e) {}
 }
 function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
+/* v1.3: per-question time limit on the advanced level (practice and V1-V2-V3 only) */
+function qTimer(it) {
+  clearInterval(cur.qtick); var secs = lvp(G.lv).secs, pill = $("#timerPill");
+  if (!secs || G.mode !== "practice") { if (G.mode === "practice" || G.mode === "forms") pill.hidden = true; return; }
+  var end = Date.now() + secs * 1000; pill.hidden = false;
+  var tk = function () {
+    if (!G || G.it !== it || G.answered) { clearInterval(cur.qtick); return; }
+    var left = Math.max(0, Math.ceil((end - Date.now()) / 1000));
+    pill.innerHTML = icon("clock") + " " + mmss(left); pill.classList.toggle("low", left <= 10);
+    if (left <= 0) { clearInterval(cur.qtick); if (G.formsDone) check(it.t === "type" ? "" : -1); }
+  };
+  tk(); cur.qtick = setInterval(tk, 250);
+}
 function check(v, btn) {
-  if (G.answered) return; G.answered = true;
+  if (G.answered) return; G.answered = true; clearInterval(cur.qtick);
   var it = G.it, secs = (Date.now() - G.qStart) / 1000, ev = evaluate(it, v), comp = G.mode === "comp", pts = 0, bonus = [];
   if (ev.status === "ok") {
     G.streak++;
     if (comp) { var sp = Math.max(0, Math.min(50, Math.round(50 * (35 - secs) / 30))), st = Math.min(40, 10 * (G.streak - 1)); pts = 100 + sp + st; G.bd.base += 100; G.bd.speed += sp; G.bd.streak += st; if (sp) bonus.push(icon("bolt") + " מהירות +" + sp); if (st) bonus.push(icon("fire") + " רצף +" + st); }
-    else if (G.mode === "forms") { pts = 4; G.bd.base += 4; }
-    else { pts = 10; G.bd.base += 10; }
-  } else { G.streak = 0; if (ev.status === "partial") { pts = comp ? 50 : 5; G.bd.partial += pts; } }
+    else if (G.mode === "forms") { pts = lvPts(4); G.bd.base += pts; }
+    else { pts = lvPts(10); G.bd.base += pts; }
+  } else { G.streak = 0; if (ev.status === "partial") { pts = comp ? 50 : lvPts(5); G.bd.partial += pts; } }
   G.best = Math.max(G.best, G.streak); G.score += pts;
   var rec = { it: it, v: v, status: ev.status, pts: pts, secs: secs, forms: G.formRes || null }; G.results.push(rec); G.rec = rec; G.formRes = null; wdReport(it, v, ev.status === "ok");
   updScore(); beep(ev.status);
@@ -447,7 +536,7 @@ function check(v, btn) {
   setTimeout(function () { var fb = $("#fbArea"); if (fb && fb.getBoundingClientRect().top > window.innerHeight * .7) fb.scrollIntoView({ behavior: "smooth", block: "start" }); }, 60);
 }
 function fuAnswer(i) {
-  if (G.fuDone) return; G.fuDone = true; var F = G.F, ok = i === F.a, main = G.rec.status === "ok", p = ok && main ? (G.mode === "comp" ? 20 : 5) : 0;
+  if (G.fuDone) return; G.fuDone = true; var F = G.F, ok = i === F.a, main = G.rec.status === "ok", p = ok && main ? (G.mode === "comp" ? 20 : lvPts(5)) : 0;
   G.score += p; G.bd.fu += p; G.rec.fu = ok ? "ok" : "no"; updScore(); beep(ok ? "ok" : "wrong");
   $$("#fuOpts .opt").forEach(function (b) { b.disabled = true; var k = +b.dataset.i; if (k === F.a) b.classList.add("right"); else if (k === i) b.classList.add("wrong"); });
   $("#fuWhy").innerHTML = '<div class="why">' + (ok ? icon("check") + " נכון" + (p ? " +" + p : "") : icon("x") + " לא נכון") + (F.why ? " · " + ltrRuns(F.why) : "") + "</div>";
@@ -597,8 +686,9 @@ function onAuth() {
 
 /* ---------- init ---------- */
 paintIcons(); paintSound(); renderHome();
+(function () { var b = $("#sayBtn"); if (b) b.onclick = function () { if (G && G.sayText) sayEn(G.sayText); }; })();
 window.WDApp = { $: $, $$: $$, esc: esc, LS: LS, icon: icon, paintIcons: paintIcons, beep: beep, toast: toast, show: show, HOOKS: HOOKS, cur: cur,
   ITEMS: ITEMS, EXAM_ITEMS: EXAM_ITEMS, itemById: itemById, sentHTML: sentHTML, promptOf: promptOf, renderAnswer: renderAnswer, markOpts: markOpts, evaluate: evaluate, explain: explain, answerHTML: answerHTML, answerText: answerText,
   shuffle: shuffle, mixed: mixed, normName: normName, accountName: accountName, onAuth: onAuth, GAME_ID: GAME_ID,
-  setGame: function (g) { G = g; }, get G() { return G; }, compQueue: compQueue, verCode: verCode, parseLines: parseLines, followUp: followUp, startGame: startGame, openRef: openRef, level: level, setLevel: setLevel };
+  setGame: function (g) { G = g; }, get G() { return G; }, levelPool: levelPool, LVP: LVP, compQueue: compQueue, verCode: verCode, parseLines: parseLines, followUp: followUp, startGame: startGame, openRef: openRef, level: level, setLevel: setLevel };
 })();

@@ -245,3 +245,8 @@ body.wide .winner{font-size:34px}
   .eng-hub-btn svg{width:22px;height:22px}
   .levels .chip{padding:8px 16px;font-size:18px;min-height:44px}
 }
+
+/* v1.3 */
+.chip .lvmul{display:block;font-size:.72em;font-weight:600;opacity:.75;line-height:1.1}
+.saybtn{display:inline-flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:50%;border:2px solid var(--blue,#2f6fde);background:#fff;color:var(--blue,#2f6fde);cursor:pointer;margin:4px auto 0}
+.saybtn[hidden]{display:none}

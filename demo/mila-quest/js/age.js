@@ -602,6 +602,9 @@ const AGE_BANKS = {
   ],
 };
 
+/* v12.1: Arabic / Russian native language (shared Englishia setting). Hebrew originals stay in _he. */
+if (typeof window !== "undefined" && window.EnglishiaLang) window.EnglishiaLang.swapData(AGE_BANKS);
+
 /* Mila Quest v10.2 — age-scaled question banks and helpers.
    Difficulty (speed / score) stays separate; age only changes the content. */
 

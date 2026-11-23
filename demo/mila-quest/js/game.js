@@ -73,6 +73,7 @@ const progressFields = (s) => ({
   best: s.best || 0,
   runs: s.runs || 0,
   ach: Array.isArray(s.ach) ? s.ach.slice() : [],
+  champ: s.champ || {},
   age: (s.settings && s.settings.age) || "de"
 });
 const keepDevice = (s) => ({
@@ -172,7 +173,7 @@ function mqReport(word, ok) {
   const given = ok ? "" : (lanes ? String(run.opts[playerLaneNow()] == null ? "" : run.opts[playerLaneNow()]) : "אות לא נכונה");
   const expected = lanes && run.ans >= 0 ? String(run.opts[run.ans]) : word.en;
   const wn = WORLDS[run.world - 1];
-  A.recordAnswer("mila-quest", { item: word.en, prompt: word.he, topic: MQ_SKILL[m] || "אוצר מילים",
+  A.recordAnswer("mila-quest", { item: word.en, prompt: word._he || word.he, topic: MQ_SKILL[m] || "אוצר מילים",
     level: (wn ? wn.name : "עולם " + run.world) + " · " + (run.boss ? "בוס" : "שלב " + (run.st + 1)), correct: !!ok, given, expected });
 }
 function record(word, ok, hint, wrongHere) {
@@ -764,7 +765,8 @@ function makeTextTexture(text, opt = {}) {
   ctx.strokeStyle = opt.bd || "#140818";
   ctx.lineWidth = 22; ctx.stroke();
   ctx.textAlign = "center"; ctx.textBaseline = "middle";
-  ctx.direction = /[\u0590-\u05FF]/.test(String(text)) ? "rtl" : "ltr";
+  if (window.EnglishiaLang && text != null) text = window.EnglishiaLang.t(String(text));
+  ctx.direction = /[\u0590-\u05FF\u0600-\u06FF]/.test(String(text)) ? "rtl" : "ltr";
   const raw = String(text || "");
   const maxW = w - 80;
   let font = opt.font || 168;
@@ -2006,6 +2008,30 @@ function pairDistractors(pair, k, sim) {
   }
   return [...out];
 }
+/* v12.1: on the "very easy" and "easy" levels every English prompt (and English answer options) is read aloud.
+   A speaker button replays it. Hidden when the browser has no speech; never blocks the game. */
+const isEasyDiff = (D) => !!D && (D.level === "veryeasy" || D.level === "easy");
+function easyReadAloud(D, mode, text, opts) {
+  const old = $("btn-say"); if (old) old.remove();
+  if (!isEasyDiff(D) || isListenMode(mode) || !window.speechSynthesis || !window.SpeechSynthesisUtterance) return;
+  let t = "";
+  if (mode === "tr" || mode === "picw") t = (opts || []).filter((o) => /[A-Za-z]/.test(o) && !/[\u0590-\u06FF\u0400-\u04FF]/.test(o)).join(". ");
+  else t = text || "";
+  if (!t) return;
+  run.easySay = t;
+  const rate = Math.min(0.85, (D && D.rate) || 0.8);
+  const w = run.cur;
+  setTimeout(() => { if (run && run.cur === w && !paused) say(t, rate); }, 250);
+  const host = $("prompt");
+  if (!host) return;
+  const b = document.createElement("button");
+  b.type = "button"; b.id = "btn-say"; b.className = "btn s say-btn";
+  b.setAttribute("aria-label", "הקראה באנגלית"); b.title = "הקראה באנגלית";
+  b.innerHTML = UI_ICON.speaker;
+  b.onclick = (e) => { e.stopPropagation(); say(run && run.easySay || t, rate, true); };
+  ["pointerdown", "touchstart", "mousedown"].forEach((ev) => b.addEventListener(ev, (e) => e.stopPropagation()));
+  host.appendChild(b);
+}
 function setupQuestion() {
   if (!run || run.i >= run.queue.length) return;
   clearLetters();
@@ -2025,6 +2051,7 @@ function setupQuestion() {
     setLaneOpts(null);
     setPrompt("אספו את האותיות לפי הסדר", w.he, w.pic);
     spawnLetterWord(w);
+    easyReadAloud(D, mode, run.speakText, null);
     return;
   }
   let opts, sub, q, emoji = "", answer, extraT = 0;
@@ -2096,6 +2123,7 @@ function setupQuestion() {
   run.opts = opts; run.ans = ans;
   setLaneOpts(opts);
   setPrompt(sub, q, emoji);
+  easyReadAloud(D, mode, run.speakText, opts);
   const rb = $("btn-replay");
   if (rb) rb.onclick = (e) => { e.stopPropagation(); sayCurrent(false, true); };
   // v9: the gate distance comes from the answer time (seconds) x the current base speed
@@ -2180,15 +2208,61 @@ function letterObstacleOK(s) {
   return Math.random() < D.letterObs;                         // later worlds: a few, only between rows
 }
 
+/* v12.1: coins stand upright (facing the runner), spin slowly on the vertical axis, bob, and glow.
+   Air coins: an arc of 3-5 coins over a jumpable obstacle, collected only while jumping. */
+function coinGlowTex() {
+  if (coinGlowTex._t) return coinGlowTex._t;
+  const c = document.createElement("canvas"); c.width = c.height = 64;
+  const g = c.getContext("2d"), gr = g.createRadialGradient(32, 32, 2, 32, 32, 32);
+  gr.addColorStop(0, "rgba(255,230,140,0.9)"); gr.addColorStop(0.45, "rgba(255,200,60,0.35)"); gr.addColorStop(1, "rgba(255,190,40,0)");
+  g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
+  coinGlowTex._t = new THREE.CanvasTexture(c); coinGlowTex._t.colorSpace = THREE.SRGBColorSpace;
+  return coinGlowTex._t;
+}
+function makeCoin() {
+  const holder = new THREE.Group();
+  let spin;
+  if (run.coinProto) { spin = run.coinProto.clone(true); }
+  else {
+    spin = new THREE.Group();
+    const disc = new THREE.Mesh(new THREE.CylinderGeometry(0.21, 0.21, 0.06, 16), new THREE.MeshStandardMaterial({ color: 0xffd24a, metalness: 0.6, roughness: 0.3, emissive: 0x6a4200, emissiveIntensity: 0.3 }));
+    disc.rotation.x = Math.PI / 2; disc.position.y = 0.21; spin.add(disc);
+  }
+  spin.name = "coinSpin";
+  holder.add(spin);
+  if (GFX.level !== "low") {
+    const glow = new THREE.Sprite(new THREE.SpriteMaterial({ map: coinGlowTex(), color: 0xffd76a, transparent: true, opacity: 0.55, depthWrite: false, blending: THREE.AdditiveBlending }));
+    glow.scale.set(0.8, 0.8, 1); glow.position.y = 0.21; glow.name = "coinGlow";
+    holder.add(glow);
+  }
+  return { holder, spin };
+}
+function addCoinAt(s, lane, h, air) {
+  const { holder, spin } = makeCoin();
+  placeOnCourse(holder, s, lane);
+  holder.rotation.x = 0;                       // stay vertical even on slopes
+  const baseY = holder.position.y + h;
+  holder.position.y = baseY;
+  spin.rotation.y = Math.random() * Math.PI;
+  runScene.add(holder);
+  coins.push({ mesh: holder, spin, taken: false, s, lane, air: !!air, h, baseY, ph: Math.random() * 6.28 });
+}
 function spawnCoinRow(s) {
   if (run && run.activeMode === "build" && run.spell && run.spell.rows && run.spell.rows.some((r) => r != null && Math.abs(r - s) < 3)) return;
+  if (obstacles.some((o) => !o.hit && Math.abs((o.s || 0) - s) < 1.6)) return;
   const lane = Math.floor(Math.random() * 3);
-  const mesh = run.coinProto ? run.coinProto.clone(true) : new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.25, 0.06, 12), new THREE.MeshStandardMaterial({ color: 0xffd24a, metalness: 0.6, roughness: 0.3 }));
-  placeOnCourse(mesh, s, lane);
-  mesh.position.y += 0.7;
-  mesh.rotation.x = Math.PI / 2;
-  runScene.add(mesh);
-  coins.push({ mesh, taken: false, s, lane });
+  addCoinAt(s, lane, 0.5, false);
+}
+const AIR_COIN_TYPES = ["low", "hole", "roll", "wall", "animal"];
+function spawnAirArc(s, lane) {
+  const n = 3 + Math.floor(Math.random() * 3);           // 3-5 coins
+  const spd = (run && run.layout && run.layout.speed) || 8;
+  const span = Math.max(0.9, Math.min(1.4, spd * 0.16));   // the arc always fits inside one jump at the current speed
+  for (let i = 0; i < n; i++) {
+    const d = (i - (n - 1) / 2) * span;
+    const k = d / ((n - 1) / 2 * span + 0.8);
+    addCoinAt(s + d, lane, 1.75 + 0.75 * (1 - k * k), true);  // 1.9 at the ends, 2.5 over the obstacle (jump peak is 3.0)
+  }
 }
 function cautionTex() {
   if (cautionTex._t) return cautionTex._t;
@@ -2609,6 +2683,12 @@ function spawnObstacle(s) {
     runScene.add(mesh);
     obstacles.push({ mesh, lane, type, hit: false, spin: type === "roll" ? 4 : 0, s, kind, move, t: Math.random() * 4 });
   });
+  // v12.1: an arc of coins over the obstacle - jump over it to collect them
+  if (type !== "animal" && AIR_COIN_TYPES.includes(type) && !(run && run.activeMode === "build") && Math.random() < 0.6) {
+    const lane = blocked[0];
+    for (const c of coins) if (!c.taken && !c.air && c.lane === lane && Math.abs(c.s - s) < 3.5) { c.taken = true; runScene.remove(c.mesh); }
+    spawnAirArc(s, lane);
+  }
 }
 
 function nextAfterResolve() {
@@ -2813,14 +2893,49 @@ function finishLevel(ok) {
     else if (WORLDS[run.world]) nx = `<button class="btn g" id="nx">לעולם הבא ▶</button>`;
   }
   if (ok && runFx && player) runFx.burst(player.group.position.clone().add(new THREE.Vector3(0, 1.6, 0)), "fireworks");
+  const champ = bossWin && run.world === WORLDS.length && !run.lost;
   if (bossWin) {
-    setTimeout(() => showEndScreen(ok, st, title, nx), 1600);
+    setTimeout(() => { showEndScreen(ok, st, title, nx); if (champ) setTimeout(showCampaignDone, 900); }, 1600);
   } else if (ok) {
     // v12: let the bar marker glide into the finish flag before the result card
     setTimeout(() => { if (appMode === "run" && paused) appMode = "map"; showEndScreen(ok, st, title, nx); }, 750);
   } else {
     showEndScreen(ok, st, title, nx);
   }
+}
+
+/* v12.1: last boss of the last world -> congratulations + offer the next harder difficulty.
+   Accept: new difficulty, fresh stage progress from world 1 stage 1. Coins, shop items, wallet, best score,
+   notebook, achievements and leaderboard history are kept. Decline: nothing changes. */
+function nextDiffKey(k) { const ks = Object.keys(DIFFS); const i = ks.indexOf(k); return i >= 0 && i < ks.length - 1 ? ks[i + 1] : null; }
+function showCampaignDone() {
+  const cur = (S.settings && S.settings.difficulty in DIFFS) ? S.settings.difficulty : "normal";
+  const nk = nextDiffKey(cur);
+  S.champ = S.champ || {}; S.champ[cur] = (S.champ[cur] || 0) + 1; save();
+  grantAch("worlds5");
+  const C = DIFFS[cur], Nx = nk && DIFFS[nk];
+  showModal(`<div class="camp-done" id="camp-done">
+    <div class="camp-ico">${UI_ICON.trophy}</div>
+    <h2>כל הכבוד! סיימתם את כל העולמות</h2>
+    <p>ניצחתם את כל הבוסים ברמת <b>${esc(C.label)}</b>.</p>
+    ${Nx ? `<p>רוצים אתגר? אפשר לעבור לרמה <b>${esc(Nx.label)}</b> <span class="seg-mul" dir="ltr" style="display:inline">×${Nx.scoreMul} <span>ניקוד</span></span> ולהתחיל מחדש מעולם 1, שלב 1.</p>
+    <p class="camp-keep">המטבעות, הפריטים מהחנות, הניקוד והשיאים נשארים.</p>
+    <div class="row end-actions"><button class="btn g" id="camp-yes">${UI_ICON.arrowR} כן, לרמה הבאה</button><button class="btn" id="camp-no">לא, תודה</button></div>`
+    : `<p>זו הרמה הכי קשה במשחק. אתם אלופים!</p>
+    <div class="row end-actions"><button class="btn g" id="camp-replay">${UI_ICON.repeat} לשחק שוב מההתחלה</button><button class="btn" id="camp-no">סגירה</button></div>`}
+  </div>`);
+  const close = () => hideModal();
+  const no = $("camp-no"); if (no) no.onclick = close;
+  const restart = (diffKey) => {
+    if (diffKey) S.settings = normSettings(Object.assign({}, S.settings, { difficulty: diffKey }));
+    S.prog = {}; S.stars = 0;
+    save();
+    hideModal();
+    try { if (window.EnglishiaAuth && EnglishiaAuth.user) EnglishiaAuth.logEvent("campaign_restart", GAME_ID, diffKey || cur); } catch (e) {}
+    Promise.resolve(startLevel(1, 0)).then((r) => { if (r === false) goMapMode(); }).catch(() => goMapMode());
+  };
+  const y = $("camp-yes"); if (y) y.onclick = () => restart(nk);
+  const rp = $("camp-replay"); if (rp) rp.onclick = () => restart(null);
 }
 
 /* some GLBs ship zero-length normals -> NaN lighting -> pure black silhouettes; recompute those */
@@ -3475,12 +3590,16 @@ function updateRunner(dt) {
     run.nextObsS += ((run.layout && run.layout.diff && run.layout.diff.spacing) || 10.5) + Math.random() * 4;
   }
 
+  const tNow = now * 0.001;
   for (const c of coins) {
     if (c.taken) continue;
-    c.mesh.rotation.z += dt * 3;
+    if (c.spin) c.spin.rotation.y += dt * 2.2;                 // slow spin around the vertical axis
+    if (c.baseY != null) c.mesh.position.y = c.baseY + Math.sin(tNow * 2.6 + c.ph) * 0.07;
     if ((c.s != null ? c.s : 0) < player.s - 4) { c.taken = true; runScene.remove(c.mesh); continue; }
-    if (Math.abs((c.s || 0) - player.s) < 0.6 && c.lane === playerLaneNow() && player.y < 1.2) {
-      c.taken = true; runScene.remove(c.mesh);
+    const near = Math.abs((c.s || 0) - player.s) < (c.air ? 0.8 : 0.6) && c.lane === playerLaneNow();
+    const reach = c.air ? (player.jumping && player.y > c.h - 1.6 && player.y < c.h + 0.4) : player.y < 1.2;
+    if (near && reach) {
+      c.taken = true; c.got = true; runScene.remove(c.mesh);
       if (runFx) runFx.coin(c.mesh.position);
       addCoins(1); run.score += Math.round(10 * scoreMul()); sfx.coin(); updateHud(); popEl("hud-coins");
     }
@@ -4165,7 +4284,7 @@ const GFX_DESC = {
 };
 function segRow(name, opts, cur) {
   return `<div class="seg" role="radiogroup" data-set="${name}">${opts.map((o) =>
-    `<button type="button" class="seg-b${String(o.v) === String(cur) ? " on" : ""}" data-v="${o.v}" role="radio" aria-checked="${String(o.v) === String(cur)}">${esc(o.label)}</button>`).join("")}</div>`;
+    `<button type="button" class="seg-b${String(o.v) === String(cur) ? " on" : ""}" data-v="${o.v}" role="radio" aria-checked="${String(o.v) === String(cur)}">${esc(o.label)}${o.mul ? `<small class="seg-mul" dir="ltr">×${o.mul} <span>ניקוד</span></small>` : ""}</button>`).join("")}</div>`;
 }
 function renderSettings(msg) {
   const st = S.settings;
@@ -4182,7 +4301,7 @@ function renderSettings(msg) {
       <p class="set-callout">${esc(ageInfo.blurb)}</p></div>
     <div class="set-sec"><h3>${UI_ICON.target} רמת קושי</h3>
       ${ex("מהירות הריצה, מספר הלבבות, זמן לענות ומכפיל הניקוד.")}
-      ${segRow("difficulty", Object.keys(DIFFS).map((k) => ({ v: k, label: DIFFS[k].label })), st.difficulty)}
+      ${segRow("difficulty", Object.keys(DIFFS).map((k) => ({ v: k, label: DIFFS[k].label, mul: DIFFS[k].scoreMul })), st.difficulty)}
       <p class="set-callout"><b>${esc(D.label)}:</b> ${esc(D.desc)}</p></div>`,
     types: `
     <div class="set-sec"><h3>${UI_ICON.book} סוגי תרגילים</h3>
@@ -4520,6 +4639,12 @@ function checkLaneAlignment() {
 
 window.MQ = {
   ready,
+  getCoins: () => coins,
+  spawnAirArc: (s, lane) => spawnAirArc(s, lane),
+  spawnCoinRow: (s) => spawnCoinRow(s),
+  spawnObstacle: (s) => spawnObstacle(s),
+  showCampaignDone: () => showCampaignDone(),
+  nextDiffKey,
   startLevel,
   goMapMode,
   goTitle,

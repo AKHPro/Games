@@ -32,7 +32,7 @@ var H = null, net = null;
 function poolFor(topic, lv) {
   if (topic === "exam") return [A.EXAM_ITEMS];
   var ids = topic === "pos" ? [1, 2, 3, 4] : topic === "forms" ? [5, 6, 7] : topic === "tenses" ? [8, 9] : [1, 2, 3, 4, 5, 6, 7, 8, 9];
-  return ids.map(function (sid) { return A.ITEMS.filter(function (it) { return it.sec === sid && it.lv <= lv; }); });
+  return ids.map(function (sid) { var l = A.ITEMS.filter(function (it) { return it.sec === sid; }); return A.levelPool ? A.levelPool(l, lv, 4) : l.filter(function (it) { return it.lv <= lv; }); });
 }
 function poolSize(topic, lv) { return poolFor(topic, lv).reduce(function (a, p) { return a + p.length; }, 0); }
 function renderHostSetup() {
