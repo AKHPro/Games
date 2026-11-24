@@ -45,6 +45,17 @@
       "level": "בחירת גיל בהגדרות",
       "path": "word-race/",
       "thumbnail": "assets/thumbs/word-race.jpg"
+    },
+    {
+      "id": "sentence-sprint",
+      "title": "Sentence Sprint",
+      "subtitleHe": "ספרינט המשפטים",
+      "description": "A live online platformer race for the whole class. Runners dash left to right across several floors, jump to grab floating English words and build any correct sentence. A correct sentence gives points and spins a power-up roulette: boosts help you, attacks hit only the runner directly ahead. Online room or projector mode with a big code and QR, six difficulty levels.",
+      "category": "Grammar",
+      "tags": ["Multiplayer", "Sentences", "Grammar", "Projector"],
+      "level": "בחירת גיל בהגדרות",
+      "path": "sentence-sprint/",
+      "thumbnail": "assets/thumbs/sentence-sprint.jpg"
     }
   ]
 }
