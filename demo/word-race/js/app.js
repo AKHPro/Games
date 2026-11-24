@@ -3,7 +3,7 @@
    © 2026 Amir · Englishia · All rights reserved */
 import { LEVELS, levelOf, AGES, QTYPES, buildRace, publicQ, localize } from "./questions.js";
 
-const VERSION = "1.0.1", GAME_ID = "word-race", MAX_PLAYERS = 30;
+const VERSION = "1.0.2", GAME_ID = "word-race", MAX_PLAYERS = 30;
 const DEMO = /\/demo\//.test(location.pathname);
 const HUB = DEMO ? "../" : "../../";
 const URLP = new URLSearchParams(location.search);
@@ -691,7 +691,7 @@ function raceScreen(m, projector) {
     const sp = trackSpec(projector), L = Math.max(4, m.pl.length);
     const T = new Track(sp.W, sp.H, sp.y0, sp.y1, sp.bw, sp.tw, L, sp.cx);
     RACE = { T, sp, projector, L, t0: Math.max(0, T.tAt(sp.feet)), runners: new Map(), n: m.n, qkey: "", picked: -1, fbk: "", end: 0, dur: 0 };
-    const trackH = MOBILE ? Math.round(MH * (MH < 800 ? 0.33 : 0.39)) : sp.H, k = trackH / sp.H;
+    const trackH = MOBILE ? Math.round(MH * 0.47) : sp.H, k = trackH / sp.H;
     const trackWrap = `<div class="trackwrap" id="trk" style="width:${sp.W}px;height:${sp.H}px;${MOBILE ? `transform-origin:50% 0;transform:scale(${k.toFixed(4)})` : ""}">${T.svg(m.n, LOW, sp.tmax)}<div id="runners"></div></div>`;
     let body;
     if (projector) {
@@ -702,7 +702,7 @@ function raceScreen(m, projector) {
         <div class="card ansd" id="ansd"><div style="font:800 20px var(--ui)" id="ansN"></div><div class="dotsp" id="dotsp"></div></div>
         <div class="hud" style="position:absolute;right:24px;bottom:24px;font-size:20px;z-index:1500">${ico("projector", 22, 2.6, "#ff4f8b")}<span>מצב הצגה · עונים בטלפון</span></div>`;
     } else {
-      const qhead = MOBILE ? `<div class="qhead">${timerHTML(62, 7, 26)}<span class="qmeta" id="qMeta"></span></div>` : `<div class="qmeta" id="qMeta"></div>`;
+      const qhead = MOBILE ? `<div class="qhead">${timerHTML(46, 6, 20)}<span class="qmeta" id="qMeta"></span></div>` : `<div class="qmeta" id="qMeta"></div>`;
       const hs = MOBILE ? "font-size:17px;padding:4px 12px" : "";
       body = `${trackWrap}
         ${MOBILE ? `<div style="position:absolute;left:0;right:0;top:0;height:44px;background:linear-gradient(rgba(111,208,255,.95),rgba(111,208,255,0));z-index:2999"></div>` : ""}
@@ -813,7 +813,7 @@ function raceUpdate(m, projector) {
   if (meP) {
     const st = meP[7];
     if (RACE.picked < 0 && meP[9] >= 0) RACE.picked = meP[9];
-    $$(".ans").forEach((b) => { const i = +b.dataset.a; b.disabled = st > 0 || m.ph !== "q" || RACE.picked >= 0; b.classList.toggle("pick", i === RACE.picked); });
+    $$(".ans").forEach((b) => { const i = +b.dataset.a; b.disabled = st > 0 || m.ph !== "q" || RACE.picked >= 0; b.classList.toggle("chosen", i === RACE.picked); });
     if (st && RACE.fbk !== key + st) { RACE.fbk = key + st; feedback(st === 2 ? "ok" : "no"); if (st === 2) SFX.ok(); else SFX.no(); }
   }
   if (m.ph === "rev") {
@@ -833,7 +833,7 @@ function raceUpdate(m, projector) {
 function pickAnswer(i) {
   if (!RACE || RACE.picked >= 0 || !PS.st || PS.st.ph !== "q") return;
   RACE.picked = i; SFX.tap();
-  $$(".ans").forEach((b) => { b.disabled = true; b.classList.toggle("pick", +b.dataset.a === i); });
+  $$(".ans").forEach((b) => { b.disabled = true; b.classList.toggle("chosen", +b.dataset.a === i); });
   feedback("wait");
   const qi = PS.st.qi;
   if (PS.local && H) hostAnswer(H.players.get("host-" + CID), qi, i);
@@ -844,7 +844,10 @@ function feedback(kind) {
   if (!f) { f = document.createElement("div"); f.id = "fbk"; ($("#panel") || $("#s-race") || stage).appendChild(f); }
   const txt = { ok: ico("check", 28, 3.4, "#fff") + "<span>נכון!</span>", no: ico("x", 28, 3.4, "#fff") + "<span>לא נכון</span>", wait: ico("timer", 26, 2.8, "#fff") + "<span>התשובה נשלחה</span>", late: ico("timer", 26, 2.8, "#fff") + "<span>נגמר הזמן</span>" }[kind];
   f.className = "fbk " + (kind === "ok" ? "ok" : kind === "wait" ? "wait" : "no");
-  f.innerHTML = txt; f.style.top = "-30px";
+  f.innerHTML = txt;
+  const pn = $("#panel");
+  if (MOBILE && pn && $("#s-race")) { if (f.parentNode !== $("#s-race")) $("#s-race").appendChild(f); f.classList.add("onedge"); f.style.top = (parseFloat(pn.style.top) - 26) + "px"; }
+  else f.style.top = "-30px";
 }
 function tickCountdown() {
   const cd = $("#countdown"); if (!cd || !RACE) return;
