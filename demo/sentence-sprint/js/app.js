@@ -1,13 +1,14 @@
-/* Sentence Sprint 1.0 · ספרינט המשפטים — online, real-time multiplayer platformer for building English sentences.
+/* Sentence Sprint 1.1 · ספרינט המשפטים — online, real-time multiplayer platformer for building English sentences.
+   1.1: three game modes (room setting): Sentence Building, Balloons (questions) and Translation.
    Rooms work like Word Race: online room or presentation mode (code + QR on the projector), host-authoritative
    over the same PeerJS / signaling relay / ntfy transport (net.js). Each device runs its own runner; the host
    checks sentences, gives points and power-ups, aims attacks at the player directly ahead and relays positions.
    © 2026 Amir · Englishia · All rights reserved */
-import { check, pretty, disp, gloss, knownWord, GEN, LENS, findOrder } from "./grammar.js?v=1.0.1";
-import { buildLevel } from "./level.js?v=1.0.1";
-import { createGame, loadImages, img, PU, PU_KEYS, DUR, F, CHAR_COLORS } from "./game.js?v=1.0.1";
+import { check, pretty, disp, gloss, knownWord, GEN, LENS, findOrder } from "./grammar.js?v=1.1";
+import { buildLevel } from "./level.js?v=1.1";
+import { createGame, loadImages, img, PU, PU_KEYS, DUR, F, CHAR_COLORS } from "./game.js?v=1.1";
 
-const VERSION = "1.0.1", GAME_ID = "sentence-sprint", MAX_PLAYERS = 30;
+const VERSION = "1.1", GAME_ID = "sentence-sprint", MAX_PLAYERS = 30;
 const DEMO = /\/demo\//.test(location.pathname);
 const HUB = DEMO ? "../" : "../../";
 const URLP = new URLSearchParams(location.search);
@@ -59,6 +60,8 @@ const P = {
   min: '<path d="M8 3v3a2 2 0 0 1-2 2H3"/><path d="M21 8h-3a2 2 0 0 1-2-2V3"/><path d="M3 16h3a2 2 0 0 1 2 2v3"/><path d="M16 21v-3a2 2 0 0 1 2-2h3"/>',
   speak: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 9h8"/><path d="M8 13h5"/>',
   star: '<path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/>',
+  balloon: '<path d="M12 16c-3.3 0-6-3.1-6-7a6 6 0 0 1 12 0c0 3.9-2.7 7-6 7z"/><path d="m12 16-1.6 2.2h3.2z"/><path d="M12 18.2c0 1.8-1.6 2.2-1.6 3.8"/>',
+  languages: '<path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/>',
   layers: '<path d="m12 2 10 5-10 5L2 7z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/>',
   "phone-rot": '<rect x="2" y="7" width="20" height="10" rx="2"/><path d="M18 12h.01"/>', door: '<path d="M13 4h3a2 2 0 0 1 2 2v14"/><path d="M2 20h3"/><path d="M13 20h9"/><path d="M10 12v.01"/><path d="M13 4.56v16.88a.5.5 0 0 1-.68.47l-6-2.25A2 2 0 0 1 5 17.78V6.22a2 2 0 0 1 1.32-1.88l6-2.25a.5.5 0 0 1 .68.47Z"/>'
 };
@@ -80,13 +83,27 @@ const TRACKS = [{ k: "short", he: "קצר" }, { k: "medium", he: "בינוני" 
 const WLS = [{ k: "s", he: "2–4" }, { k: "m", he: "3–6" }, { k: "l", he: "5–8" }];
 const TIMES = [{ k: 0, he: "אוטומטי" }, { k: 2, he: "2 דק׳" }, { k: 3, he: "3 דק׳" }, { k: 5, he: "5 דק׳" }];
 const DENS = [{ k: "f", he: "מעט מילים" }, { k: "n", he: "רגיל" }];
+/* 1.1 game modes */
+const MODES = [{ k: "b", he: "בניית משפטים", ico: "puzzle", col: "orange" }, { k: "q", he: "בלונים", ico: "balloon", col: "pink" }, { k: "t", he: "תרגום", ico: "languages", col: "blue" }];
+const modeOf = (k) => MODES.find((m) => m.k === k) || MODES[0];
+const QLEAD = { gap: "השלימו את המשפט", def: "איזו מילה מתאימה?", opp: "מה ההפך של", syn: "מילה עם אותה משמעות כמו", v2: "צורת העבר של", v3: "צורת V3 של", tr: "איך אומרים באנגלית?" };
+const Q_BASE = 6;
+const qPts = (mul, combo, gold) => Math.max(2, Math.round(Q_BASE * mul * comboMul(combo) * (gold ? 2 : 1)));
+/* the question banks load only when a Balloons / Translation room needs them (Mila Quest + Word Detective files) */
+let QZ = null, QZP = null;
+function ensureQuiz() {
+  if (QZ) return Promise.resolve(QZ);
+  if (!QZP) QZP = new Promise((res) => { if (window.WD) return res(); const sc = document.createElement("script"); sc.src = "../word-detective/js/data.js"; sc.onload = sc.onerror = () => res(); document.head.appendChild(sc); })
+    .then(() => import("./quiz.js?v=1.1")).then((m) => (QZ = m)).catch((e) => { QZP = null; throw e; });
+  return QZP;
+}
 /* points: clearly progressive by length (2 words = 4, each extra word worth more), times level, combo and golden word */
 const BASE_PTS = (n) => (n * (n + 1)) / 2 + 1;
 const comboMul = (c) => (c >= 3 ? 2 : c === 2 ? 1.5 : 1);
 const sentencePts = (n, mul, combo, gold) => Math.max(2, Math.round(BASE_PTS(n) * mul * comboMul(combo) * (gold ? 2 : 1)));
 const bars = (n, on) => `<span class="bars">${[0, 1, 2, 3, 4, 5].map((i) => `<i style="height:${5 + i * 2.4}px;opacity:${i < n ? 1 : on ? 0.4 : 0.3}"></i>`).join("")}</span>`;
 
-const PREF = Object.assign({ level: "normal", len: "medium", wl: "m", pu: true, tm: 0, dens: "n", gold: true }, LS.get("ss-settings", {}));
+const PREF = Object.assign({ md: "b", level: "normal", len: "medium", wl: "m", pu: true, tm: 0, dens: "n", gold: true }, LS.get("ss-settings", {}));
 if (!TIMES.some((t) => t.k === PREF.tm)) PREF.tm = 0;
 if (!DENS.some((t) => t.k === PREF.dens)) PREF.dens = "n";
 PREF.gold = PREF.gold !== false;
@@ -336,7 +353,7 @@ const newCode = () => String(100000 + Math.floor(Math.random() * 900000));
 function createRoom(mode) {
   leaveAll();
   H = { code: newCode(), mode, set: Object.assign({}, PREF), ph: "lobby", players: new Map(), net: null, status: "", race: 0, seed: 0,
-    startAt: 0, endAt: 0, firstFin: 0, finCount: 0, feed: [], lastN: 0, lastSnN: 0, L: null };
+    startAt: 0, endAt: 0, firstFin: 0, finCount: 0, feed: [], lastN: 0, lastSnN: 0, L: null, qid: 0 };
   hostConnect();
   H.timer = setInterval(hostTick, 250);
   H.beat = setInterval(() => hostBroadcast(true), 2500);
@@ -364,7 +381,7 @@ function addPlayer(cid, name, ch, local) {
   H.players.set(cid, p); SFX.tap();
   return p;
 }
-function resetStats(p) { Object.assign(p, { combo: 0, pts: 0, sents: 0, words: 0, pus: 0, fin: 0, finT: 0, x: 260, y: 510, f: 0, posT: 0, held: null, shieldUntil: 0, lastSent: 0, seen: new Set() }); }
+function resetStats(p) { Object.assign(p, { combo: 0, pts: 0, sents: 0, words: 0, pus: 0, fin: 0, finT: 0, x: 260, y: 510, f: 0, posT: 0, held: null, shieldUntil: 0, lastSent: 0, seen: new Set(), q: null, used: new Set(), lastAns: 0 }); }
 function hostRecv(m, cid) {
   if (!H || !m || typeof m !== "object" || typeof cid !== "string" || cid.length > 40) return;
   const p = H.players.get(cid);
@@ -373,10 +390,14 @@ function hostRecv(m, cid) {
     const r = addPlayer(cid, name, ch, false);
     if (r === "late" || r === "full") { H.net.send(cid, { t: r }); H.net.forget(cid); return; }
     H.net.send(cid, { t: "you", pid: r.pid, x: Math.round(r.x), y: Math.round(r.y), race: H.race, held: r.held });
+    if (H.ph === "race" && r.q && !r.q.done) setTimeout(() => { if (H && r.q && !r.q.done) H.net.send(cid, pubQ(r.q)); }, 400);
     hostBroadcast(); hostView();
   } else if (m.t === "p") hostPos(p, m);
   else if (m.t === "sent") hostSentence(p, m);
   else if (m.t === "use") hostUse(p, m);
+  else if (m.t === "ans") hostAnswer(p, m);
+  else if (m.t === "mq") hostMoveQ(p, m);
+  else if (m.t === "qq") hostResendQ(p, m);
   else if (m.t === "ping") { if (p) { const was = p.on; p.on = true; p.last = now(); if (!was) { hostBroadcast(); hostView(); } } }
   else if (m.t === "bye" || m.t === "_drop") {
     if (!p) return;
@@ -395,7 +416,7 @@ function hostPos(p, m) {
   if (x > p.x + maxV * dt + 160) x = p.x + maxV * dt + 160;
   p.x = Math.max(p.x - 400, x); p.y = Math.max(-200, Math.min(760, y)); p.f = (Number(m.f) | 0) & 16383; p.posT = t;
   if (p.shieldUntil > t) p.f |= F.shield;
-  if (!p.fin && p.x >= H.L.finish && t >= H.startAt) hostFinish(p);
+  if (!p.fin && p.x >= H.L.finish && t >= H.startAt) { hostFinish(p); if (p.q) { p.q = null; toPlayer(p, { t: "q", r: H.race, q: 0 }); projQ(p); } }
 }
 function hostFinish(p) {
   H.finCount++; p.fin = H.finCount; p.finT = now();
@@ -406,7 +427,7 @@ function hostFinish(p) {
   hostBroadcast(); hostView();
 }
 function hostSentence(p, m) {
-  if (!p || H.ph !== "race" || now() < H.startAt) return;
+  if (!p || H.ph !== "race" || now() < H.startAt || (H.set.md || "b") !== "b") return;
   const k = m.k | 0;
   const words = Array.isArray(m.w) ? m.w.slice(0, 12).map((w) => String(w).toLowerCase().slice(0, 20)) : [];
   if (now() - p.lastSent < 500) return toPlayer(p, { t: "sr", k, ok: 0, why: "fast" });
@@ -434,6 +455,64 @@ function hostSentence(p, m) {
   H.feed.push({ n: p.name, ch: p.ch, s: pretty(words), pts, gd: gold, c: p.combo }); if (H.feed.length > 6) H.feed.shift();
   broadcastFx({ t: "fx", k: "yay", a: p.pid, b: p.pid, gd: gold });
   hostBroadcast(); hostView();
+}
+/* ---------- 1.1 Balloons / Translation: the host keeps every player's question and its answer ---------- */
+const pubQ = (q) => ({ t: "q", r: H.race, q: q.id, k: q.k, tx: q.tx, te: q.te, tc: q.tc, o: q.o, x: q.x, g: q.g });
+function projQ(p) { if (H && H.mode === "present" && PROJ) PROJ.setQ(p.pid, p.q && !p.q.done ? { id: p.q.id, o: p.q.o, x: p.q.x, g: p.q.g } : null); }
+function hostNextQ(p, ax) {
+  if (!QZ || !H || H.ph !== "race" || (H.set.md || "b") === "b") return;
+  if (p.fin) { p.q = null; toPlayer(p, { t: "q", r: H.race, q: 0 }); projQ(p); return; }
+  const q = QZ.makeQuestion(H.set.md, H.set.level, H.rnd || Math.random, p.used);
+  const n = H.set.dens === "f" ? 3 : q.o.length;                 // "few": 1 right + 2 wrong balloons
+  while (q.o.length > n) { let j; do j = Math.floor(Math.random() * q.o.length); while (j === q.a); q.o.splice(j, 1); if (j < q.a) q.a--; }
+  q.id = ++H.qid; q.x = Math.round(Math.max(H.L.start + 300, Math.min(ax, H.L.finish - 160)));
+  q.g = H.set.gold && Math.random() < 0.1 ? 1 : 0;                // golden balloons: double points
+  p.q = q;
+  toPlayer(p, pubQ(q)); projQ(p);
+}
+function qFeedText(q) {
+  const a = q.o[q.a];
+  if (q.k === "gap") return q.tx.replace("___", a);
+  if (q.k === "def") return a;
+  return `${q.tx} ${q.k === "opp" ? "↔" : q.k === "syn" ? "=" : "→"} ${a}`;
+}
+function hostAnswer(p, m) {
+  if (!p || H.ph !== "race" || now() < H.startAt || !p.q || p.q.done || (m.q | 0) !== p.q.id) return;
+  if (now() - p.lastAns < 250) return;
+  const q = p.q, i = m.i | 0; if (i < 0 || i >= q.o.length) return;
+  p.lastAns = now(); q.done = 1; p.words++;
+  const ok = i === q.a; let pts = 0, pu = null;
+  if (ok) {
+    p.combo = (p.combo || 0) + 1;
+    pts = qPts(levelOf(H.set.level).mul, p.combo, q.g); p.pts += pts; p.sents++;
+    if (H.set.pu) {
+      const ahead = [...H.players.values()].some((o) => o !== p && !o.fin && o.x > p.x && (o.on || o.local));
+      const pool = (ahead ? PU_KEYS : PU_KEYS.filter((x) => PU[x].boost)).filter((x) => x !== "magnet");   // a magnet would grab a wrong balloon
+      pu = pool[Math.floor(Math.random() * pool.length)]; p.held = pu;
+    }
+    H.feed.push({ n: p.name, ch: p.ch, s: qFeedText(q).slice(0, 70), pts, gd: q.g, c: p.combo }); if (H.feed.length > 6) H.feed.shift();
+    broadcastFx({ t: "fx", k: "yay", a: p.pid, b: p.pid, gd: q.g });
+  } else p.combo = 0;
+  toPlayer(p, { t: "ar", q: q.id, ok: ok ? 1 : 0, i, a: q.a, pts, pu, cm: comboMul(p.combo), c: p.combo, gd: q.g });
+  if (H.mode === "present" && PROJ) { const set = PROJ.qbs.get(p.pid); if (set && set.id === q.id) PROJ.popBalloons(set, ok ? null : i, ok); }
+  // the next question floats in ahead of the runner (the device's own position, kept believable)
+  let x = Number(m.x); x = isFinite(x) ? Math.max(p.x - 150, Math.min(p.x + 900, x)) : p.x;
+  const race = H.race, qid = q.id;
+  setTimeout(() => { if (H && H.race === race && H.ph === "race" && p.q && p.q.id === qid) hostNextQ(p, x + 360); }, ok ? 650 : 450);
+  hostBroadcast(); hostView();
+}
+/* a device that waits too long for its next question (a lost message) asks again */
+function hostResendQ(p, m) {
+  if (!p || H.ph !== "race" || (H.set.md || "b") === "b" || p.fin || now() < H.startAt) return;
+  const id = m.q | 0;
+  if (!p.q) return hostNextQ(p, p.x + 360);
+  if (!p.q.done) return toPlayer(p, pubQ(p.q));
+  if (p.q.id === id && now() - p.lastAns > 900) hostNextQ(p, p.x + 360);
+}
+function hostMoveQ(p, m) {
+  if (!p || H.ph !== "race" || !p.q || p.q.done || (m.q | 0) !== p.q.id) return;
+  const x = Number(m.x); if (!isFinite(x)) return;
+  p.q.x = Math.round(Math.max(p.x - 200, Math.min(p.x + 1200, Math.min(x, H.L.finish - 160)))); projQ(p);
 }
 /* boosts help the owner; attacks hit only the runner directly ahead (nearest one in front who has not finished) */
 function hostUse(p, m) {
@@ -504,10 +583,11 @@ function hostTick() {
     if (t >= H.endAt) hostEnd();
   }
 }
-const setMsg = () => ({ l: H.set.level, len: H.set.len, wl: H.set.wl, pu: H.set.pu ? 1 : 0, tm: H.set.tm | 0, dn: H.set.dens === "f" ? "f" : "n", gd: H.set.gold ? 1 : 0 });
-const levelSet = (s) => ({ level: s.l, len: s.len, wl: s.wl, dens: s.dn || "n", gold: s.gd !== 0 });
+const setMsg = () => ({ md: H.set.md || "b", l: H.set.level, len: H.set.len, wl: H.set.wl, pu: H.set.pu ? 1 : 0, tm: H.set.tm | 0, dn: H.set.dens === "f" ? "f" : "n", gd: H.set.gold ? 1 : 0 });
+const levelSet = (s) => ({ md: s.md || "b", level: s.l, len: s.len, wl: s.wl, dens: s.dn || "n", gold: s.gd !== 0 });
 function hostStart() {
   if (!H || H.ph !== "lobby") return;
+  if ((H.set.md || "b") !== "b" && !QZ) { ensureQuiz().then(() => hostStart()).catch(() => alert(T_("לא הצלחנו לטעון את השאלות. בדקו את החיבור ונסו שוב"))); return; }
   H.race++; H.seed = (Math.random() * 2 ** 31) >>> 0 || 7;
   H.L = buildLevel(levelSet(setMsg()), H.seed);
   for (const p of H.players.values()) resetStats(p);
@@ -518,6 +598,7 @@ function hostStart() {
   H.ph = "race";
   LS.set("ss-settings", H.set);
   hostBroadcast(); hostView();
+  if ((H.set.md || "b") !== "b") { H.rnd = QZ.rng(H.seed ^ 0x51ab); for (const p of H.players.values()) hostNextQ(p, H.L.start + 420); }
 }
 function hostEnd() { if (!H || H.ph !== "race") return; H.ph = "end"; hostBroadcast(); hostView(); }
 function hostRematch() { if (!H) return; H.ph = "lobby"; for (const p of H.players.values()) resetStats(p); H.startAt = 0; H.endAt = 0; hostBroadcast(); hostView(); if (H.mode === "present" || !PS.local) lobbyScreen(); }
@@ -537,7 +618,7 @@ function hostJoinLocal(name, ch) {
 /* ---------- 02 lobby (host: join card + players + settings; player: waiting room) ---------- */
 function lobbyData() {
   if (H) return { code: H.code, set: setMsg(), pl: [...H.players.values()].sort((a, b) => a.pid - b.pid).map((p) => [p.pid, p.name, p.ch, 0, p.on || p.local ? 1 : 0]), host: true, present: H.mode === "present" };
-  const st = PS.st || { set: { l: "normal", len: "medium", wl: "m", pu: 1, tm: 0, dn: "n", gd: 1 }, pl: [] };
+  const st = PS.st || { set: { md: "b", l: "normal", len: "medium", wl: "m", pu: 1, tm: 0, dn: "n", gd: 1 }, pl: [] };
   return { code: PS.code, set: st.set, pl: st.pl, host: false };
 }
 function settingsHTML(d, compact) {
@@ -548,12 +629,15 @@ function settingsHTML(d, compact) {
   const tm = TIMES.map((t) => `<button class="chip ${(s.tm | 0) === t.k ? "on purple" : ""}" data-tm="${t.k}" aria-pressed="${(s.tm | 0) === t.k}" ${dis}>${t.he}</button>`).join("");
   const dn = DENS.map((t) => `<button class="chip ${(s.dn || "n") === t.k ? "on blue" : ""}" data-dn="${t.k}" aria-pressed="${(s.dn || "n") === t.k}" ${dis}>${t.he}</button>`).join("");
   const tog = (id, on, icon, col, label) => `<div class="set-row"><span class="sub"><span class="hi ${col}" style="width:28px;height:28px;border-radius:9px">${ico(icon, 16, 2.6, "#fff")}</span>${label}</span><button class="tog ${on ? "on" : ""}" id="${id}" role="switch" aria-checked="${!!on}" aria-label="${label}" ${dis}></button></div>`;
-  return `<div class="set-lbl">רמת קושי</div><div class="chips lvls">${lv}</div>
+  const md = s.md || "b", qm = md !== "b";
+  const mds = MODES.map((m) => `<button class="chip mode ${md === m.k ? "on " + m.col : ""}" data-md="${m.k}" aria-pressed="${md === m.k}" ${dis}>${ico(m.ico, 17, 2.6)}<span>${m.he}</span></button>`).join("");
+  return `<div class="set-lbl">מצב משחק</div><div class="chips c3 modes">${mds}</div>
+    <div class="set-lbl">רמת קושי</div><div class="chips lvls">${lv}</div>
     <div class="set-lbl">אורך המסלול</div><div class="chips">${tr}</div>
-    <div class="set-lbl">מילים במשפט</div><div class="chips">${wl}</div>
+    ${qm ? "" : `<div class="set-lbl">מילים במשפט</div><div class="chips">${wl}</div>`}
     <div class="set-lbl">זמן המירוץ</div><div class="chips c4">${tm}</div>
-    <div class="set-lbl">מילים על המסלול</div><div class="chips c2">${dn}</div>
-    <div class="set-tg">${tog("tPu", s.pu, "zap", "yellow", "כוחות-על")}${tog("tGd", s.gd !== 0, "star", "orange", "מילים זהובות")}</div>`;
+    <div class="set-lbl">${qm ? "בלונים לכל שאלה" : "מילים על המסלול"}</div><div class="chips c2">${qm ? dn.replace(">מעט מילים<", ">3<").replace(">רגיל<", ">3–4<") : dn}</div>
+    <div class="set-tg">${tog("tPu", s.pu, "zap", "yellow", "כוחות-על")}${tog("tGd", s.gd !== 0, "star", "orange", qm ? "בלונים זהובים" : "מילים זהובות")}</div>`;
 }
 function wireSettings() {
   if (!H) return;
@@ -565,6 +649,7 @@ function wireSettings() {
   wireExtra(document, upd);
 }
 function wireExtra(root, upd) {
+  $$("[data-md]", root).forEach((b) => (b.onclick = () => { H.set.md = b.dataset.md; SFX.tap(); if (H.set.md !== "b") ensureQuiz().catch(() => {}); upd(); }));
   $$("[data-tm]", root).forEach((b) => (b.onclick = () => { H.set.tm = +b.dataset.tm; SFX.tap(); upd(); }));
   $$("[data-dn]", root).forEach((b) => (b.onclick = () => { H.set.dens = b.dataset.dn; SFX.tap(); upd(); }));
   const g = $("#tGd", root); if (g) g.onclick = () => { H.set.gold = !H.set.gold; SFX.tap(); upd(); };
@@ -572,10 +657,11 @@ function wireExtra(root, upd) {
 /* the chosen settings, shown to everyone in the lobby */
 function setSummary(s) {
   const lvl = levelOf(s.l), tr = TRACKS.find((t) => t.k === s.len) || TRACKS[1], wl = WLS.find((t) => t.k === s.wl) || WLS[1], tm = TIMES.find((t) => t.k === (s.tm | 0)) || TIMES[0];
-  return `<span class="chip on blue">${bars(LEVELS.indexOf(lvl) + 1, true)}<span>רמה: ${lvl.he}</span></span><span class="chip">${ico("flag-fin", 15, 2.4)}<span>מסלול: ${tr.he}</span></span>
-    <span class="chip">${ico("puzzle", 15, 2.6)}<span>מילים במשפט:</span> <span class="en">${wl.he}</span></span><span class="chip">${ico("clock", 15, 2.6)}<span>זמן: ${tm.he}</span></span>
-    <span class="chip">${ico("layers", 15, 2.6)}<span>${(s.dn || "n") === "f" ? "מעט מילים" : "מילים: רגיל"}</span></span>
-    <span class="chip">${ico("zap", 15, 2.6)}<span>${s.pu ? "כוחות-על" : "בלי כוחות-על"}</span></span><span class="chip ${s.gd !== 0 ? "gold" : ""}">${ico("star", 15, 2.6)}<span>${s.gd !== 0 ? "מילים זהובות" : "בלי מילים זהובות"}</span></span>`;
+  const md = modeOf(s.md), qm = md.k !== "b";
+  return `<span class="chip on ${md.col}">${ico(md.ico, 15, 2.6)}<span>${md.he}</span></span><span class="chip on blue">${bars(LEVELS.indexOf(lvl) + 1, true)}<span>רמה: ${lvl.he}</span></span><span class="chip">${ico("flag-fin", 15, 2.4)}<span>מסלול: ${tr.he}</span></span>
+    ${qm ? "" : `<span class="chip">${ico("puzzle", 15, 2.6)}<span>מילים במשפט:</span> <span class="en">${wl.he}</span></span>`}<span class="chip">${ico("clock", 15, 2.6)}<span>זמן: ${tm.he}</span></span>
+    <span class="chip">${ico("layers", 15, 2.6)}<span>${qm ? ((s.dn || "n") === "f" ? "3 בלונים לשאלה" : "3–4 בלונים לשאלה") : (s.dn || "n") === "f" ? "מעט מילים" : "מילים: רגיל"}</span></span>
+    <span class="chip">${ico("zap", 15, 2.6)}<span>${s.pu ? "כוחות-על" : "בלי כוחות-על"}</span></span><span class="chip ${s.gd !== 0 ? "gold" : ""}">${ico("star", 15, 2.6)}<span>${s.gd !== 0 ? (qm ? "בלונים זהובים" : "מילים זהובות") : (qm ? "בלי בלונים זהובים" : "בלי מילים זהובות")}</span></span>`;
 }
 function lobbyScreen() {
   show("lobby", () => {
@@ -720,16 +806,19 @@ function playerOnMsg(m, local) {
   if (m.t === "sn") { if (PS.G) onSnap(m, PS.G); return; }
   if (m.t === "fx") { if (PS.G) onFx(m, PS.G); return; }
   if (m.t === "sr") return onSentenceResult(m);
+  if (m.t === "q") { if (TEST && PS.dropQ > 0) { PS.dropQ--; return; } return onQuestion(m); }
+  if (m.t === "ar") return onAnswerResult(m);
   if (m.t === "ur") return onUseResult(m);
   if (m.t === "fin") { PS.finPlace = m.place; PS.finBonus = m.bonus; showFinish(); return; }
   if (m.t !== "st") return;
   const prev = PS.st; PS.st = m;
+  if (m.set && m.set.md && m.set.md !== "b" && !QZ) ensureQuiz().catch(() => {});
   if (!local && !PS.pid) return;
   if (!local && !m.pl.some((x) => x[0] === PS.pid)) { PS.pid = 0; sendHello(); return; }
   clearBanner();
   if (m.race !== PS.race) { PS.race = m.race; PS.recorded = {}; PS.sessionStart = now(); }
   if (m.ph === "lobby") {
-    if (VIEW.name !== "lobby" || (prev && JSON.stringify(prev.set) !== JSON.stringify(m.set))) lobbyScreen(); else renderLobbyPlayers();
+    if (VIEW.name !== "lobby" || !prev || !prev.set || JSON.stringify(prev.set) !== JSON.stringify(m.set)) lobbyScreen(); else renderLobbyPlayers();
     return;
   }
   if (m.ph === "end") { recordEnd(m); if (PS.dismissed === m.race) { if (VIEW.name !== "lobby") lobbyScreen(); return; } if (VIEW.name !== "results") resultsScreen(m, false); return; }
@@ -764,14 +853,19 @@ function gameScreen(st, projector) {
     onCollect: (b) => { PS.bar.push({ w: b.w, id: b.id, g: b.g ? 1 : 0 }); if (b.g) { SFX.combo(); G.addFx("gold", PS.pid); } else SFX.word(); renderBar(); return true; },
     canCollect: () => PS.bar.length < L.hi,
     onFull: () => { const sb = $("#sbar"); if (sb) { sb.classList.remove("full"); void sb.offsetWidth; sb.classList.add("full"); } toast(T_("הפס מלא: שלחו את המשפט או מחקו מילה"), "", 1400); },
-    onFinish: () => { toHost({ t: "p", x: Math.round(G.me.x), y: Math.round(G.me.y), f: G.flags() }); }
+    onFinish: () => { toHost({ t: "p", x: Math.round(G.me.x), y: Math.round(G.me.y), f: G.flags() }); },
+    onBalloon: (set, i) => { SFX.tap(); toHost({ t: "ans", q: set.id, i, x: Math.round(G.me.x) }); },
+    onMoveQ: (set) => toHost({ t: "mq", q: set.id, x: set.x })
   });
   G.race = st.race;
-  GAME = { el, G, projector, st, L, startPerf: performance.now() + st.go, endPerf: performance.now() + st.left, lastCd: null };
+  GAME = { el, G, projector, st, L, qm: set.md !== "b" ? set.md : "", startPerf: performance.now() + st.go, endPerf: performance.now() + st.left, lastCd: null };
   if (projector) PROJ = G; else PS.G = G;
   Object.assign(PS, { bar: [], sel: -1, held: null, pending: null, finPlace: 0, seq: 0, combo: 0 });
+  if (PS.q && PS.q.r !== st.race) PS.q = null;
+  if (projector && H) for (const p of H.players.values()) if (p.q && !p.q.done) G.setQ(p.pid, { id: p.q.id, o: p.q.o, x: p.q.x, g: p.q.g });
   if (!projector && PS.resume && PS.resume.race === st.race) { G.me.x = PS.resume.x; G.me.y = Math.min(510, PS.resume.y); PS.held = PS.resume.held || null; PS.resume = null; }
   gameLayout(); buildHud(); gameLayout(); setTimeout(gameLayout, 500); setTimeout(gameLayout, 1500); G.start(GAME.startPerf);
+  if (GAME.qm && !projector) applyQ();
   GAME.iv = setInterval(hudTick, 200);
   if (!projector) {
     let lastSent = 0;
@@ -832,10 +926,12 @@ function buildHud() {
       <div class="hud tr"><div class="row"><a class="gbtn" id="gHub" href="${HUB}">${ico(BACK, 18, 2.8)}<span>אנגלישיה</span></a>${fullBtn("gbtn ic")}<button class="gbtn ic" id="bHelp" aria-label="איך משחקים" title="איך משחקים">${ico("help", 22, 2.6)}</button><button class="gbtn ic" id="bMenu" aria-label="תפריט" title="תפריט">${ico("pause", 22, 2.6, "currentColor", "currentColor")}</button></div></div>
       <div class="hud bl"><button class="pwr empty" id="bPwr" aria-label="הפעל כוח-על"><img id="pwrImg" src="${IMG_BASE}pu-boost-speed.png" alt=""><span class="e"><span>הפעל</span><kbd>E</kbd></span></button>
         <div class="pads" dir="ltr"><button class="btn orange pad" id="bLeft" aria-label="שמאלה">${ico("arrow-left", 58, 3.6)}</button><button class="btn orange pad" id="bRight" aria-label="ימינה">${ico("arrow-right", 58, 3.6)}</button></div></div>
-      <div class="hud bc"><div class="sbar" id="sbar"><div class="lab"><div class="a">${ico("puzzle", 14, 2.6)}<span>בנו משפט באנגלית</span></div><div class="b" id="sHint"></div></div>
+      <div class="hud bc">${GAME.qm ? `<div class="sbar qbar" id="sbar"><div class="lab"><div class="a" id="qLead">${ico(modeOf(GAME.qm).ico, 14, 2.6)}<span></span></div><div class="b" id="sHint"></div></div>
+        <div class="qtx" id="qTx"></div><span class="hp combo" id="hCombo" style="display:none" title="קומבו"><span>קומבו</span><b class="en">x1</b></span><span class="spts" id="spts"></span></div>`
+        : `<div class="sbar" id="sbar"><div class="lab"><div class="a">${ico("puzzle", 14, 2.6)}<span>בנו משפט באנגלית</span></div><div class="b" id="sHint"></div></div>
         <div class="slots" id="slots"></div><span class="scount" id="scount"></span><span class="hp combo" id="hCombo" style="display:none" title="קומבו"><span>קומבו</span><b class="en">x1</b></span><span class="spts" id="spts"></span>
-        <div class="sact"><button class="btn red del" id="bUndo" aria-label="מחק מילה" title="מחק מילה (Backspace)">${ico("backspace", 26, 2.6)}<span>מחק</span></button><button class="btn green go" id="bSend" title="Enter">${ico("check", 24, 3.2)}<span>שלח</span></button></div></div></div>
-      <div class="hud br"><div class="keys"><span class="gbtn">${ico("arrow-right", 15, 3)}<span>ריצה</span><kbd>← → / A D</kbd></span><span class="gbtn">${ico("arrow-up", 15, 3)}<span>קפיצה</span><kbd>SPACE</kbd></span><span class="gbtn">${ico("arrow-up", 15, 3)}<span>קפיצה כפולה</span><kbd>×2</kbd></span><span class="gbtn">${ico("arrow-down", 15, 3)}<span>ירידה קומה</span><kbd>↓ / S</kbd></span><span class="gbtn">${ico("check", 15, 3)}<span>שלח</span><kbd>ENTER</kbd></span><span class="gbtn">${ico("backspace", 15, 2.6)}<span>מחק מילה</span><kbd>⌫</kbd></span></div>
+        <div class="sact"><button class="btn red del" id="bUndo" aria-label="מחק מילה" title="מחק מילה (Backspace)">${ico("backspace", 26, 2.6)}<span>מחק</span></button><button class="btn green go" id="bSend" title="Enter">${ico("check", 24, 3.2)}<span>שלח</span></button></div></div>`}</div>
+      <div class="hud br"><div class="keys"><span class="gbtn">${ico("arrow-right", 15, 3)}<span>ריצה</span><kbd>← → / A D</kbd></span><span class="gbtn">${ico("arrow-up", 15, 3)}<span>קפיצה</span><kbd>SPACE</kbd></span><span class="gbtn">${ico("arrow-up", 15, 3)}<span>קפיצה כפולה</span><kbd>×2</kbd></span><span class="gbtn">${ico("arrow-down", 15, 3)}<span>ירידה קומה</span><kbd>↓ / S</kbd></span>${GAME.qm ? `<span class="gbtn">${ico("balloon", 15, 2.6)}<span>קופצים לבלון הנכון</span></span>` : `<span class="gbtn">${ico("check", 15, 3)}<span>שלח</span><kbd>ENTER</kbd></span><span class="gbtn">${ico("backspace", 15, 2.6)}<span>מחק מילה</span><kbd>⌫</kbd></span>`}</div>
         <div class="jcol"><button class="btn blue down" id="bDown" aria-label="ירידה קומה">${ico("arrow-down", 34, 3.4)}<span>ירידה</span></button>
         <button class="btn green jump" id="bJump" aria-label="קפיצה">${ico("arrow-up", 54, 3.4)}<span>קפיצה</span></button></div></div>
       <div class="rot">${ico("phone-rot", 16, 2.6, "#fff")}<span>לרוחב נוח יותר</span></div>
@@ -850,8 +946,8 @@ function buildHud() {
     }
     $("#bHelp").onclick = () => helpDlg();
     $("#bPwr").onclick = () => usePower();
-    $("#bUndo").onclick = () => undoWord();
-    $("#bSend").onclick = () => submitSentence();
+    if ($("#bUndo")) $("#bUndo").onclick = () => undoWord();
+    if ($("#bSend")) $("#bSend").onclick = () => submitSentence();
     $("#bMenu").onclick = () => gameMenu();
     $("#gHub").onclick = (e) => { if (!confirm(T_("לצאת מהמירוץ?"))) e.preventDefault(); };
     renderBar(); renderPower();
@@ -866,6 +962,7 @@ function onKey(e) {
   else if (c === "ArrowLeft" || c === "KeyA") { e.preventDefault(); PS.G.input.l = 1; }
   else if (c === "ArrowRight" || c === "KeyD") { e.preventDefault(); PS.G.input.r = 1; }
   else if (c === "KeyE") { e.preventDefault(); usePower(); }
+  else if (GAME && GAME.qm) return;
   else if (c === "Enter" || c === "NumpadEnter") { e.preventDefault(); submitSentence(); }
   else if (c === "Backspace" || c === "Delete") { e.preventDefault(); undoWord(); }
   else if (/^Digit[1-8]$/.test(c)) { e.preventDefault(); tapTile(+c.slice(5) - 1); }
@@ -879,6 +976,7 @@ function doDrop() { if (PS.G && !PS.G.drop()) { const b = $("#bDown"); if (b && 
 /* ---------- sentence bar ---------- */
 function liveValid() { const L = GAME && GAME.L; if (!L) return false; const w = PS.bar.map((b) => b.w); return w.length >= L.lo && check(w).ok; }
 function renderBar() {
+  if (GAME && GAME.qm) return renderQ();
   const sl = $("#slots"); if (!sl || !GAME) return;
   const L = GAME.L, cfg = GEN[GAME.st.set.l] || GEN.normal, n = PS.bar.length;
   const col = ["pink", "blue", "orange", "teal", "purple", "green", "yellow", "red"];
@@ -923,7 +1021,7 @@ function undoWord() {
   PS.sel = -1; SFX.tap(); renderBar();
 }
 function submitSentence() {
-  if (!GAME || GAME.projector || PS.pending) return;
+  if (!GAME || GAME.projector || PS.pending || GAME.qm) return;
   const L = GAME.L, w = PS.bar.map((b) => b.w);
   if (performance.now() < GAME.startPerf) return;
   if (w.length < L.lo) { toast(T_("צריך לפחות") + " " + L.lo + " " + T_("מילים במשפט"), "bad", 1500); SFX.no(); return; }
@@ -953,6 +1051,57 @@ function onSentenceResult(m) {
     const sb = $("#sbar"); if (sb) { sb.classList.remove("shake"); void sb.offsetWidth; sb.classList.add("shake"); }
     toast(T_("זה עדיין לא משפט נכון. סדרו או החליפו מילים"), "bad", 1900);
     recordAnswer(words, false); renderBar();
+  }
+}
+/* ---------- 1.1 Balloons / Translation: the question panel and the answers ---------- */
+function onQuestion(m) {
+  const cur = PS.G && PS.G.qb;
+  if (m && m.q && cur && cur.id === m.q && !cur.done) cur.wait = 0;     // the same question again: my answer was lost, touch again
+  PS.q = m && m.q ? m : null;
+  if (PS.q && PS.q.te && !QZ) ensureQuiz().then(() => { if (PS.q === m) renderQ(); }).catch(() => {});
+  applyQ();
+}
+function applyQ() {
+  if (!GAME || GAME.projector || !PS.G || !GAME.qm) return;
+  const m = PS.q && PS.q.r === GAME.st.race ? PS.q : null;
+  const cur = PS.G.qb;
+  if (!m) { if (cur && !cur.done) PS.G.setQ(PS.pid, null); }
+  else if (!cur || cur.id !== m.q) PS.G.setQ(PS.pid, { id: m.q, o: m.o, x: m.x, g: m.g });
+  renderQ();
+}
+const qLocal = (m) => (m && m.te && QZ ? QZ.localize(m) : m);
+function renderQ() {
+  const tx = $("#qTx"); if (!tx || !GAME) return;
+  const m = qLocal(PS.q && PS.q.r === GAME.st.race ? PS.q : null), lead = $("#qLead span"), hint = $("#sHint"), sp = $("#spts");
+  if (!m) { lead.textContent = T_(GAME.qm === "t" ? "תרגום" : "בלונים"); tx.className = "qtx wait"; tx.textContent = PS.finPlace ? T_("סיימתם!") : "…"; hint.className = "b"; hint.textContent = ""; if (sp) sp.innerHTML = ""; return; }
+  lead.textContent = T_(QLEAD[m.k] || "");
+  const native = m.k === "tr" || m.k === "def";
+  if (m.k === "gap") tx.innerHTML = `<span class="en" translate="no">${esc(m.tx).replace("___", '<i class="blank"></i>')}</span>`;
+  else if (native) tx.innerHTML = `<span class="nat" dir="auto">${esc(m.tx)}</span>`;
+  else tx.innerHTML = `<span dir="ltr"><b class="en" translate="no">${esc(m.tx)}</b>${m.k === "opp" || m.k === "syn" ? "<span>?</span>" : ""}</span>`;
+  tx.className = "qtx" + (native ? " n" : "") + (m.tx.length > 34 ? " long" : "");
+  hint.className = "b"; hint.textContent = T_("קפצו לבלון עם התשובה הנכונה");
+  if (sp) { const v = qPts(levelOf(GAME.st.set.l).mul, (PS.combo || 0) + 1, m.g); sp.className = "spts" + (m.g ? " gold" : ""); sp.innerHTML = `${m.g ? ico("star", 16, 2.6, "currentColor", "currentColor") : ""}<span class="en">+${v}</span>`; }
+}
+function onAnswerResult(m) {
+  const G = PS.G, q = PS.q; if (!q || m.q !== q.q) return;
+  const set = G && G.qb, ans = q.o[m.a];
+  if (set && set.id === m.q) { set.done = 1; set.doneT = performance.now(); set.wait = performance.now() + 20000; G.popBalloons(set, m.ok ? null : m.i, !!m.ok); }
+  const lq = qLocal(q);
+  if (m.ok) {
+    PS.combo = m.c || (PS.combo || 0) + 1; SFX.ok(); if ((m.cm || 1) > 1 || m.gd) setTimeout(SFX.combo, 180);
+    speak(q.k === "gap" ? q.tx.replace("___", ans) : ans);
+    recordQ(lq, ans, true, ans);
+    bumpScore(m.pts); renderCombo();
+    if (G) G.apply("cheer");
+    const extra = [(m.cm || 1) > 1 ? `${T_("קומבו")} x${m.cm}` : "", m.gd ? `${T_("בלון זהוב")} x2` : ""].filter(Boolean).join(" · ");
+    if (m.pu) roulette([q.k === "gap" ? q.tx.replace("___", ans) : ans], m.pts, m.pu, extra, "תשובה נכונה!"); else toast(`+${m.pts} · ${T_("תשובה נכונה!")}${extra ? " · " + extra : ""}`, "good", 1600);
+  } else {
+    SFX.no(); if (G) G.apply("wrong", 1.1);
+    if (PS.combo) { PS.combo = 0; renderCombo(); }
+    const sb = $("#sbar"); if (sb) { sb.classList.remove("shake"); void sb.offsetWidth; sb.classList.add("shake"); }
+    toast(`${T_("לא נכון. התשובה:")} ${ans}`, "bad", 2000);
+    recordQ(lq, q.o[m.i], false, ans);
   }
 }
 function renderCombo() { const c = $("#hCombo"); if (!c) return; const m = comboMul(PS.combo || 0); c.style.display = m > 1 ? "" : "none"; $("b", c).textContent = "x" + m; c.classList.remove("pop"); void c.offsetWidth; c.classList.add("pop"); renderBar(); }
@@ -1012,14 +1161,14 @@ function fitRou() {
   const W = vv ? Math.min(innerWidth, vv.width) : innerWidth, Hh = vv ? Math.min(innerHeight, vv.height) : innerHeight;
   box.style.transform = `translate(-50%,-50%) scale(${Math.min(k, Hh / needH, W / 1240).toFixed(3)})`;
 }
-function roulette(words, pts, pu, extra) {
+function roulette(words, pts, pu, extra, head) {
   const ov = $("#ov"); if (!ov) return;
-  const keys = PU_KEYS, items = [];
+  const keys = GAME && GAME.qm ? PU_KEYS.filter((k) => k !== "magnet") : PU_KEYS, items = [];
   for (let i = 0; i < 26; i++) items.push(keys[Math.floor(Math.random() * keys.length)]);
   const win = 21; items[win] = pu;
   const ch = PS.ch;
   ov.innerHTML = `<div class="ovk"><div class="rou">
-    <div class="head"><span class="hi green" style="width:46px;height:46px;border-radius:50%">${ico("check", 28, 3.4, "#fff")}</span><span class="ttl" style="font-size:44px">משפט נכון!</span><span class="plus en">+${pts}</span></div>${extra ? `<div class="rx">${esc(extra)}</div>` : ""}
+    <div class="head"><span class="hi green" style="width:46px;height:46px;border-radius:50%">${ico("check", 28, 3.4, "#fff")}</span><span class="ttl" style="font-size:44px">${head || "משפט נכון!"}</span><span class="plus en">+${pts}</span></div>${extra ? `<div class="rx">${esc(extra)}</div>` : ""}
     <div class="sent">${words.map((w) => `<span class="tile">${esc(disp(w))}</span>`).join("")}</div>
     <div class="arr d"></div>
     <div class="strip"><div class="rail" id="rail">${items.map((k) => `<div class="it"><img src="${IMG_BASE}${PU[k].img}.png" alt=""><i style="background:${PU[k].boost ? "#14b05a" : "#f2392c"}"></i></div>`).join("")}</div><div class="win"></div></div>
@@ -1082,7 +1231,7 @@ function gameMenu() {
 /* in-game help: controls, points by length, golden words, combo, power-ups */
 function helpDlg() {
   const old = $("#helpDlg"); if (old) { old.remove(); return; }
-  const st = GAME ? GAME.st : null, mul = st ? levelOf(st.set.l).mul : 1, L = GAME ? GAME.L : { lo: 2, hi: 8 };
+  const st = GAME ? GAME.st : null, mul = st ? levelOf(st.set.l).mul : 1, L = GAME ? GAME.L : { lo: 2, hi: 8 }, qm = GAME ? GAME.qm : "";
   const rows = []; for (let n = Math.max(2, L.lo); n <= L.hi; n++) rows.push(`<span><b class="en">${n}</b> ${T_("מילים")}</span><span class="en">+${sentencePts(n, mul, 1, 0)}</span>`);
   const dlg = document.createElement("div"); dlg.className = "menu-dlg"; dlg.id = "helpDlg";
   dlg.innerHTML = `<div class="card help" style="--k2:${1}"><h3>${ico("help", 24, 2.6)}<span>איך משחקים</span></h3>
@@ -1091,12 +1240,19 @@ function helpDlg() {
         <p>${ico("arrow-right", 18, 3)}<span>ריצה: לוחצים ומחזיקים את החיצים (במחשב ← → או A D). עוזבים = עוצרים. אפשר לחזור קצת אחורה כדי לתפוס מילה</span></p>
         <p>${ico("arrow-up", 18, 3)}<span>קפיצה: כפתור הקפיצה, מקש רווח או ↑ (פעמיים = קפיצה כפולה)</span></p>
         <p>${ico("arrow-down", 18, 3)}<span>ירידה קומה: כפתור הירידה, ↓ או S. יורדים דרך הפלטפורמה לקומה שמתחת (לא דרך הקרקע)</span></p>
-        <p>${ico("puzzle", 18, 2.6)}<span>רצים לתוך בועות מילים ובונים מהן משפט בפס. לחיצה על מילה מוציאה אותה, כפתור "מחק" מוחק את האחרונה. להחלפת סדר: לחיצה ארוכה על מילה ואז לחיצה על מילה אחרת. שולחים ב"שלח" (Enter)</span></p>
+        ${qm ? `<p>${ico(qm === "t" ? "languages" : "balloon", 18, 2.6)}<span>${qm === "t" ? "בפס למטה מופיעה מילה בשפה שלכם. קופצים לבלון עם המילה הנכונה באנגלית" : "בפס למטה מופיעה שאלה: השלמת משפט, הגדרה, הפכים, מילים נרדפות או צורות פועל. קופצים לבלון עם התשובה הנכונה"}</span></p>
+        <p>${ico("arrow-up", 18, 3)}<span>הבלונים מרחפים מעל הראש: הליכה עוברת מתחתם, קפיצה נוגעת בבלון. חץ בצד המסך מראה איפה הבלונים</span></p>
+        <p>${ico("zap", 18, 2.6)}<span>תשובה נכונה מגרילה כוח-על. מפעילים בכפתור הכוח או במקש E</span></p></div>
+      <div class="hsec"><h4>ניקוד</h4><div class="ptab"><span>תשובה נכונה</span><span class="en">+${qPts(mul, 1, 0)}</span><span>קומבו x2</span><span class="en">+${qPts(mul, 3, 0)}</span></div>
+        <p class="gold">${ico("star", 18, 2.4, "currentColor", "currentColor")}<span>בלונים זהובים: ניקוד כפול</span></p>
+        <p>${ico("zap", 18, 2.6)}<span>קומבו: 2 תשובות נכונות ברצף x1.5, שלוש ומעלה x2. תשובה שגויה מאפסת את הקומבו</span></p>
+        <p>${ico("x", 18, 2.8)}<span>תשובה שגויה: הבלון מתפוצץ, האטה קצרה ושאלה חדשה</span></p></div>`
+        : `<p>${ico("puzzle", 18, 2.6)}<span>רצים לתוך בועות מילים ובונים מהן משפט בפס. לחיצה על מילה מוציאה אותה, כפתור "מחק" מוחק את האחרונה. להחלפת סדר: לחיצה ארוכה על מילה ואז לחיצה על מילה אחרת. שולחים ב"שלח" (Enter)</span></p>
         <p>${ico("zap", 18, 2.6)}<span>משפט נכון מגריל כוח-על. מפעילים בכפתור הכוח או במקש E</span></p></div>
       <div class="hsec"><h4>ניקוד: כל מילה נוספת שווה יותר</h4><div class="ptab">${rows.join("")}</div>
         <p class="gold">${ico("star", 18, 2.4, "currentColor", "currentColor")}<span>מילה זהובה במשפט: ניקוד כפול</span></p>
         <p>${ico("zap", 18, 2.6)}<span>קומבו: 2 משפטים נכונים ברצף x1.5, שלושה ומעלה x2. משפט שגוי מאפס את הקומבו</span></p>
-        <p>${ico("x", 18, 2.8)}<span>משפט שגוי: האטה קצרה. המילים נשארות בפס כדי לתקן</span></p></div>
+        <p>${ico("x", 18, 2.8)}<span>משפט שגוי: האטה קצרה. המילים נשארות בפס כדי לתקן</span></p></div>`}
     </div>
     <button class="btn green" id="hOk">${ico("play", 22, 2.6, "#fff", "#fff")}<span>הבנתי</span></button></div>`;
   (GAME ? GAME.el : document.body).appendChild(dlg); fitDlg(dlg);
@@ -1131,6 +1287,12 @@ function hudTick() {
   if (cd > 0 && cd <= 3) { if (GAME.lastCd !== cd) { GAME.lastCd = cd; ov.innerHTML = `<div class="ovk"><div class="cdown en">${cd}</div></div>`; SFX.tick(); } }
   else if (cd > 3) { if (GAME.lastCd !== "w") { GAME.lastCd = "w"; ov.innerHTML = `<div class="ovk"><div class="fin-ov"><div class="big">${esc(T_("מתכוננים…"))}</div><div class="sm">${esc(T_(GAME.projector ? "התלמידים רצים מהטלפון" : "קופצים ברווח או בכפתור הקפיצה"))}</div></div></div>`; } }
   else if (GAME.lastCd !== "go" && GAME.lastCd !== "done") { GAME.lastCd = "go"; ov.innerHTML = `<div class="ovk"><div class="cdown en">GO!</div></div>`; SFX.go(); setTimeout(() => { if (GAME && GAME.lastCd === "go") { GAME.lastCd = "done"; const o = $("#ov"); if (o && o.querySelector(".cdown")) o.innerHTML = ""; } }, 700); }
+  // Balloons / Translation: no reply or no next question for a while (a lost message) -> ask the host again
+  if (GAME.qm && !GAME.projector && PS.G && t > GAME.startPerf + 2500 && !PS.finPlace && !(PS.G.me && PS.G.me.fin)) {
+    const q = PS.G.qb, since = !q ? t - (PS.noQT || (PS.noQT = t)) : q.done ? t - q.doneT : q.wait ? t - q.wait : 0;
+    if (q) PS.noQT = 0;
+    if (since > 2500 && (!PS.qqT || t - PS.qqT > 2500)) { PS.qqT = t; toHost({ t: "qq", q: q ? q.id : 0 }); }
+  }
   // timer
   const tm = $("#hTime b"); if (tm) tm.textContent = fmt(Math.min(GAME.endPerf - t, Math.max(0, GAME.endPerf - t)));
   if (PS.finPlace && $("#finWait")) $("#finWait").textContent = T_("ממתינים לשאר הרצים…") + " " + fmt(GAME.endPerf - t);
@@ -1163,6 +1325,14 @@ function recordAnswer(words, ok) {
       correct: ok, given: s, expected: ok ? s : alt ? pretty(alt) : "any correct sentence" });
   } catch (e) {}
 }
+function recordQ(q, given, ok, expected) {
+  try {
+    if (!window.EnglishiaAuth || !EnglishiaAuth.user || !q) return;
+    const md = GAME ? GAME.qm : "q";
+    EnglishiaAuth.recordAnswer(GAME_ID, { item: q.k + ":" + String(q.te || q.tx).slice(0, 60), topic: md === "t" ? "תרגום" : "בלונים", level: GAME ? GAME.st.set.l : "",
+      prompt: `${QLEAD[q.k] || ""}: ${q.tx}`.slice(0, 160), correct: ok, given: String(given || ""), expected: String(expected || "") });
+  } catch (e) {}
+}
 function recordEnd(m) {
   try {
     if (!window.EnglishiaAuth || !EnglishiaAuth.user || m.mode === "present" && PS.local) return;
@@ -1178,7 +1348,7 @@ const waitScreen = () => lobbyScreen();
 function resultsScreen(st, projector) {
   if (!st) return;
   show("results", () => {
-    const order = st.pl.slice().sort((a, b) => a[9] - b[9]);
+    const order = st.pl.slice().sort((a, b) => a[9] - b[9]), qmR = st.set && st.set.md && st.set.md !== "b";
     const me = projector ? null : order.find((p) => p[0] === PS.pid);
     const top3 = [order[0], order[1], order[2]];
     const rest = order.length > 3 ? order.slice(3) : order;
@@ -1199,8 +1369,8 @@ function resultsScreen(st, projector) {
     const list = rest.slice(0, MOBILE ? 4 : 12).map((p) => `<div class="rr ${p[0] === PS.pid && !projector ? "me" : ""}"><span class="rk">${p[9]}</span>${av(p[2], 34)}<span class="n" translate="no">${esc(p[1])}</span><span class="s">${p[3]} <small>נק׳</small></span></div>`).join("") || `<div class="sub" style="justify-content:center">${esc(T_("רק רץ אחד במירוץ"))}</div>`;
     const myPl = me ? `<div class="mypl">${ico("medal", 20, 2.6)}<span>סיימת במקום</span> <b>${me[9]}</b> <span>מתוך</span> <b>${order.length}</b></div>` : "";
     const stats = me ? `<div class="sub" style="margin-top:2px">התוצאות שלי</div><div class="stats">
-      <div class="stat"><span class="hi green">${ico("check", 16, 3, "#fff")}</span><b>${me[6]}</b><span>משפטים נכונים</span></div>
-      <div class="stat"><span class="hi blue">${ico("book", 16, 2.6, "#fff")}</span><b>${me[7]}</b><span>מילים שנאספו</span></div>
+      <div class="stat"><span class="hi green">${ico("check", 16, 3, "#fff")}</span><b>${me[6]}</b><span>${qmR ? "תשובות נכונות" : "משפטים נכונים"}</span></div>
+      <div class="stat"><span class="hi blue">${ico(qmR ? "balloon" : "book", 16, 2.6, "#fff")}</span><b>${me[7]}</b><span>${qmR ? "שאלות" : "מילים שנאספו"}</span></div>
       <div class="stat"><span class="hi orange">${ico("zap", 16, 2.6, "#fff")}</span><b>${me[8]}</b><span>כוחות-על</span></div></div>` : "";
     const restT = order.length > 3 ? "שאר הרצים" : "כל הרצים";
     const btns = `<div class="res-btns"><button class="btn orange" id="bAgain">${ico("rotate", 22, 2.8, "#fff")}<span>מירוץ חוזר</span></button><button class="btn wbtn" id="bMenu2">${ico("home", 22, 2.6)}<span>לתפריט</span></button></div>`;
@@ -1250,6 +1420,9 @@ window.__SS = {
   give(k) { if (!TEST) return; PS.held = k; if (H) { const me = [...H.players.values()].find((p) => p.local); if (me) me.held = k; } renderPower(); },
   setX(x) { if (TEST && PS.G && PS.G.me) PS.G.me.x = x; },
   recv(m, cid) { if (TEST && H) hostRecv(m, cid); },
+  answer(i) { if (!TEST || !PS.G || !PS.G.qb || PS.G.qb.wait) return false; const q = PS.G.qb; q.wait = performance.now(); toHost({ t: "ans", q: q.id, i, x: Math.round(PS.G.me.x) }); return true; },
+  hostQ(pid) { if (!TEST || !H) return null; const p = [...H.players.values()].find((x) => x.pid === pid); return p && p.q ? { id: p.q.id, a: p.q.a, o: p.q.o, k: p.q.k, x: p.q.x, done: !!p.q.done } : null; },
+  dropQ(n) { if (TEST) PS.dropQ = n; }, quiz: () => QZ, renderQ: () => TEST && renderQ(),
   missing() { try { return EnglishiaLang.missing(); } catch (e) { return []; } }
 };
 boot();

@@ -1,15 +1,16 @@
-/* Sentence Sprint 1.0 — canvas engine: draws the level, word bubbles and runners, runs the local
+/* Sentence Sprint 1.1 — canvas engine: draws the level, word bubbles and runners, runs the local
    runner's physics, and smooths the other runners from the host's snapshots (interpolation with
    dead-reckoning, so slow links still look smooth). Light by design: one background image per tile,
    pre-rendered bubbles and name tags, 30 fps and 1x pixels in low graphics. © 2026 Amir · Englishia */
-import { VIEW_TOP, VIEW_H, TILE, PHYS, step } from "./level.js?v=1.0.1";
-import { disp } from "./grammar.js?v=1.0.1";
-import { RUN_FRAMES } from "./frames.js?v=1.0.1";
+import { VIEW_TOP, VIEW_H, TILE, PHYS, step } from "./level.js?v=1.1";
+import { disp } from "./grammar.js?v=1.1";
+import { RUN_FRAMES } from "./frames.js?v=1.1";
 
 export const CHAR_COLORS = {
   zik: ["#ffd84a", "#ffb800", "#b97f00"], gal: ["#5cb2ff", "#1f6fff", "#1449b5"], ale: ["#52e08a", "#14b05a", "#0b7a3c"],
   saar: ["#b08cff", "#7c4dff", "#4f2bc0"], fox: ["#5fe3e0", "#13b3c2", "#0a7c88"], bear: ["#ff7a6b", "#f2392c", "#a81c13"]
 };
+let MCTX = null;
 const BUBBLE_GOLD = ["#fff3a3", "#ffc400", "#b88400"];
 const BUBBLE = [["#ff7fb7", "#ff3d8a", "#c01e61"], ["#5cb2ff", "#1f6fff", "#1449b5"], ["#ffb43a", "#ff7a00", "#c4560a"], ["#5fe3e0", "#13b3c2", "#0a7c88"],
   ["#b08cff", "#7c4dff", "#4f2bc0"], ["#52e08a", "#14b05a", "#0b7a3c"], ["#ffe066", "#ffb800", "#b97f00"], ["#ff7a6b", "#f2392c", "#a81c13"]];
@@ -48,7 +49,7 @@ export function createGame(canvas, o) {
     L: o.level, low: !!o.low, projector: !!o.projector, myPid: o.myPid || 0, players: o.players, // Map pid -> {name, ch, rank}
     me: null, remote: new Map(), got: new Set(), fx: [], items: [], t0: 0, running: false, finAt: 0,
     k: 1, W: 0, H: 0, dpr: 1, camX: 0, eff: {}, held: null, onCollect: o.onCollect || (() => true), onFinish: o.onFinish || (() => {}),
-    canCollect: o.canCollect || (() => true), buf: 0, coyote: 0, startAt: 0, stopped: false, tick: 0, speed: o.speed || 255
+    canCollect: o.canCollect || (() => true), qb: null, qbs: new Map(), buf: 0, coyote: 0, startAt: 0, stopped: false, tick: 0, speed: o.speed || 255
   };
   const L = G.L;
   if (!G.projector) G.me = { x: L.start, y: 510, vx: 0, vy: 0, ground: true, onY: 510, fl: 0, jumps: 0, air: 0, fin: false, face: 1, maxX: L.start };
@@ -96,6 +97,58 @@ export function createGame(canvas, o) {
     c.fillStyle = "#fff"; c.fillText(disp(word), w / 2, h / 2);
     cv._w = w + 8; cv._h = h + tail + sh + 6;
     cache.set(key, cv); return cv;
+  }
+  function balloonCanvas(word, ci) {
+    const key = "q" + word + ci;
+    let cv = cache.get(key); if (cv) return cv;
+    const s = G.k, fs = word.length > 9 ? 26 : 30;
+    const c0 = document.createElement("canvas").getContext("2d");
+    c0.font = `600 ${fs * s}px Fredoka, Heebo, Arial`;
+    const tw = c0.measureText(word).width / s;
+    const w = Math.max(92, tw + 40), h = 82, pad = 6;
+    cv = document.createElement("canvas"); cv.width = Math.ceil((w + pad * 2) * s); cv.height = Math.ceil((h + 18 + pad * 2) * s);
+    const c = cv.getContext("2d"); c.scale(s, s); c.translate(pad, pad);
+    const [c1, c2, cd] = ci === 8 ? BUBBLE_GOLD : BUBBLE[ci % BUBBLE.length];
+    // knot
+    c.fillStyle = cd; c.beginPath(); c.moveTo(w / 2 - 8, h + 9); c.lineTo(w / 2 + 8, h + 9); c.lineTo(w / 2, h - 3); c.closePath(); c.fill();
+    // body: a rounded balloon (ellipse when the word is short, a pill-ellipse for long words)
+    c.fillStyle = cd; c.beginPath(); c.ellipse(w / 2, h / 2 + 4, w / 2, h / 2, 0, 0, 7); c.fill();
+    const gr = c.createRadialGradient(w * 0.36, h * 0.3, 4, w / 2, h / 2, w * 0.62); gr.addColorStop(0, c1); gr.addColorStop(1, c2);
+    c.fillStyle = gr; c.beginPath(); c.ellipse(w / 2, h / 2, w / 2, h / 2, 0, 0, 7); c.fill();
+    if (!G.low) { c.fillStyle = "rgba(255,255,255,.45)"; c.beginPath(); c.ellipse(w * 0.3, h * 0.27, Math.min(22, w * 0.14), 9, -0.5, 0, 7); c.fill(); }
+    c.font = `600 ${fs}px Fredoka, Heebo, Arial`; c.textAlign = "center"; c.textBaseline = "middle";
+    c.fillStyle = "rgba(0,0,0,.22)"; c.fillText(word, w / 2, h / 2 + 2.5);
+    c.fillStyle = ci === 8 ? "#5a3b00" : "#fff"; c.fillText(word, w / 2, h / 2);
+    cv._w = w + pad * 2; cv._h = h + 18 + pad * 2; cv._bh = h;
+    cache.set(key, cv); return cv;
+  }
+  function drawSet(c, set, t, x0, x1, alpha) {
+    if (!set || !set.o) return;
+    for (let i = 0; i < set.o.length; i++) {
+      if (set.pop.has(i)) continue;
+      const p = bPos(set, i, t); if (p.x < x0 - 140 || p.x > x1 + 140) continue;
+      const ci = set.g ? 8 : (set.id + i) % 8, cv = balloonCanvas(set.o[i], ci);
+      c.globalAlpha = alpha;
+      // string
+      c.strokeStyle = "rgba(29,35,80,.55)"; c.lineWidth = 2; c.beginPath(); c.moveTo(p.x, p.y + cv._bh / 2 + 10);
+      c.quadraticCurveTo(p.x + Math.sin(t * 2 + i) * 10, p.y + cv._bh / 2 + 30, p.x - 4, p.y + cv._bh / 2 + 52); c.stroke();
+      if (set.g) { c.save(); c.globalAlpha = alpha * (0.3 + 0.2 * Math.sin(t * 5 + i)); c.fillStyle = "#ffe066"; c.beginPath(); c.ellipse(p.x, p.y, cv._w * 0.6, cv._bh * 0.75, 0, 0, 7); c.fill(); c.restore(); c.globalAlpha = alpha; }
+      c.drawImage(cv, p.x - cv._w / 2, p.y - cv._bh / 2 - 6, cv._w, cv._h);
+      if (set.g) for (let q = 0; q < (G.low ? 2 : 3); q++) { const a = t * 2.2 + q * 2.1 + i; sparkle(c, p.x + Math.cos(a) * cv._w * 0.55, p.y + Math.sin(a) * 40, 7 + 3 * Math.sin(t * 6 + q)); }
+      c.globalAlpha = 1;
+    }
+  }
+  /* arrow at the screen edge when my balloons are out of view */
+  function drawArrow(c, set, t) {
+    if (!set || set.wait) return;
+    let left = 0, right = 0, inView = 0; const x0 = G.camX, x1 = G.camX + G.vw;
+    for (let i = 0; i < set.o.length; i++) { if (set.pop.has(i)) continue; const p = bPos(set, i, t); if (p.x > x1 - 30) right++; else if (p.x < x0 + 30) left++; else inView++; }
+    if (inView || (!left && !right)) return;
+    const dir = right ? 1 : -1, ax = dir > 0 ? x1 - 46 : x0 + 46, ay = 260 + Math.sin(t * 4) * 6, k = 1 + 0.08 * Math.sin(t * 6);
+    c.save(); c.translate(ax, ay); c.scale(dir * k, k);
+    c.fillStyle = set.g ? "#ffc400" : "#ff3d8a"; c.strokeStyle = "#fff"; c.lineWidth = 5; c.lineJoin = "round";
+    c.beginPath(); c.moveTo(-26, -16); c.lineTo(4, -16); c.lineTo(4, -32); c.lineTo(34, 0); c.lineTo(4, 32); c.lineTo(4, 16); c.lineTo(-26, 16); c.closePath(); c.stroke(); c.fill();
+    c.restore();
   }
   function tagCanvas(p, me) {
     const key = "t" + p.name + "|" + p.rank + "|" + p.ch + (me ? "m" : "");
@@ -162,6 +215,41 @@ export function createGame(canvas, o) {
   G.apply = function (k, secs) { const t = performance.now() / 1000; G.eff[k] = Math.max(G.eff[k] || 0, t + (secs || DUR[k] || 1)); };
   G.active = (k) => (G.eff[k] || 0) > performance.now() / 1000;
   G.addFx = function (kind, a, b) { G.fx.push({ kind, a, b, t: performance.now() / 1000 }); };
+  /* ---------- 1.1 balloons (Balloons / Translation modes): one set of 3-4 answer balloons per player and question.
+     The host sends {id, o: words, x: anchor, g: golden}; every device lays the set out the same way from the id. ---------- */
+  G.setQ = function (pid, set) {
+    if (set) { set.pop = set.pop || new Set(); set.born = performance.now() / 1000; }
+    if (G.me && pid === G.myPid) G.qb = set; else if (set) G.qbs.set(pid, set); else G.qbs.delete(pid);
+  };
+  function slots(set) {
+    if (set._s && set._sx === set.x) return set._s;
+    const out = [], n = set.o.length, h = (i) => (((set.id * 2654435761 + i * 40503) >>> 0) % 1000) / 1000;
+    // spacing from the balloon widths, so long words never touch even while they drift
+    if (!MCTX) MCTX = document.createElement("canvas").getContext("2d");
+    MCTX.font = "600 30px Fredoka, Heebo, Arial";
+    const bw = set.o.map((w) => Math.max(92, MCTX.measureText(w).width * (w.length > 9 ? 26 / 30 : 1) + 40));
+    const xs = [0]; for (let i = 1; i < n; i++) xs.push(xs[i - 1] + Math.max(175, (bw[i - 1] + bw[i]) / 2 + 64));
+    const x0 = Math.min(set.x, L.finish - 140 - xs[n - 1]);
+    for (let i = 0; i < n; i++) {
+      const x = x0 + xs[i] + (h(i) - 0.5) * 30;
+      const fl = [...new Set(L.at(x, -30).map((f) => f.fl))].filter((q) => q < 2).sort();   // ground + middle floor (a top-floor balloon would sit under the HUD)
+      const pickFl = fl.length ? fl[(set.id + i * 2) % fl.length] : 0;
+      const f = L.at(x, -30).find((q) => q.fl === pickFl);
+      out.push({ x, y: (f ? f.y : 510) - 152, ph: h(i + 7) * 6.28 });   // above head height: walking passes under, a jump touches it
+    }
+    set._s = out; set._sx = set.x; return out;
+  }
+  function bPos(set, i, t) {
+    const s = slots(set)[i], a = t - (set.born || 0);
+    const rise = Math.max(0, 1 - a / 0.45);          // new balloons float up into place
+    return { x: s.x + Math.sin(t * 0.7 + s.ph) * 26, y: s.y + Math.sin(t * 1.25 + s.ph * 1.7) * 14 + rise * rise * 120 };
+  }
+  G.balloonAt = function (set, i) { const p = bPos(set, i, performance.now() / 1000); return p; };
+  G.popBalloons = function (set, which, good) {
+    if (!set) return; const t = performance.now() / 1000;
+    for (let i = 0; i < set.o.length; i++) { if (set.pop.has(i) || (which != null && which !== i)) continue; const p = bPos(set, i, t); set.pop.add(i); G.fx.push({ kind: "bpop", x: p.x, y: p.y, c: set.g ? 8 : (set.id + i) % 8, t, good }); }
+  };
+  G.qMaxX = function (set) { const sl = slots(set); return Math.max(...sl.map((q) => q.x)); };
   function posOf(pid) {
     if (G.me && pid === G.myPid) return { x: G.me.x, y: G.me.y };
     const R = G.remote.get(pid); return R ? { x: R.dx, y: R.dy } : null;
@@ -237,6 +325,19 @@ export function createGame(canvas, o) {
         }
       }
     }
+    // answer balloons: touching one answers the question (once; the host replies with the next question)
+    const qs = G.qb;
+    if (me && qs && !qs.wait && now >= G.startAt && G.running && !me.fin) {
+      const cx = me.x, cy = me.y - 58;      // no magnet here: it would grab a wrong balloon (the host leaves it out of these modes)
+      for (let i = 0; i < qs.o.length; i++) {
+        if (qs.pop.has(i)) continue;
+        const p = bPos(qs, i, t), dx = p.x - cx, dy = (p.y + 10) - cy;
+        if (Math.abs(dx) < 58 && Math.abs(dy) < 62) { qs.wait = performance.now(); o.onBalloon && o.onBalloon(qs, i); break; }
+      }
+      // ran past every balloon: the set floats ahead again (the host is told, so the projector agrees)
+      if (!qs.wait && me.x > G.qMaxX(qs) + 260 && (!qs.moved || now - qs.moved > 1500)) { qs.x = Math.round(me.x + 330); qs.moved = now; o.onMoveQ && o.onMoveQ(qs); }
+    }
+    if (qs && qs.wait && performance.now() - qs.wait > 4000) qs.wait = 0;   // no reply: allow another try
     for (const R of G.remote.values()) remotePos(R, now, dt);
     // camera
     let fx;
@@ -293,6 +394,9 @@ export function createGame(canvas, o) {
       c.drawImage(cv, bx, by, cv._w, cv._h);
       if (b.g) for (let q = 0; q < (G.low ? 2 : 4); q++) { const a = t * 2.2 + q * 1.57 + b.id; sparkle(c, bx + cv._w / 2 + Math.cos(a) * (cv._w * 0.55), by + cv._h / 2 - 6 + Math.sin(a) * 34, 7 + 3 * Math.sin(t * 6 + q)); }
     }
+    // answer balloons: mine (players) or everybody's (projector, the newest sets in view)
+    if (G.qb) drawSet(c, G.qb, t, x0, x1, 1);
+    if (G.projector && G.qbs.size) { let n = 0; for (const set of G.qbs.values()) { if (n++ > 12) break; drawSet(c, set, t, x0, x1, 0.92); } }
     // runners
     const list = [];
     for (const [pid, R] of G.remote) { const p = G.players.get(pid); if (p && R.s.length) { R.vy = (R.vy || 0) * 0.7 + ((R.dy - (R.py == null ? R.dy : R.py)) * 60) * 0.3; R.py = R.dy; R.vxe = (R.vxe || 0) * 0.8 + ((R.dx - (R.px == null ? R.dx : R.px)) * 60) * 0.2; R.px = R.dx; list.push([pid, R.dx, R.dy, R.f, p, 0, R.vy, (R.f & F.walk) ? (R.f & F.left ? -1 : 1) * Math.max(60, Math.abs(R.vxe)) : 0]); } }
@@ -302,6 +406,7 @@ export function createGame(canvas, o) {
     // fx
     G.fx = G.fx.filter((e) => t - e.t < 1.25);
     for (const e of G.fx) drawFx(c, e, t);
+    if (G.qb && G.me && !G.me.fin) drawArrow(c, G.qb, t);
   }
   function drawLine(c, x, fin, t) {
     if (x < G.camX - 200 || x > G.camX + G.vw + 200) return;
@@ -398,6 +503,13 @@ export function createGame(canvas, o) {
         if (e.kind === "gold" && i % 3 === 0) sparkle(c, px, py, 10);
         else { c.fillStyle = CONF[i % CONF.length]; c.save(); c.translate(px, py); c.rotate(u * 9 + i); c.fillRect(-5, -3, 10, 6); c.restore(); }
       }
+      c.globalAlpha = 1; return;
+    }
+    if (e.kind === "bpop") {
+      if (u > 0.7) return; const [c1, c2] = e.c === 8 ? BUBBLE_GOLD : BUBBLE[e.c % BUBBLE.length];
+      c.globalAlpha = Math.max(0, 1 - u / 0.7);
+      for (let i = 0; i < (G.low ? 6 : 12); i++) { const a = (i / (G.low ? 6 : 12)) * 6.283 + e.c, r = 30 + u * 170; c.fillStyle = i % 2 ? c1 : c2; c.save(); c.translate(e.x + Math.cos(a) * r, e.y + Math.sin(a) * r * 0.8 + 90 * u * u); c.rotate(a + u * 6); c.fillRect(-9, -4, 18, 8); c.restore(); }
+      if (e.good) { c.strokeStyle = "#14b05a"; c.lineWidth = 6; c.beginPath(); c.arc(e.x, e.y, 26 + u * 90, 0, 7); c.stroke(); }
       c.globalAlpha = 1; return;
     }
     if (e.kind === "pop") {

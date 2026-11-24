@@ -458,3 +458,49 @@ body.ingame #vp{display:none}
 .menu-dlg>.card{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%) scale(var(--k2,1));margin:0}
 .d .set-c{bottom:24px}
 .maxpill{left:auto;right:40px}
+/* ---------- 1.1 game modes ---------- */
+.chip.on.pink{--c1:var(--p1);--c2:var(--p2);--cd:var(--pd)}.chip.on.blue{--c1:var(--b1);--c2:var(--b2);--cd:var(--bd)}
+.set-c .chips.c3{grid-template-columns:repeat(3,1fr)}
+.chip.mode{gap:5px;padding-inline:6px}
+.chip.mode .ico{flex:0 0 auto}
+/* question panel (replaces the sentence bar) */
+.qbar{min-width:min(var(--bw,900px),660px);min-height:80px;gap:14px}
+.qbar .lab{max-width:250px;flex:0 0 auto}
+.qbar .lab .a{font:900 16px var(--ui);color:var(--pd);gap:6px}
+.qbar .lab .b{font:700 14px var(--ui);color:var(--navy2)}
+.qtx{flex:1 1 auto;min-width:0;text-align:center;font:600 30px var(--fred);color:var(--navy);line-height:1.18;overflow-wrap:anywhere}
+.qtx .en{display:inline}
+.qtx b.en{font:700 38px var(--fred);color:var(--b2)}
+.qtx b+span{font:700 32px var(--fred);margin-inline-start:6px;color:var(--navy2)}
+.qtx.n .nat{font:900 30px var(--ui);color:var(--navy)}
+.qtx.long,.qtx.long .nat{font-size:22px}
+.qtx .blank{display:inline-block;width:74px;height:7px;border-radius:4px;background:var(--p2);margin:0 6px;vertical-align:middle;animation:qblink 1.2s infinite}
+.qtx.wait{color:#9aa3c7}
+@keyframes qblink{50%{opacity:.35}}
+.gp .qbar{flex-wrap:wrap;justify-content:center;min-width:0;row-gap:4px;padding:8px 12px}
+.gp .qbar .lab{display:block;max-width:none;flex:1 1 auto;text-align:center}
+.gp .qbar .lab .a{justify-content:center}
+.gp .qbar .lab .b{display:none}
+.gp .qbar .qtx{flex:1 1 100%;order:3;font-size:26px}
+.gp .qbar .qtx b.en{font-size:32px}
+.gp .qbar .qtx.long,.gp .qbar .qtx.long .nat{font-size:19px}
+.gp .qbar .qtx.n .nat{font-size:26px}
+.gp .qbar{width:var(--bw);max-width:var(--bw)}
+/* short landscape phones: the question panel stays two lines high so it never reaches the runner */
+.gm .qbar{min-height:0;padding:6px 12px;gap:10px}
+.gm .qbar .lab .b{display:none}
+.gm .qtx{font-size:22px;line-height:1.12}
+.gm .qtx b.en{font-size:30px}
+.gm .qtx.n .nat{font-size:24px}
+.gm .qtx.long,.gm .qtx.long .nat{font-size:16px}
+/* 1.1: the extra game-mode row must still fit short projector/laptop screens */
+html[lang=ar] .d .set-c .chips.lvls{grid-template-columns:repeat(3,1fr)}
+html[lang=ar] .d .set-c .lvl{padding:5px 6px;font-size:14px}
+.d .set-c .lob-col h3,.d .set-c h3{margin-bottom:6px}
+.d .set-c .set-lbl{margin:2px 0 3px;font-size:14px}
+.d .set-c .chips{gap:6px}
+.d .set-c .set-tg .set-row{margin-top:5px}
+.d .set-c .chip{line-height:1.2}
+.d .set-c .set-tg .sub{font-size:14px;white-space:nowrap}
+html[lang=ru] .d .set-c .set-tg .sub{white-space:normal;line-height:1.1}
+.set-c .chips.c3 .chip{white-space:normal;line-height:1.1}

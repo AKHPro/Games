@@ -1,7 +1,7 @@
-/* Sentence Sprint 1.0.1 — the level: three floors built from Imagina's level art (bg tile 1280x720,
+/* Sentence Sprint 1.1 — the level: three floors built from Imagina's level art (bg tile 1280x720,
    every second tile mirrored so the seams match), word bubbles placed from a seed so every device
    builds the same track without sending it. © 2026 Amir · Englishia */
-import { makeGenerator, wordPool, LENS, GEN, rng } from "./grammar.js?v=1.0.1";
+import { makeGenerator, wordPool, LENS, GEN, rng } from "./grammar.js?v=1.1";
 
 export const TILE = 1280;
 export const VIEW_TOP = -80, VIEW_H = 720;           // world rows shown on screen (as in the mockup)
@@ -33,6 +33,8 @@ export function buildLevel(set, seed) {
   const has = (x, fl) => at(x, -40).some((f) => f.fl === fl);
   const yOf = (x, fl) => { const f = at(x).find((f) => f.fl === fl); return f ? f.y : FLOOR_Y[fl]; };
 
+  // 1.1: Balloons / Translation modes have no word bubbles; the answer balloons come with each question
+  if (set.md === "q" || set.md === "t") return { floors, bubbles: [], finish, tiles: total, lo: 1, hi: 1, at, start: 260 };
   // word bubbles: two "streams" of generated sentences move between floors (one floor up at most per column),
   // plus a distractor now and then on the free floor
   const [lo, hi] = LENS[set.wl] || LENS.m;
