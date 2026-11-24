@@ -107,8 +107,16 @@ const VERBS = [
   ["clean", "cleans", "cleaning", "cleaned", 3, 2, "pt", "", "מנקה", "ينظّف", "убирать"],
   ["wash", "washes", "washing", "washed", 3, 2, "taf", "", "שוטף", "يغسل", "мыть"],
   ["climb", "climbs", "climbing", "climbed", 3, 1, "p", "", "מטפס", "يتسلّق", "лазать"],
-  ["carry", "carries", "carrying", "carried", 3, 2, "tyfrb", "", "סוחב", "يحمل", "нести"]
+  ["carry", "carries", "carrying", "carried", 3, 2, "tyfrb", "", "סוחב", "يحمل", "нести"],
+  ["sit", "sits", "sitting", "sat", 1, 0, "", "u", "יושב", "يجلس", "сидеть"],
+  ["stand", "stands", "standing", "stood", 1, 0, "", "u", "עומד", "يقف", "стоять"],
+  ["wake", "wakes", "waking", "woke", 2, 0, "", "u", "מתעורר", "يستيقظ", "просыпаться"]
 ];
+// particles after some verbs: sit down, stand up, wake up
+const PART = { sit: ["down", "up"], stand: ["up"], wake: ["up"] };
+const PARTS = [["down", "למטה", "إلى الأسفل", "вниз"], ["up", "למעלה", "إلى الأعلى", "вверх"]];
+// verbs that do not make natural commands on their own
+const NO_IMP = new Set(["like", "love", "have", "want", "need", "see"]);
 const ADJS = [
   ["big", 1, "גדול", "كبير", "большой", "PNFT"], ["small", 1, "קטן", "صغير", "маленький", "PNFT"], ["little", 1, "קטנטן", "صغير", "маленький", "PNFT"],
   ["happy", 1, "שמח", "سعيد", "счастливый", "PN"], ["sad", 1, "עצוב", "حزين", "грустный", "PN"], ["red", 1, "אדום", "أحمر", "красный", "FT"],
@@ -155,10 +163,15 @@ const PREPS = [
 const ADVS = [
   ["fast", "m", "pcswn", 1, "מהר", "بسرعة", "быстро"], ["well", "m", "pcswn", 2, "טוב", "جيدًا", "хорошо"], ["slowly", "m", "pcswn", 2, "לאט", "ببطء", "медленно"],
   ["together", "m", "pcswn", 2, "ביחד", "معًا", "вместе"], ["quietly", "m", "pcswn", 3, "בשקט", "بهدوء", "тихо"],
-  ["now", "t", "cnb", 1, "עכשיו", "الآن", "сейчас"], ["today", "t", "pcswnb", 1, "היום", "اليوم", "сегодня"],
-  ["every day", "t", "psnb", 1, "כל יום", "كل يوم", "каждый день"], ["every morning", "t", "psnb", 2, "כל בוקר", "كل صباح", "каждое утро"],
-  ["yesterday", "t", "s", 2, "אתמול", "أمس", "вчера"], ["tomorrow", "t", "w", 3, "מחר", "غدًا", "завтра"]
+  ["now", "t", "pcnbw", 1, "עכשיו", "الآن", "сейчас"], ["today", "t", "pcswnb", 1, "היום", "اليوم", "сегодня"],
+  ["every day", "t", "pcsnbw", 1, "כל יום", "كل يوم", "каждый день"], ["every morning", "t", "pcsnbw", 2, "כל בוקר", "كل صباح", "каждое утро"],
+  ["yesterday", "t", "s", 2, "אתמול", "أمس", "вчера"], ["tomorrow", "t", "wc", 3, "מחר", "غدًا", "завтра"],
+  // accepted anywhere a time word fits, but never generated as a target
+  ["then", "t2", "pcswnb", 2, "אז", "ثم", "тогда"]
 ];
+// frequency adverbs: before the main verb, after am/is/are/can/will, and (often, sometimes) at the start or the end
+const FREQ = [["always", 2, "תמיד", "دائمًا", "всегда"], ["never", 2, "אף פעם", "أبدًا", "никогда"], ["often", 2, "לעתים קרובות", "غالبًا", "часто"], ["sometimes", 2, "לפעמים", "أحيانًا", "иногда"], ["usually", 3, "בדרך כלל", "عادةً", "обычно"]];
+const THERE = ["there", 2, "שם", "هناك", "там"];
 const VERY = ["very", 1, "מאוד", "جدًا", "очень"];
 const HERE = ["here", 1, "כאן", "هنا", "здесь"];
 const ANIMALS = new Set(["dog", "cat", "bird", "rabbit", "horse", "monkey", "lion", "elephant"]);
@@ -191,8 +204,11 @@ for (const [w, per, past, he, ar, ru] of BE) { add(w, { p: "BE", per, past: !!pa
 for (const [w, k, tier, he, ar, ru] of MODALS) { add(w, { p: "MD", k, tier }); gl(w, tier, he, ar, ru); }
 for (const [w, cls, bare, tier, he, ar, ru] of PREPS) { add(w, { p: "P", cls, bare: bare.split(" ").filter(Boolean), tier }); gl(w, tier, he, ar, ru); }
 for (const [w, kind, ten, tier, he, ar, ru] of ADVS) { const ws = w.split(" "); add(ws[0], { p: "ADV", ws, kind, ten, tier }); if (ws.length === 1) gl(w, tier, he, ar, ru); }
+for (const [w, he, ar, ru] of PARTS) { add(w, { p: "PRT", tier: 1 }); gl(w, 1, he, ar, ru); }
 add("very", { p: "VERY", tier: 1 }); gl("very", 1, VERY[2], VERY[3], VERY[4]);
 add("here", { p: "HERE", tier: 1 }); gl("here", 1, HERE[2], HERE[3], HERE[4]);
+add("there", { p: "HERE", tier: 2 }); gl("there", 2, THERE[2], THERE[3], THERE[4]);
+for (const [w, tier, he, ar, ru] of FREQ) { add(w, { p: "FQ", tier }); gl(w, tier, he, ar, ru); }
 for (const k in MISC_GLOSS) { add(k, { p: "X", tier: 1 }); if (!GLOSS.has(k)) gl(k, 1, ...MISC_GLOSS[k]); }
 GLOSS.set("you", { he: "אתה / אותך", ar: "أنتَ / ـكَ", ru: "ты / тебя", tier: 1 });
 GLOSS.set("her", { he: "שלה / אותה", ar: "ـها (لها)", ru: "её", tier: 1 });
@@ -210,8 +226,34 @@ export function pretty(words) { const s = words.map(disp).join(" "); return s ? 
 const VOWEL = /^[aeiou]/;
 const okCls = (allowed, cls) => allowed === "*" || [...cls].some((c) => allowed.includes(c));
 /** Returns {ok, reason} for a list of words. The sentence must use every word, in order. */
-export function check(words) {
+/* full check: the core parser plus the movable adverbs. A time word may open the sentence ("Now they are brave",
+   "Today I run") and a frequency word may sit before the verb, after am/is/are/can/will, or (often/sometimes) at either end.
+   Leaning towards accepting: a wrongly rejected good sentence hurts more than a rare odd one passing. */
+const TIME1 = new Set(ADVS.filter((a) => a[1] === "t" || a[1] === "t2").map((a) => a[0].split(" ")[0]));
+const FQW = new Set(FREQ.map((f) => f[0]));
+export function check(words, depth = 0) {
   const T = words.map((w) => String(w).toLowerCase().trim());
+  const r = check0(T);
+  if (r.ok || depth > 2 || r.reason === "unknown" || r.reason === "short") return r;
+  // 1) time word(s) first -> same words with the time phrase moved to the end
+  if (TIME1.has(T[0])) for (const a of ADVS) {
+    if (a[1] !== "t" && a[1] !== "t2") continue;
+    const ws = a[0].split(" ");
+    if (ws.every((w, q) => T[q] === w) && T.length > ws.length + 1) { const r2 = check(T.slice(ws.length).concat(ws), depth + 1); if (r2.ok) return r2; }
+  }
+  // 2) one frequency word in a natural position
+  for (let k = 0; k < T.length; k++) {
+    if (!FQW.has(T[k])) continue;
+    const rest = T.slice(0, k).concat(T.slice(k + 1)); if (rest.length < 2) continue;
+    const prev = k > 0 ? LEX.get(T[k - 1]) || [] : [], next = k + 1 < T.length ? LEX.get(T[k + 1]) || [] : [];
+    const okPos = (k > 0 && (next.some((e) => e.p === "V" || e.p === "MD") || prev.some((e) => e.p === "BE" || e.p === "MD"))) ||
+      ((k === 0 || k === T.length - 1) && /^(often|sometimes|usually)$/.test(T[k]));
+    if (!okPos) continue;
+    const r2 = check(rest, depth + 1); if (r2.ok) return r2;
+  }
+  return r;
+}
+function check0(T) {
   const n = T.length;
   if (n < 2) return { ok: false, reason: "short" };
   for (const w of T) if (!LEX.has(w)) return { ok: false, reason: "unknown" };
@@ -261,7 +303,7 @@ export function check(words) {
         if (okCls(p.cls, np.cls)) out.push({ e: np.e, w: T[i] });
       }
     }
-    if (T[i] === "here") out.push({ e: i + 1, w: "here" });
+    if (T[i] === "here" || T[i] === "there") out.push({ e: i + 1, w: "here" });
     return out;
   }
   // verb complements for verb V starting at i: [{e}]
@@ -274,6 +316,7 @@ export function check(words) {
       if (okCls(V.ocls, np.cls)) out.push({ e: np.e });
     }
     if (V.flags.includes("m")) { if (T[i] === "home") out.push({ e: i + 1, dir: 1 }); for (const pp of PP(i)) if (pp.w === "to" || pp.w === "here") out.push({ e: pp.e, dir: 1 }); }
+    if (V.flags.includes("u") && (PART[V.base] || []).includes(T[i])) out.push({ e: i + 1, prt: 1 });
     if (V.flags.includes("l") && T[i] === "to") for (const np of NP(i + 1, true)) if (np.pro || np.name || okCls("al", np.cls)) out.push({ e: np.e });
     return out;
   }
@@ -302,7 +345,7 @@ export function check(words) {
         if (np.name || np.num === "mass") continue;
         const want = per === "pl" ? "pl" : per === "2" ? null : "sg";
         if (want && np.num !== want) continue;
-        if (np.anim !== anim) continue;
+        if (anim !== null && np.anim !== anim) continue;
         if (np.num === "pl" && T[i + 1] !== "my" && !has(i + 1, "D").length && !has(i + 1, "A").length && false) continue;
         out.push({ e: np.e, ten: bt });
       }
@@ -323,9 +366,9 @@ export function check(words) {
     const ends = [];
     const tryTime = (k) => {
       ends.push(k);
-      for (const a of has(k, "ADV")) if (a.kind === "t") {
+      for (const a of has(k, "ADV")) if (a.kind === "t" || a.kind === "t2") {
         const ten = pr.ten === "b" ? "b" : pr.ten;
-        if (!a.ten.includes(ten)) continue;
+        if (ten === "i" ? !["now", "today", "tomorrow", "every"].includes(a.ws[0]) : !a.ten.includes(ten)) continue;
         if (a.ws.every((w, q) => T[k + q] === w)) ends.push(k + a.ws.length);
       }
     };
@@ -335,12 +378,19 @@ export function check(words) {
       for (const pp of PP(k)) { if (pp.w === "to" || pp.w === "from") continue; if (pp.w === "with" && !pr.act) continue; if (pp.w === "for" && !pr.act) continue; tryTime(pp.e); }
     };
     tryPP(i);
-    if (pr.act) for (const a of has(i, "ADV")) if (a.kind === "m" && a.ws.length === 1 && a.ten.includes(pr.ten)) tryPP(i + 1);
+    if (pr.act) for (const a of has(i, "ADV")) if (a.kind === "m" && a.ws.length === 1 && (pr.ten === "i" || a.ten.includes(pr.ten))) tryPP(i + 1);
     return ends;
+  }
+  // commands: Walk home. Run fast. Sit down. Read a book.
+  for (const v of has(0, "V")) {
+    if (v.f !== "base" || NO_IMP.has(v.v.base)) continue;
+    for (const c of COMP(v.v, 1)) if (MODS(c.e, { e: c.e, ten: "i", act: 1, dir: c.dir }).includes(n)) return { ok: true, imp: 1 };
   }
   const subjects = [];
   for (const p of has(0, "PS")) subjects.push({ e: 1, per: p.per, anim: true });
   for (const np of NP(0, false)) subjects.push({ e: np.e, per: np.num === "pl" ? "pl" : "3s", anim: np.anim });
+  // "This is my book." "That is a cat." "These are my friends." (only with be)
+  if (n > 2 && /^(this|that|these|those)$/.test(T[0]) && has(1, "BE").length) subjects.push({ e: 1, per: /^(these|those)$/.test(T[0]) ? "pl" : "3s", anim: null });
   if (!subjects.length) return { ok: false, reason: "subject" };
   let gotPred = false;
   for (const s of subjects) for (const pr of PRED(s.e, s.per, s.anim)) {
@@ -360,7 +410,7 @@ export const GEN = {
   veryhard: { tier: 3, past: 1, cont: 1, can: 1, will: 1, adj: 0.5, glossBar: 0, liveOk: 0, speed: 285 },
   master: { tier: 3, past: 1, cont: 1, can: 1, will: 1, adj: 0.55, glossBar: 0, liveOk: 0, speed: 300 }
 };
-export const LENS = { s: [3, 4], m: [4, 6], l: [6, 8] };
+export const LENS = { s: [2, 4], m: [3, 6], l: [5, 8] };
 
 /* ---------- generator (seeded) ---------- */
 export function rng(seed) { let s = seed >>> 0 || 1; return () => { s ^= s << 13; s >>>= 0; s ^= s >> 17; s ^= s << 5; s >>>= 0; return s / 4294967296; }; }
@@ -418,7 +468,17 @@ export function makeGenerator(levelKey, seed) {
   const PLACE_OK = { in: "house room park garden shop city library kitchen classroom museum forest zoo", at: "park zoo beach shop library museum", near: "house park tree river beach shop zoo museum library", under: "tree table", to: "park zoo beach shop library museum city house garden forest river" };
   for (const k in PLACE_OK) PLACE_OK[k] = PLACE_OK[k].split(" ");
   const MANNER = { fast: "run walk swim eat drink read write work come go jump dance", well: "sing swim dance play cook read write draw work study", slowly: "run walk swim eat drink read write go come", together: "*", quietly: "read sleep walk play work study eat" };
+  function imperative() {
+    const V = pick(verbs.filter((v) => !NO_IMP.has(v[0]))), base = V[0], out = [base];
+    let hadPP = false;
+    if (V[7].includes("u")) out.push(pick(PART[base]));
+    else if (V[5] === 2 || (V[5] === 1 && R() < 0.5)) { const o = np(V[6] === "*" ? null : V[6], null, {}); if (!o) return null; out.push(...o); }
+    else if (V[7].includes("m") && R() < 0.6) { out.push(...(R() < 0.6 ? ["home"] : ["to", "school"])); hadPP = true; }
+    else if (V[7].includes("l") && R() < 0.5) out.push("to", "music");
+    return finish(out, "p", true, hadPP || V[7].includes("u"), { per: "2" }, V[5] ? "" : base);
+  }
   function one() {
+    if (R() < 0.2) return imperative();
     const s = subject(); if (!s.w) return null;
     const is3 = s.per === "3s";
     const out = s.w.slice();
@@ -480,6 +540,7 @@ export function wordPool(levelKey) {
   const w = [];
   NOUNS.forEach((x) => { if (ok(x[3])) { w.push(x[0]); if (x[1]) w.push(x[1]); } });
   ADJS.forEach((x) => ok(x[1]) && w.push(x[0]));
+  if (G.tier >= 2) { FREQ.forEach((x) => ok(x[1]) && w.push(x[0])); w.push("then", "there", "now"); }
   VERBS.forEach((x) => { if (ok(x[4])) { w.push(x[0], x[1]); if (G.cont && x[2]) w.push(x[2]); if (G.past) w.push(x[3]); } });
   return w;
 }

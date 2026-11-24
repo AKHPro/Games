@@ -3,11 +3,11 @@
    over the same PeerJS / signaling relay / ntfy transport (net.js). Each device runs its own runner; the host
    checks sentences, gives points and power-ups, aims attacks at the player directly ahead and relays positions.
    © 2026 Amir · Englishia · All rights reserved */
-import { check, pretty, disp, gloss, knownWord, GEN, LENS, findOrder } from "./grammar.js?v=1.0";
-import { buildLevel } from "./level.js?v=1.0";
-import { createGame, loadImages, img, PU, PU_KEYS, DUR, F, CHAR_COLORS } from "./game.js?v=1.0";
+import { check, pretty, disp, gloss, knownWord, GEN, LENS, findOrder } from "./grammar.js?v=1.0.1";
+import { buildLevel } from "./level.js?v=1.0.1";
+import { createGame, loadImages, img, PU, PU_KEYS, DUR, F, CHAR_COLORS } from "./game.js?v=1.0.1";
 
-const VERSION = "1.0", GAME_ID = "sentence-sprint", MAX_PLAYERS = 30;
+const VERSION = "1.0.1", GAME_ID = "sentence-sprint", MAX_PLAYERS = 30;
 const DEMO = /\/demo\//.test(location.pathname);
 const HUB = DEMO ? "../" : "../../";
 const URLP = new URLSearchParams(location.search);
@@ -52,6 +52,14 @@ const P = {
   puzzle: '<path d="M19.44 7.85c-.47.47-.86 1.15-1.42.58L16.4 6.8a.97.97 0 0 0-1.5.05c-.33.4-.2 1 .1 1.41a2.5 2.5 0 1 1-3.6.08c.3-.4.43-1 .1-1.41a.97.97 0 0 0-1.5-.05L8.4 8.47c-.56.56-.95-.11-1.42-.58"/><rect x="3" y="9" width="18" height="12" rx="2"/>',
   undo: '<path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/>', send: '<path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>',
   keyboard: '<rect x="2" y="4" width="20" height="16" rx="2"/><path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h.01M12 12h.01M16 12h.01M7 16h10"/>',
+  "arrow-left": '<path d="m15 18-6-6 6-6"/>', "arrow-right": '<path d="m9 18 6-6-6-6"/>',
+  backspace: '<path d="M21 4H8l-7 8 7 8h13a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/><path d="m18 9-6 6"/><path d="m12 9 6 6"/>',
+  "arrow-down": '<path d="M12 5v14"/><path d="m19 12-7 7-7-7"/>', help: '<circle cx="12" cy="12" r="10"/><path d="M9.1 9a3 3 0 0 1 5.8 1c0 2-3 3-3 3"/><path d="M12 17h.01"/>',
+  max: '<path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/>',
+  min: '<path d="M8 3v3a2 2 0 0 1-2 2H3"/><path d="M21 8h-3a2 2 0 0 1-2-2V3"/><path d="M3 16h3a2 2 0 0 1 2 2v3"/><path d="M16 21v-3a2 2 0 0 1 2-2h3"/>',
+  speak: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/><path d="M8 9h8"/><path d="M8 13h5"/>',
+  star: '<path d="M12 2l3.1 6.3 6.9 1-5 4.9 1.2 6.8L12 17.8 5.8 21l1.2-6.8-5-4.9 6.9-1z"/>',
+  layers: '<path d="m12 2 10 5-10 5L2 7z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/>',
   "phone-rot": '<rect x="2" y="7" width="20" height="10" rx="2"/><path d="M18 12h.01"/>', door: '<path d="M13 4h3a2 2 0 0 1 2 2v14"/><path d="M2 20h3"/><path d="M13 20h9"/><path d="M10 12v.01"/><path d="M13 4.56v16.88a.5.5 0 0 1-.68.47l-6-2.25A2 2 0 0 1 5 17.78V6.22a2 2 0 0 1 1.32-1.88l6-2.25a.5.5 0 0 1 .68.47Z"/>'
 };
 const ico = (n, s = 24, sw = 2.6, c = "currentColor", f = "none") => `<svg class="ico" width="${s}" height="${s}" viewBox="0 0 24 24" fill="${f}" stroke="${c}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${P[n] || ""}</svg>`;
@@ -69,16 +77,26 @@ const LEVELS = [
 ];
 const levelOf = (k) => LEVELS.find((l) => l.k === k) || LEVELS[2];
 const TRACKS = [{ k: "short", he: "קצר" }, { k: "medium", he: "בינוני" }, { k: "long", he: "ארוך" }];
-const WLS = [{ k: "s", he: "3–4" }, { k: "m", he: "4–6" }, { k: "l", he: "6–8" }];
+const WLS = [{ k: "s", he: "2–4" }, { k: "m", he: "3–6" }, { k: "l", he: "5–8" }];
+const TIMES = [{ k: 0, he: "אוטומטי" }, { k: 2, he: "2 דק׳" }, { k: 3, he: "3 דק׳" }, { k: 5, he: "5 דק׳" }];
+const DENS = [{ k: "f", he: "מעט מילים" }, { k: "n", he: "רגיל" }];
+/* points: clearly progressive by length (2 words = 4, each extra word worth more), times level, combo and golden word */
+const BASE_PTS = (n) => (n * (n + 1)) / 2 + 1;
+const comboMul = (c) => (c >= 3 ? 2 : c === 2 ? 1.5 : 1);
+const sentencePts = (n, mul, combo, gold) => Math.max(2, Math.round(BASE_PTS(n) * mul * comboMul(combo) * (gold ? 2 : 1)));
 const bars = (n, on) => `<span class="bars">${[0, 1, 2, 3, 4, 5].map((i) => `<i style="height:${5 + i * 2.4}px;opacity:${i < n ? 1 : on ? 0.4 : 0.3}"></i>`).join("")}</span>`;
 
-const PREF = Object.assign({ level: "normal", len: "medium", wl: "m", pu: true }, LS.get("ss-settings", {}));
+const PREF = Object.assign({ level: "normal", len: "medium", wl: "m", pu: true, tm: 0, dens: "n", gold: true }, LS.get("ss-settings", {}));
+if (!TIMES.some((t) => t.k === PREF.tm)) PREF.tm = 0;
+if (!DENS.some((t) => t.k === PREF.dens)) PREF.dens = "n";
+PREF.gold = PREF.gold !== false;
 if (!LEVELS.some((l) => l.k === PREF.level)) PREF.level = "normal";
 if (!TRACKS.some((l) => l.k === PREF.len)) PREF.len = "medium";
 if (!WLS.some((l) => l.k === PREF.wl)) PREF.wl = "m";
 const gfxPref = LS.get("ss-gfx", null);
 let LOW = URLP.get("gfx") === "low" ? true : gfxPref === "low" ? true : gfxPref === "normal" ? false : (navigator.hardwareConcurrency || 4) <= 2;
 let MUTE = !!LS.get("ss-mute", false);
+let VOICE = LS.get("ss-voice", true) !== false;
 let CID = LS.get("ss-cid", "");
 if (!/^[a-z0-9]{12}$/.test(CID)) { CID = (Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2) + "000000000000").replace(/[^a-z0-9]/g, "").slice(0, 12); LS.set("ss-cid", CID); }
 const cleanName = (s) => String(s || "").replace(/[<>&"'`\\\u0000-\u001f\u200b-\u200f\u202a-\u202e]/g, "").replace(/\s+/g, " ").trim().slice(0, 12);
@@ -99,11 +117,12 @@ const SFX = {
   tap: () => beep(520, 0.06, "triangle", 0.07), word: () => beep(880, 0.07, "triangle", 0.07), jump: () => beep(420, 0.08, "sine", 0.05),
   ok: () => { beep(660, 0.1, "triangle"); beep(990, 0.16, "triangle", 0.1, 0.09); }, no: () => beep(200, 0.22, "sawtooth", 0.05),
   tick: () => beep(880, 0.05, "square", 0.04), go: () => beep(1180, 0.3, "triangle", 0.12), hit: () => beep(140, 0.3, "square", 0.06),
+  drop: () => beep(330, 0.1, "sine", 0.05), combo: () => [784, 988, 1319].forEach((fr, i) => beep(fr, 0.1, "triangle", 0.08, i * 0.07)),
   roll: () => beep(700 + Math.random() * 300, 0.03, "square", 0.025), win: () => [523, 659, 784, 1047].forEach((fr, i) => beep(fr, 0.18, "triangle", 0.1, i * 0.12))
 };
 const CAN_SPEAK = "speechSynthesis" in window && typeof SpeechSynthesisUtterance !== "undefined";
 function speak(text) {
-  if (!CAN_SPEAK || !text || MUTE) return;
+  if (!CAN_SPEAK || !text || MUTE || !VOICE) return;
   try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(text); u.lang = "en-US"; u.rate = 0.85;
     const vs = speechSynthesis.getVoices(), v = vs.find((x) => /^en[-_]US/i.test(x.lang)) || vs.find((x) => /^en/i.test(x.lang)); if (v) u.voice = v; speechSynthesis.speak(u); } catch (e) {}
 }
@@ -113,7 +132,8 @@ const stage = $("#stage"), vp = $("#vp");
 stage.classList.toggle("ltr", DIR === "ltr");
 let MOBILE = false, SCALE = 1, MH = 844;
 function fit() {
-  const vw = window.innerWidth, vh = window.innerHeight;
+  const vv = window.visualViewport, vw = Math.round(vv ? Math.min(window.innerWidth, vv.width) : window.innerWidth), vh = Math.round(vv ? Math.min(window.innerHeight, vv.height) : window.innerHeight);
+  document.documentElement.style.setProperty("--vh", vh + "px");
   const m = vw < 700 || vw / vh < 0.75;
   const changed = m !== MOBILE; MOBILE = m;
   stage.classList.toggle("m", m); stage.classList.toggle("d", !m); document.body.classList.toggle("low", LOW);
@@ -125,13 +145,60 @@ function fit() {
 let VIEW = { name: "", render: null };
 function show(name, render) { hideGame(); VIEW = { name, render }; vp.style.display = ""; render(); }
 let rsz = 0;
-window.addEventListener("resize", () => { clearTimeout(rsz); rsz = setTimeout(() => { const ch = fit(); if (VIEW.name === "game") gameLayout(); else if (ch && VIEW.render) VIEW.render(); }, 120); });
+let lastMH = 0;
+const onRsz = () => { clearTimeout(rsz); rsz = setTimeout(() => { const ch = fit(); if (VIEW.name === "game") gameLayout(); else if ((ch || (MOBILE && MH !== lastMH)) && VIEW.render) VIEW.render(); lastMH = MH; }, 120); };
+window.addEventListener("resize", onRsz);
+window.addEventListener("orientationchange", onRsz);
+if (window.visualViewport) window.visualViewport.addEventListener("resize", onRsz);
+/* fullscreen + landscape where the browser allows it (Android, desktop); iPhone Safari has neither, so we scroll the bars away and show the rotate hint */
+const IOS = /iP(hone|od)/.test(navigator.userAgent) || (/Macintosh/.test(navigator.userAgent) && navigator.maxTouchPoints > 1 && !/iPad/.test(navigator.userAgent) && window.innerWidth < 500);
+const FS_API = !!(document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen) && !/iP(hone|od)/.test(navigator.userAgent);
+const isFull = () => !!(document.fullscreenElement || document.webkitFullscreenElement);
+const STANDALONE = (window.matchMedia && matchMedia("(display-mode: standalone), (display-mode: fullscreen)").matches) || navigator.standalone === true;
+async function toggleFull() {
+  SFX.tap();
+  if (FS_API) {
+    try {
+      if (isFull()) { (document.exitFullscreen || document.webkitExitFullscreen).call(document); return; }
+      const el = document.documentElement;
+      await (el.requestFullscreen ? el.requestFullscreen({ navigationUI: "hide" }) : el.webkitRequestFullscreen());
+      try { if (screen.orientation && screen.orientation.lock && window.innerWidth < 900) await screen.orientation.lock("landscape"); } catch (e) {}
+      return;
+    } catch (e) {}
+  }
+  // no Fullscreen API (iPhone): hide what we can and explain
+  try { window.scrollTo(0, 1); } catch (e) {}
+  fsTip();
+}
+/* scale a dialog card so it always fits the visible screen (short Safari landscape included) */
+function fitDlg(dlg) {
+  const c = dlg.firstElementChild; if (!c) return;
+  const vv = window.visualViewport, W = vv ? Math.min(innerWidth, vv.width) : innerWidth, Hh = vv ? Math.min(innerHeight, vv.height) : innerHeight;
+  c.style.setProperty("--k2", "1");
+  const k = Math.min(1.15, (W * 0.95) / c.offsetWidth, (Hh * 0.95) / c.offsetHeight);
+  c.style.setProperty("--k2", k.toFixed(3));
+}
+function fsTip() {
+  const old = $("#fsTip"); if (old) { old.remove(); return; }
+  const d = document.createElement("div"); d.id = "fsTip"; d.className = "menu-dlg";
+  d.innerHTML = `<div class="card fs-tip" style="--k2:${Math.min(1.15, Math.max(0.7, Math.min(window.innerWidth, window.innerHeight) / 400))}"><h3>${ico("max", 24, 2.8)}<span>מסך מלא</span></h3>
+    <p>${ico("phone-rot", 20, 2.6)}<span>סובבו את הטלפון לרוחב</span></p>
+    <p>${ico("arrow-up", 20, 2.8)}<span>באייפון: לחצו על כפתור השיתוף ובחרו "הוספה למסך הבית". המשחק ייפתח משם במסך מלא, בלי סרגלי הדפדפן.</span></p>
+    <button class="btn green" id="fsOk">${ico("check", 22, 3)}<span>הבנתי</span></button></div>`;
+  (document.getElementById("game") || document.body).appendChild(d); fitDlg(d);
+  $("#fsOk", d).onclick = () => d.remove();
+}
+const fullBtn = (cls = "pill iconbtn") => STANDALONE ? "" : `<button class="${cls} fsbtn" id="bFull" aria-label="מסך מלא" title="מסך מלא" style="padding:0;justify-content:center">${ico(isFull() ? "min" : "max", 22, 2.6)}</button>`;
+document.addEventListener("fullscreenchange", () => { const b = $("#bFull"); if (b) b.innerHTML = ico(isFull() ? "min" : "max", 22, 2.6); onRsz(); });
+document.addEventListener("click", (e) => { const b = e.target.closest && e.target.closest("#bFull"); if (b) { e.preventDefault(); toggleFull(); } });
 
-const logo = (size, st = 9, sh = 7, stack) => `<div class="logo" style="font-size:${size}px;--st:${st}px;--sh:${sh}px"><span class="s1">Sentence</span>${stack ? "<br>" : " "}<span class="s2">Sprint</span></div>`;
+/* the outline is a separate layer behind the gradient letters, so it can never eat into them */
+const logoW = (cls, t) => `<span class="lw"><span class="bk" aria-hidden="true">${t}</span><span class="${cls}">${t}</span></span>`;
+const logo = (size, st = 9, sh = 7, stack) => `<div class="logo" translate="no" style="font-size:${size}px;--st:${st}px;--sh:${sh}px">${logoW("s1", "Sentence")}${stack ? "<br>" : " "}${logoW("s2", "Sprint")}</div>`;
 const backHub = () => `<a class="pill" id="bHub" href="${HUB}" title="חזרה לאנגלישיה">${ico(BACK, 20, 2.8)}<span>${MOBILE ? "אנגלישיה" : "חזרה לאנגלישיה"}</span></a>`;
 const soundBtn = () => `<button class="pill iconbtn" id="bSound" aria-label="צליל" title="צליל" style="padding:0;justify-content:center">${ico(MUTE ? "volume-x" : "volume-on", 22, 2.6)}</button>`;
 const gfxBtn = () => `<button class="pill iconbtn" id="bGfx" aria-pressed="${LOW}" aria-label="${LOW ? "גרפיקה: חסכונית" : "גרפיקה: רגילה"}" title="${LOW ? "גרפיקה: חסכונית" : "גרפיקה: רגילה"}" style="padding:0;justify-content:center">${ico(LOW ? "gauge" : "image", 22, 2.6, LOW ? "#ff7a00" : "#1d2350")}</button>`;
-function topLeft() { return `<div class="grp">${soundBtn()}${gfxBtn()}<span id="langSlot"></span>${MOBILE ? "" : '<span class="brand" id="engSlot"><i></i>Englishia</span>'}</div>`; }
+function topLeft() { return `<div class="grp">${soundBtn()}${gfxBtn()}${fullBtn()}<span id="langSlot"></span>${MOBILE ? "" : '<span class="brand" id="engSlot"><i></i>Englishia</span>'}</div>`; }
 function wireTop() {
   const s = $("#bSound"), g = $("#bGfx");
   if (s) s.onclick = () => { MUTE = !MUTE; LS.set("ss-mute", MUTE); s.innerHTML = ico(MUTE ? "volume-x" : "volume-on", 22, 2.6); if (!MUTE) SFX.tap(); else try { speechSynthesis.cancel(); } catch (e) {} };
@@ -153,18 +220,20 @@ function homeScreen() {
   leaveAll();
   if (location.search.includes("code=")) try { history.replaceState(null, "", location.pathname + (TEST ? "?test=1" : "")); } catch (e) {}
   show("home", () => {
-    const how = `<div class="howto" style="${MOBILE ? "top:" + Math.min(452, MH - 330) + "px" : ""}"><span><i class="hi orange">${ico("arrow-up", 16, 3, "#fff")}</i>קופצים בין הקומות</span><span><i class="hi pink">${ico("puzzle", 16, 2.6, "#fff")}</i>אוספים מילים ובונים משפט</span><span><i class="hi yellow">${ico("zap", 16, 2.6, "#fff")}</i>זוכים בכוח-על</span></div>`;
+    // phone: logo, buttons, the "how to" strip and the runners are stacked top to bottom, so nothing can overlap at any height
+    const top = Math.max(204, Math.min(300, MH - 430)), howTop = top + 168;
+    const how = `<div class="howto" style="${MOBILE ? "top:" + howTop + "px" : ""}"><span><i class="hi orange">${ico("arrow-up", 16, 3, "#fff")}</i>קופצים בין הקומות</span><span><i class="hi pink">${ico("puzzle", 16, 2.6, "#fff")}</i>אוספים מילים ובונים משפט</span><span><i class="hi yellow">${ico("zap", 16, 2.6, "#fff")}</i>זוכים בכוח-על</span></div>`;
     if (MOBILE) {
-      const top = Math.min(300, MH - 400);
+      const charH = Math.min(210, MH - howTop - 120);
       stage.innerHTML = `<section class="scr" id="s-home">${bgDiv()}
-        <div class="topbar"><div class="grp"><span id="langSlot"></span></div><div class="grp">${backHub()}</div></div>
-        <div class="home-logo" style="top:${Math.max(70, top - 230)}px">${logo(58, 7, 5, true)}<div style="margin-top:10px"><span class="ribbon" style="font-size:20px">ספרינט המשפטים</span></div></div>
+        <div class="topbar"><div class="grp"><span id="langSlot"></span>${fullBtn()}</div><div class="grp">${backHub()}</div></div>
+        <div class="home-logo" style="top:${Math.max(62, top - 232)}px">${logo(top < 250 ? 50 : 58, 5, 4, true)}<div style="margin-top:10px"><span class="ribbon" style="font-size:20px">ספרינט המשפטים</span></div></div>
         <div class="mbtns" style="top:${top}px">
           <button class="btn green" id="go-join">${ico("hash", 24, 3)}<span>הצטרפות עם קוד</span></button>
           <button class="btn blue" id="go-online">${ico("globe", 24, 2.8)}<span>פתיחת חדר אונליין</span></button>
         </div>
         ${how}
-        <div class="m-chars" style="height:${Math.max(120, MH - top - 300)}px;align-items:flex-end">${["gal", "zik", "fox"].map((c) => `<img src="${IMG_BASE}cheer-${c}.png" alt="" style="height:${Math.min(210, Math.max(120, MH - top - 300))}px">`).join("")}</div>
+        ${charH >= 70 ? `<div class="m-chars" style="height:${charH}px;align-items:flex-end;bottom:${MH - howTop - 52 - charH > 60 ? 50 : 44}px">${["gal", "zik", "fox"].map((c) => `<img src="${IMG_BASE}cheer-${c}.png" alt="" style="height:${charH}px">`).join("")}</div>` : ""}
         <div style="position:absolute;top:22px;right:20px;display:none"></div>
         ${credit()}</section>`;
     } else {
@@ -295,7 +364,7 @@ function addPlayer(cid, name, ch, local) {
   H.players.set(cid, p); SFX.tap();
   return p;
 }
-function resetStats(p) { Object.assign(p, { pts: 0, sents: 0, words: 0, pus: 0, fin: 0, finT: 0, x: 260, y: 510, f: 0, posT: 0, held: null, shieldUntil: 0, lastSent: 0, seen: new Set() }); }
+function resetStats(p) { Object.assign(p, { combo: 0, pts: 0, sents: 0, words: 0, pus: 0, fin: 0, finT: 0, x: 260, y: 510, f: 0, posT: 0, held: null, shieldUntil: 0, lastSent: 0, seen: new Set() }); }
 function hostRecv(m, cid) {
   if (!H || !m || typeof m !== "object" || typeof cid !== "string" || cid.length > 40) return;
   const p = H.players.get(cid);
@@ -324,7 +393,7 @@ function hostPos(p, m) {
   if (t < H.startAt) x = Math.min(x, H.L.start);
   const dt = p.posT ? (t - p.posT) / 1000 : 1, maxV = (GEN[H.set.level] || GEN.normal).speed * 1.6;
   if (x > p.x + maxV * dt + 160) x = p.x + maxV * dt + 160;
-  p.x = Math.max(p.x - 400, x); p.y = Math.max(-200, Math.min(760, y)); p.f = (Number(m.f) | 0) & 1023; p.posT = t;
+  p.x = Math.max(p.x - 400, x); p.y = Math.max(-200, Math.min(760, y)); p.f = (Number(m.f) | 0) & 16383; p.posT = t;
   if (p.shieldUntil > t) p.f |= F.shield;
   if (!p.fin && p.x >= H.L.finish && t >= H.startAt) hostFinish(p);
 }
@@ -346,9 +415,13 @@ function hostSentence(p, m) {
   let ok = words.length >= lo && words.length <= hi && words.every(knownWord) && check(words).ok;
   const key = words.join(" ");
   if (ok && p.seen.has(key)) return toPlayer(p, { t: "sr", k, ok: 0, why: "dup" });
-  if (!ok) return toPlayer(p, { t: "sr", k, ok: 0, why: words.length < lo ? "short" : "bad" });
+  if (!ok) { p.combo = 0; return toPlayer(p, { t: "sr", k, ok: 0, why: words.length < lo ? "short" : "bad" }); }
   p.seen.add(key);
-  const pts = Math.max(2, Math.round(10 * levelOf(H.set.level).mul * words.length / 4));
+  // golden word: the client names the bubble ids; the host checks them against its own copy of the track
+  let gold = 0;
+  if (H.set.gold && Array.isArray(m.g)) for (const id of m.g.slice(0, 12)) { const b = H.L && H.L.bubbles[id | 0]; if (b && b.g && b.id === (id | 0) && words.includes(b.w)) { gold = 1; break; } }
+  p.combo = (p.combo || 0) + 1;
+  const pts = sentencePts(words.length, levelOf(H.set.level).mul, p.combo, gold);
   p.pts += pts; p.sents++; p.words += words.length;
   let pu = null;
   if (H.set.pu) {
@@ -357,8 +430,9 @@ function hostSentence(p, m) {
     pu = pool[Math.floor(Math.random() * pool.length)];
     p.held = pu;
   }
-  toPlayer(p, { t: "sr", k, ok: 1, pts, pu });
-  H.feed.push({ n: p.name, ch: p.ch, s: pretty(words), pts }); if (H.feed.length > 6) H.feed.shift();
+  toPlayer(p, { t: "sr", k, ok: 1, pts, pu, n: words.length, base: BASE_PTS(words.length), cm: comboMul(p.combo), c: p.combo, gd: gold });
+  H.feed.push({ n: p.name, ch: p.ch, s: pretty(words), pts, gd: gold, c: p.combo }); if (H.feed.length > 6) H.feed.shift();
+  broadcastFx({ t: "fx", k: "yay", a: p.pid, b: p.pid, gd: gold });
   hostBroadcast(); hostView();
 }
 /* boosts help the owner; attacks hit only the runner directly ahead (nearest one in front who has not finished) */
@@ -370,6 +444,7 @@ function hostUse(p, m) {
     if (k === "shield") p.shieldUntil = now() + DUR.shield * 1000;
     toPlayer(p, { t: "ur", k, ok: 1 });
     broadcastFx({ t: "fx", k, a: p.pid, b: p.pid });
+    broadcastFx({ t: "fx", k: "yay", a: p.pid, b: p.pid });
     return;
   }
   let target = null;
@@ -396,7 +471,7 @@ function stateMsg() {
   const rank = rankOf();
   const pl = [...H.players.values()].sort((a, b) => a.pid - b.pid).map((p) => [p.pid, p.name, p.ch, p.pts, p.on || p.local ? 1 : 0, p.fin, p.sents, p.words, p.pus, rank.get(p.cid)]);
   const t = now();
-  return { t: "st", ph: H.ph, code: H.code, mode: H.mode, set: { l: H.set.level, len: H.set.len, wl: H.set.wl, pu: H.set.pu ? 1 : 0 }, seed: H.seed, race: H.race, pl,
+  return { t: "st", ph: H.ph, code: H.code, mode: H.mode, set: setMsg(), seed: H.seed, race: H.race, pl,
     go: H.startAt - t, left: Math.max(0, H.endAt - t), ff: H.firstFin ? 1 : 0, feed: H.feed.slice(-4) };
 }
 function hostBroadcast(beat) {
@@ -429,15 +504,17 @@ function hostTick() {
     if (t >= H.endAt) hostEnd();
   }
 }
+const setMsg = () => ({ l: H.set.level, len: H.set.len, wl: H.set.wl, pu: H.set.pu ? 1 : 0, tm: H.set.tm | 0, dn: H.set.dens === "f" ? "f" : "n", gd: H.set.gold ? 1 : 0 });
+const levelSet = (s) => ({ level: s.l, len: s.len, wl: s.wl, dens: s.dn || "n", gold: s.gd !== 0 });
 function hostStart() {
   if (!H || H.ph !== "lobby") return;
   H.race++; H.seed = (Math.random() * 2 ** 31) >>> 0 || 7;
-  H.L = buildLevel({ len: H.set.len, wl: H.set.wl, level: H.set.level }, H.seed);
+  H.L = buildLevel(levelSet(setMsg()), H.seed);
   for (const p of H.players.values()) resetStats(p);
   H.finCount = 0; H.firstFin = 0; H.feed = [];
   const speed = (GEN[H.set.level] || GEN.normal).speed;
   H.startAt = now() + 4200;
-  H.endAt = H.startAt + Math.round(((H.L.finish - H.L.start) / speed) * 1.7 + 25) * 1000;
+  H.endAt = H.startAt + (H.set.tm ? H.set.tm * 60000 : Math.round(((H.L.finish - H.L.start) / speed) * 1.7 + 25) * 1000);
   H.ph = "race";
   LS.set("ss-settings", H.set);
   hostBroadcast(); hostView();
@@ -459,8 +536,8 @@ function hostJoinLocal(name, ch) {
 
 /* ---------- 02 lobby (host: join card + players + settings; player: waiting room) ---------- */
 function lobbyData() {
-  if (H) return { code: H.code, set: { l: H.set.level, len: H.set.len, wl: H.set.wl, pu: H.set.pu ? 1 : 0 }, pl: [...H.players.values()].sort((a, b) => a.pid - b.pid).map((p) => [p.pid, p.name, p.ch, 0, p.on || p.local ? 1 : 0]), host: true, present: H.mode === "present" };
-  const st = PS.st || { set: { l: "normal", len: "medium", wl: "m", pu: 1 }, pl: [] };
+  if (H) return { code: H.code, set: setMsg(), pl: [...H.players.values()].sort((a, b) => a.pid - b.pid).map((p) => [p.pid, p.name, p.ch, 0, p.on || p.local ? 1 : 0]), host: true, present: H.mode === "present" };
+  const st = PS.st || { set: { l: "normal", len: "medium", wl: "m", pu: 1, tm: 0, dn: "n", gd: 1 }, pl: [] };
   return { code: PS.code, set: st.set, pl: st.pl, host: false };
 }
 function settingsHTML(d, compact) {
@@ -468,10 +545,15 @@ function settingsHTML(d, compact) {
   const lv = LEVELS.map((l, i) => `<button class="chip lvl ${s.l === l.k ? "on" : ""}" data-lv="${l.k}" aria-pressed="${s.l === l.k}" ${dis}>${bars(i + 1, s.l === l.k)}<span>${l.he}</span></button>`).join("");
   const tr = TRACKS.map((t) => `<button class="chip ${s.len === t.k ? "on orange" : ""}" data-len="${t.k}" aria-pressed="${s.len === t.k}" ${dis}>${t.he}</button>`).join("");
   const wl = WLS.map((t) => `<button class="chip ${s.wl === t.k ? "on teal" : ""}" data-wl="${t.k}" aria-pressed="${s.wl === t.k}" ${dis}><span class="en">${t.he}</span></button>`).join("");
+  const tm = TIMES.map((t) => `<button class="chip ${(s.tm | 0) === t.k ? "on purple" : ""}" data-tm="${t.k}" aria-pressed="${(s.tm | 0) === t.k}" ${dis}>${t.he}</button>`).join("");
+  const dn = DENS.map((t) => `<button class="chip ${(s.dn || "n") === t.k ? "on blue" : ""}" data-dn="${t.k}" aria-pressed="${(s.dn || "n") === t.k}" ${dis}>${t.he}</button>`).join("");
+  const tog = (id, on, icon, col, label) => `<div class="set-row"><span class="sub"><span class="hi ${col}" style="width:28px;height:28px;border-radius:9px">${ico(icon, 16, 2.6, "#fff")}</span>${label}</span><button class="tog ${on ? "on" : ""}" id="${id}" role="switch" aria-checked="${!!on}" aria-label="${label}" ${dis}></button></div>`;
   return `<div class="set-lbl">רמת קושי</div><div class="chips lvls">${lv}</div>
     <div class="set-lbl">אורך המסלול</div><div class="chips">${tr}</div>
     <div class="set-lbl">מילים במשפט</div><div class="chips">${wl}</div>
-    <div class="set-row"><span class="sub"><span class="hi yellow" style="width:28px;height:28px;border-radius:9px">${ico("zap", 16, 2.6, "#fff")}</span>כוחות-על</span><button class="tog ${s.pu ? "on" : ""}" id="tPu" role="switch" aria-checked="${!!s.pu}" aria-label="כוחות-על" ${dis}></button></div>`;
+    <div class="set-lbl">זמן המירוץ</div><div class="chips c4">${tm}</div>
+    <div class="set-lbl">מילים על המסלול</div><div class="chips c2">${dn}</div>
+    <div class="set-tg">${tog("tPu", s.pu, "zap", "yellow", "כוחות-על")}${tog("tGd", s.gd !== 0, "star", "orange", "מילים זהובות")}</div>`;
 }
 function wireSettings() {
   if (!H) return;
@@ -480,6 +562,20 @@ function wireSettings() {
   $$("[data-len]").forEach((b) => (b.onclick = () => { H.set.len = b.dataset.len; SFX.tap(); upd(); }));
   $$("[data-wl]").forEach((b) => (b.onclick = () => { H.set.wl = b.dataset.wl; SFX.tap(); upd(); }));
   const t = $("#tPu"); if (t) t.onclick = () => { H.set.pu = !H.set.pu; SFX.tap(); upd(); };
+  wireExtra(document, upd);
+}
+function wireExtra(root, upd) {
+  $$("[data-tm]", root).forEach((b) => (b.onclick = () => { H.set.tm = +b.dataset.tm; SFX.tap(); upd(); }));
+  $$("[data-dn]", root).forEach((b) => (b.onclick = () => { H.set.dens = b.dataset.dn; SFX.tap(); upd(); }));
+  const g = $("#tGd", root); if (g) g.onclick = () => { H.set.gold = !H.set.gold; SFX.tap(); upd(); };
+}
+/* the chosen settings, shown to everyone in the lobby */
+function setSummary(s) {
+  const lvl = levelOf(s.l), tr = TRACKS.find((t) => t.k === s.len) || TRACKS[1], wl = WLS.find((t) => t.k === s.wl) || WLS[1], tm = TIMES.find((t) => t.k === (s.tm | 0)) || TIMES[0];
+  return `<span class="chip on blue">${bars(LEVELS.indexOf(lvl) + 1, true)}<span>רמה: ${lvl.he}</span></span><span class="chip">${ico("flag-fin", 15, 2.4)}<span>מסלול: ${tr.he}</span></span>
+    <span class="chip">${ico("puzzle", 15, 2.6)}<span>מילים במשפט:</span> <span class="en">${wl.he}</span></span><span class="chip">${ico("clock", 15, 2.6)}<span>זמן: ${tm.he}</span></span>
+    <span class="chip">${ico("layers", 15, 2.6)}<span>${(s.dn || "n") === "f" ? "מעט מילים" : "מילים: רגיל"}</span></span>
+    <span class="chip">${ico("zap", 15, 2.6)}<span>${s.pu ? "כוחות-על" : "בלי כוחות-על"}</span></span><span class="chip ${s.gd !== 0 ? "gold" : ""}">${ico("star", 15, 2.6)}<span>${s.gd !== 0 ? "מילים זהובות" : "בלי מילים זהובות"}</span></span>`;
 }
 function lobbyScreen() {
   show("lobby", () => {
@@ -490,19 +586,18 @@ function lobbyScreen() {
     const lvl = levelOf(d.set.l), tr = TRACKS.find((t) => t.k === d.set.len) || TRACKS[1];
     const startBtn = d.host ? `<button class="btn green startbtn" id="bStart">${ico("play", 28, 2.6, "#fff", "#fff")}<span>התחל מירוץ</span></button>` : "";
     if (MOBILE) {
-      const top = 66;
-      stage.innerHTML = `<section class="scr" id="s-lobby">${bgDiv()}
+      const top = 66, short = MH < 780;   // short Safari screens: drop the title so the players list keeps its room
+      stage.innerHTML = `<section class="scr ${short ? "short" : ""}" id="s-lobby">${bgDiv()}
         <div class="topbar"><div class="grp"><span id="langSlot"></span></div><div class="grp">${backHub()}</div></div>
-        <div class="ttl" style="position:absolute;top:${top}px;left:0;right:0;text-align:center;font-size:30px">חדר המשחק</div>
-        <div class="card mcard" id="joinCard" style="top:${top + 58}px">
+        ${short ? "" : `<div class="ttl" style="position:absolute;top:${top}px;left:0;right:0;text-align:center;font-size:30px">חדר המשחק</div>`}
+        <div class="card mcard" id="joinCard" style="top:${short ? 70 : top + 58}px">
           <div style="text-align:center;font:800 15px var(--ui)">קוד החדר</div>
           <div class="code en" translate="no" id="roomCode" style="margin:4px 0 10px">${digits}</div>
           <div class="qrrow"><div class="qrt" style="flex:1">הזמינו חברים<small>שיסרקו את הקוד או ייכנסו ל־</small><div class="en" style="font:700 13px var(--fred);color:var(--b2);margin-top:3px;word-break:break-all" translate="no">${esc(shown)}</div></div><div class="qrbox">${qr}</div></div>
-          <div class="chips" style="justify-content:center;margin-top:10px">
-            ${d.host ? `<button class="chip on blue" id="bSet">${ico("sliders", 16, 2.6)}<span>הגדרות</span></button>` : ""}
-            <span class="chip on blue">${bars(LEVELS.indexOf(lvl) + 1, true)}<span>רמה: ${lvl.he}</span></span><span class="chip">אורך: ${tr.he}</span><span class="chip">${ico("zap", 15, 2.6)}<span>${d.set.pu ? "כוחות" : "בלי כוחות"}</span></span></div>
+          ${d.host ? `<button class="btn purple setbtn" id="bSet">${ico("sliders", 22, 2.6)}<span>הגדרות המירוץ</span></button>` : ""}
+          <div class="chips sum" style="justify-content:center;margin-top:8px">${setSummary(d.set)}</div>
         </div>
-        <div class="card mcard" id="plCard" style="top:400px;bottom:${d.host ? 96 : 118}px;overflow:hidden">
+        <div class="card mcard" id="plCard" style="top:400px;bottom:${d.host ? 104 : 118}px;overflow:hidden">
           <h3 style="font:900 19px var(--ui);display:flex;gap:9px;align-items:center;margin-bottom:8px"><span class="hi green">${ico("users", 20, 2.6, "#fff")}</span><span>מי כבר בחדר?</span><span class="cnt" id="plCnt"></span></h3>
           <div class="pl-grid" id="ptg"></div></div>
         ${d.host ? `<button class="btn green" id="bStart" style="position:absolute;left:20px;right:20px;bottom:18px;font-size:24px">${ico("play", 24, 2.6, "#fff", "#fff")}<span>התחל מירוץ</span></button>`
@@ -523,10 +618,10 @@ function lobbyScreen() {
           <div class="qrrow"><div class="qrt" style="flex:1">או סרקו את הקוד<small>עם המצלמה של הטלפון</small></div><div class="qrbox" id="qr">${qr}</div></div>
         </div>
         <div class="card lob-col pl-c" id="plCard"><h3><span class="hi green">${ico("users", 20, 2.6, "#fff")}</span><span>מי כבר בחדר?</span><span class="cnt" id="plCnt"></span></h3><div class="pl-grid" id="ptg"></div></div>
-        <div class="card lob-col set-c" id="setCard"><h3><span class="hi purple">${ico("sliders", 20, 2.6, "#fff")}</span><span>הגדרות המירוץ</span></h3>${settingsHTML(d)}</div>
+        <div class="card lob-col set-c" id="setCard"><h3><span class="hi purple">${ico("sliders", 20, 2.6, "#fff")}</span><span>הגדרות המירוץ</span>${d.host ? "" : '<small class="ro">נבחרו ע״י המורה</small>'}</h3><div class="set-scroll">${settingsHTML(d)}</div></div>
         ${startBtn}
         ${d.host ? `<span class="pill maxpill">${ico("users", 18, 2.6)}<span>עד 30 שחקנים בחדר</span></span>` : `<div class="pill" style="position:absolute;bottom:22px;left:50%;transform:translateX(-50%);font-size:19px">${ico("clock", 20, 2.6)}<span>מחכים שהמורה יתחיל את המירוץ</span></div>
-          <button class="btn sm wbtn" id="bChange" style="position:absolute;bottom:22px;left:40px">${ico("shirt", 20, 2.6)}<span>החלפת רץ ושם</span></button>`}
+          <button class="btn sm wbtn" id="bChange" style="position:absolute;bottom:22px;right:40px">${ico("shirt", 20, 2.6)}<span>החלפת רץ ושם</span></button>`}
       </section>`;
     }
     wireTop(); wireSettings();
@@ -540,7 +635,8 @@ function lobbyScreen() {
 function settingsSheet() {
   const dlg = document.createElement("div"); dlg.className = "menu-dlg"; dlg.id = "setDlg";
   const k2 = Math.min(1, window.innerWidth / 420);
-  dlg.innerHTML = `<div class="card set-c" style="position:relative;inset:auto;width:388px;padding:18px;transform:scale(${k2})"><h3 style="font:900 21px var(--ui);display:flex;gap:9px;align-items:center"><span class="hi purple">${ico("sliders", 20, 2.6, "#fff")}</span><span>הגדרות המירוץ</span></h3><div id="setBody">${settingsHTML(lobbyData())}</div>
+  const k3 = Math.min(k2, (window.visualViewport ? visualViewport.height : window.innerHeight) / 760);
+  dlg.innerHTML = `<div class="card set-c" style="position:relative;inset:auto;width:388px;padding:18px;transform:scale(${k3})"><h3 style="font:900 21px var(--ui);display:flex;gap:9px;align-items:center"><span class="hi purple">${ico("sliders", 20, 2.6, "#fff")}</span><span>הגדרות המירוץ</span></h3><div id="setBody">${settingsHTML(lobbyData())}</div>
     <button class="btn green" id="bSetOk" style="margin-top:14px;width:100%">${ico("check", 22, 3)}<span>סגירה</span></button></div>`;
   document.body.appendChild(dlg);
   const rewire = () => {
@@ -549,6 +645,7 @@ function settingsSheet() {
     $$("#setBody [data-len]").forEach((b) => (b.onclick = () => { H.set.len = b.dataset.len; re(); }));
     $$("#setBody [data-wl]").forEach((b) => (b.onclick = () => { H.set.wl = b.dataset.wl; re(); }));
     const t = $("#setBody #tPu"); if (t) t.onclick = () => { H.set.pu = !H.set.pu; re(); };
+    wireExtra($("#setBody"), re);
   };
   rewire();
   $("#bSetOk").onclick = () => { dlg.remove(); if (VIEW.name === "lobby") VIEW.render(); };
@@ -646,7 +743,7 @@ function stopGame() {
   if (!GAME) return;
   try { GAME.G.stop(); } catch (e) {}
   clearInterval(GAME.iv); clearInterval(GAME.posIv);
-  window.removeEventListener("keydown", onKey);
+  window.removeEventListener("keydown", onKey); window.removeEventListener("keyup", onKeyUp);
   GAME.el.remove(); GAME = null; PS.G = null; PROJ = null;
   document.body.classList.remove("ingame");
 }
@@ -655,7 +752,7 @@ function gameScreen(st, projector) {
   stopGame();
   VIEW = { name: "game", render: null };
   vp.style.display = "none";
-  const set = { level: st.set.l, len: st.set.len, wl: st.set.wl };
+  const set = levelSet(st.set);
   const L = buildLevel(set, st.seed);
   const el = document.createElement("div"); el.id = "game"; el.className = DIR === "ltr" ? "ltr" : "";
   document.body.appendChild(el); document.body.classList.add("ingame");
@@ -663,8 +760,8 @@ function gameScreen(st, projector) {
   const me = st.pl.find((p) => p[0] === PS.pid);
   const G = createGame($("#cv", el), {
     level: L, myPid: projector ? 0 : PS.pid, players: playersMap(st), projector, low: LOW, speed: (GEN[set.level] || GEN.normal).speed,
-    meLabel: T_("אני"), rtl: DIR === "rtl", slowLink, myCh: me ? me[2] : PS.ch, sfx: (k) => k === "jump" && SFX.jump(),
-    onCollect: (b) => { PS.bar.push({ w: b.w, id: b.id }); SFX.word(); renderBar(); return true; },
+    meLabel: T_("אני"), rtl: DIR === "rtl", slowLink, myCh: me ? me[2] : PS.ch, sfx: (k) => (k === "jump" ? SFX.jump() : k === "drop" ? SFX.drop() : 0),
+    onCollect: (b) => { PS.bar.push({ w: b.w, id: b.id, g: b.g ? 1 : 0 }); if (b.g) { SFX.combo(); G.addFx("gold", PS.pid); } else SFX.word(); renderBar(); return true; },
     canCollect: () => PS.bar.length < L.hi,
     onFull: () => { const sb = $("#sbar"); if (sb) { sb.classList.remove("full"); void sb.offsetWidth; sb.classList.add("full"); } toast(T_("הפס מלא: שלחו את המשפט או מחקו מילה"), "", 1400); },
     onFinish: () => { toHost({ t: "p", x: Math.round(G.me.x), y: Math.round(G.me.y), f: G.flags() }); }
@@ -672,9 +769,9 @@ function gameScreen(st, projector) {
   G.race = st.race;
   GAME = { el, G, projector, st, L, startPerf: performance.now() + st.go, endPerf: performance.now() + st.left, lastCd: null };
   if (projector) PROJ = G; else PS.G = G;
-  Object.assign(PS, { bar: [], sel: -1, held: null, pending: null, finPlace: 0, seq: 0 });
+  Object.assign(PS, { bar: [], sel: -1, held: null, pending: null, finPlace: 0, seq: 0, combo: 0 });
   if (!projector && PS.resume && PS.resume.race === st.race) { G.me.x = PS.resume.x; G.me.y = Math.min(510, PS.resume.y); PS.held = PS.resume.held || null; PS.resume = null; }
-  gameLayout(); buildHud(); G.start(GAME.startPerf);
+  gameLayout(); buildHud(); gameLayout(); setTimeout(gameLayout, 500); setTimeout(gameLayout, 1500); G.start(GAME.startPerf);
   GAME.iv = setInterval(hudTick, 200);
   if (!projector) {
     let lastSent = 0;
@@ -686,13 +783,17 @@ function gameScreen(st, projector) {
       toHost({ t: "p", x: Math.round(G.me.x), y: Math.round(G.me.y), f: G.flags() });
     }, 100);
     window.addEventListener("keydown", onKey);
+    window.addEventListener("keyup", onKeyUp);
+    window.addEventListener("blur", () => { if (PS.G) PS.G.input = { l: 0, r: 0 }; });
     const cv = $("#cv", el); cv.addEventListener("pointerdown", (e) => { e.preventDefault(); G.jump(); });
   }
   gameState(st);
 }
 function gameLayout() {
   if (!GAME) return;
-  const vw = window.innerWidth, vh = window.innerHeight, el = GAME.el;
+  const vv = window.visualViewport, el = GAME.el;
+  const vw = Math.round(vv ? Math.min(window.innerWidth, vv.width) : window.innerWidth), vh = Math.round(vv ? Math.min(window.innerHeight, vv.height) : window.innerHeight);
+  el.style.height = vh + "px";
   const portrait = vh > vw, phone = Math.min(vw, vh) < 560;
   let k;
   if (portrait) k = Math.min(vw / 720, vh / 900);
@@ -702,9 +803,16 @@ function gameLayout() {
   el.classList.toggle("gp", portrait); el.classList.toggle("gm", phone && !portrait); el.classList.toggle("gd", !phone && !portrait);
   // usable width of the sentence bar in base px (between the power and jump buttons)
   const baseW = vw / k;
-  el.style.setProperty("--bw", Math.max(420, Math.min(960, baseW - (portrait ? 20 : phone ? 2 * 178 : 2 * 232))) + "px");
+  el.style.setProperty("--bw", Math.max(420, Math.min(960, baseW - (portrait ? 20 : phone ? 2 * 240 : 2 * 232))) + "px");
+  // portrait: the track gets its own band between the top HUD and the sentence bar + buttons, so nothing covers the runners
+  GAME.G.band = portrait && !GAME.projector ? { top: Math.round(212 * k), bottom: Math.round(268 * k) } : portrait ? { top: Math.round(180 * k), bottom: Math.round(120 * k) } : null;
+  el.style.setProperty("--bandTop", (GAME.G.band ? GAME.G.band.top : 0) + "px");
+  // projector: the progress bar shrinks so it never runs under the top-right buttons (long ar/ru labels)
+  const pr = GAME.projector && !portrait && el.querySelector("#prog"), trB = pr && el.querySelector(".hud.tr"), tlB = pr && el.querySelector(".hud.tl");
+  if (pr && trB) { const cx = vw / 2, l = tlB ? tlB.getBoundingClientRect().right : 0, r = trB.getBoundingClientRect().left;
+    pr.style.width = Math.max(300, Math.min(620, (2 * Math.min(cx - l, r - cx) - 24 * k) / k)) + "px"; }
   GAME.G.resize();
-  if (GAME.built) { renderBar(); }
+  if (GAME.built) { renderBar(); fitRou(); }
 }
 function buildHud() {
   const hud = $("#hud", GAME.el), proj = GAME.projector;
@@ -717,19 +825,30 @@ function buildHud() {
       <div class="ov" id="ov"></div>`;
     $("#bEnd").onclick = () => { if (confirm(T_("לסיים את המירוץ עכשיו?"))) hostEnd(); };
     $("#gHub").onclick = (e) => { if (!confirm(T_("לסגור את החדר?"))) e.preventDefault(); };
+    $("#gHub").insertAdjacentHTML("beforebegin", fullBtn("gbtn ic"));
   } else {
     hud.innerHTML = `<div class="hud tl"><div class="row"><span class="hp" id="hPts"><span>ניקוד</span> <b class="en o">0</b></span><span class="hp" id="hPlace"><span>מקום</span> <b class="en">1/1</b></span></div><span class="hp" id="hTime">${ico("clock", 18, 2.6)}<b class="en">0:00</b></span></div>
       <div class="hud tc"><div class="prog" id="prog"><span class="fl s">${ico("flag", 20, 2.6)}</span><div class="tr"><div class="fill" id="pfill"></div><div id="heads"></div></div><span class="fl e">${ico("flag-fin", 20, 2.4)}</span></div></div>
-      <div class="hud tr"><div class="row"><a class="gbtn" id="gHub" href="${HUB}">${ico(BACK, 18, 2.8)}<span>אנגלישיה</span></a><button class="gbtn ic" id="bMenu" aria-label="תפריט" title="תפריט">${ico("pause", 22, 2.6, "currentColor", "currentColor")}</button></div></div>
-      <div class="hud bl"><button class="pwr empty" id="bPwr" aria-label="הפעל כוח-על"><img id="pwrImg" src="${IMG_BASE}pu-boost-speed.png" alt=""><span class="e"><span>הפעל</span><kbd>E</kbd></span></button></div>
+      <div class="hud tr"><div class="row"><a class="gbtn" id="gHub" href="${HUB}">${ico(BACK, 18, 2.8)}<span>אנגלישיה</span></a>${fullBtn("gbtn ic")}<button class="gbtn ic" id="bHelp" aria-label="איך משחקים" title="איך משחקים">${ico("help", 22, 2.6)}</button><button class="gbtn ic" id="bMenu" aria-label="תפריט" title="תפריט">${ico("pause", 22, 2.6, "currentColor", "currentColor")}</button></div></div>
+      <div class="hud bl"><button class="pwr empty" id="bPwr" aria-label="הפעל כוח-על"><img id="pwrImg" src="${IMG_BASE}pu-boost-speed.png" alt=""><span class="e"><span>הפעל</span><kbd>E</kbd></span></button>
+        <div class="pads" dir="ltr"><button class="btn orange pad" id="bLeft" aria-label="שמאלה">${ico("arrow-left", 58, 3.6)}</button><button class="btn orange pad" id="bRight" aria-label="ימינה">${ico("arrow-right", 58, 3.6)}</button></div></div>
       <div class="hud bc"><div class="sbar" id="sbar"><div class="lab"><div class="a">${ico("puzzle", 14, 2.6)}<span>בנו משפט באנגלית</span></div><div class="b" id="sHint"></div></div>
-        <div class="slots" id="slots"></div><span class="scount" id="scount"></span>
-        <div class="sact"><button class="btn wbtn" id="bUndo" aria-label="מחק מילה" title="מחק מילה (Backspace)">${ico("undo", 26, 2.8)}</button><button class="btn green go" id="bSend" title="Enter">${ico("check", 24, 3.2)}<span>שלח</span></button></div></div></div>
-      <div class="hud br"><div class="keys"><span class="gbtn">${ico("arrow-up", 15, 3)}<span>קפיצה</span><kbd>SPACE</kbd></span><span class="gbtn">${ico("arrow-up", 15, 3)}<span>קפיצה כפולה</span><kbd>×2</kbd></span><span class="gbtn">${ico("check", 15, 3)}<span>שלח</span><kbd>ENTER</kbd></span></div>
-        <button class="btn green jump" id="bJump" aria-label="קפיצה">${ico("arrow-up", 54, 3.4)}<span>קפיצה</span></button></div>
-      <div class="rot">${ico("phone-rot", 20, 2.6, "#fff")}<span>סובבו את הטלפון לרוחב</span></div>
+        <div class="slots" id="slots"></div><span class="scount" id="scount"></span><span class="hp combo" id="hCombo" style="display:none" title="קומבו"><span>קומבו</span><b class="en">x1</b></span><span class="spts" id="spts"></span>
+        <div class="sact"><button class="btn red del" id="bUndo" aria-label="מחק מילה" title="מחק מילה (Backspace)">${ico("backspace", 26, 2.6)}<span>מחק</span></button><button class="btn green go" id="bSend" title="Enter">${ico("check", 24, 3.2)}<span>שלח</span></button></div></div></div>
+      <div class="hud br"><div class="keys"><span class="gbtn">${ico("arrow-right", 15, 3)}<span>ריצה</span><kbd>← → / A D</kbd></span><span class="gbtn">${ico("arrow-up", 15, 3)}<span>קפיצה</span><kbd>SPACE</kbd></span><span class="gbtn">${ico("arrow-up", 15, 3)}<span>קפיצה כפולה</span><kbd>×2</kbd></span><span class="gbtn">${ico("arrow-down", 15, 3)}<span>ירידה קומה</span><kbd>↓ / S</kbd></span><span class="gbtn">${ico("check", 15, 3)}<span>שלח</span><kbd>ENTER</kbd></span><span class="gbtn">${ico("backspace", 15, 2.6)}<span>מחק מילה</span><kbd>⌫</kbd></span></div>
+        <div class="jcol"><button class="btn blue down" id="bDown" aria-label="ירידה קומה">${ico("arrow-down", 34, 3.4)}<span>ירידה</span></button>
+        <button class="btn green jump" id="bJump" aria-label="קפיצה">${ico("arrow-up", 54, 3.4)}<span>קפיצה</span></button></div></div>
+      <div class="rot">${ico("phone-rot", 16, 2.6, "#fff")}<span>לרוחב נוח יותר</span></div>
       <div class="ov" id="ov"></div>`;
     $("#bJump").addEventListener("pointerdown", (e) => { e.preventDefault(); PS.G && PS.G.jump(); });
+    $("#bDown").addEventListener("pointerdown", (e) => { e.preventDefault(); doDrop(); });
+    // hold-to-run pads (multi-touch: one thumb runs while the other jumps)
+    for (const [id, k] of [["#bLeft", "l"], ["#bRight", "r"]]) {
+      const b = $(id), on = (v) => (e) => { e.preventDefault(); if (PS.G) PS.G.input[k] = v; b.classList.toggle("held", !!v); if (v && b.setPointerCapture) try { b.setPointerCapture(e.pointerId); } catch (x) {} };
+      b.addEventListener("pointerdown", on(1)); for (const ev of ["pointerup", "pointercancel", "lostpointercapture"]) b.addEventListener(ev, on(0));
+      b.addEventListener("contextmenu", (e) => e.preventDefault());
+    }
+    $("#bHelp").onclick = () => helpDlg();
     $("#bPwr").onclick = () => usePower();
     $("#bUndo").onclick = () => undoWord();
     $("#bSend").onclick = () => submitSentence();
@@ -740,35 +859,57 @@ function buildHud() {
   GAME.built = true;
 }
 function onKey(e) {
-  if (!PS.G || $(".menu-dlg")) return;
+  if (!PS.G || $(".menu-dlg")) { if (e.code === "Escape") { const d = $(".menu-dlg"); if (d && d.id !== "setDlg") d.remove(); } return; }
   const c = e.code;
   if (c === "Space" || c === "ArrowUp" || c === "KeyW") { e.preventDefault(); if (!e.repeat) PS.G.jump(); }
+  else if (c === "ArrowDown" || c === "KeyS") { e.preventDefault(); if (!e.repeat) doDrop(); }
+  else if (c === "ArrowLeft" || c === "KeyA") { e.preventDefault(); PS.G.input.l = 1; }
+  else if (c === "ArrowRight" || c === "KeyD") { e.preventDefault(); PS.G.input.r = 1; }
   else if (c === "KeyE") { e.preventDefault(); usePower(); }
   else if (c === "Enter" || c === "NumpadEnter") { e.preventDefault(); submitSentence(); }
   else if (c === "Backspace" || c === "Delete") { e.preventDefault(); undoWord(); }
   else if (/^Digit[1-8]$/.test(c)) { e.preventDefault(); tapTile(+c.slice(5) - 1); }
 }
+function onKeyUp(e) {
+  if (!PS.G) return;
+  if (e.code === "ArrowLeft" || e.code === "KeyA") PS.G.input.l = 0;
+  else if (e.code === "ArrowRight" || e.code === "KeyD") PS.G.input.r = 0;
+}
+function doDrop() { if (PS.G && !PS.G.drop()) { const b = $("#bDown"); if (b && PS.G.me && PS.G.me.ground && !PS.G.me.fl) { b.classList.remove("no"); void b.offsetWidth; b.classList.add("no"); } } }
 /* ---------- sentence bar ---------- */
 function liveValid() { const L = GAME && GAME.L; if (!L) return false; const w = PS.bar.map((b) => b.w); return w.length >= L.lo && check(w).ok; }
 function renderBar() {
   const sl = $("#slots"); if (!sl || !GAME) return;
   const L = GAME.L, cfg = GEN[GAME.st.set.l] || GEN.normal, n = PS.bar.length;
   const col = ["pink", "blue", "orange", "teal", "purple", "green", "yellow", "red"];
-  let html = PS.bar.map((b, i) => `<button class="tile ${col[(b.id || i) % 8]} ${PS.sel === i ? "sel" : ""}" data-i="${i}" translate="no">${esc(disp(b.w))}${cfg.glossBar ? `<small>${esc(gloss(b.w, LANG))}</small>` : ""}</button>`).join("");
+  let html = PS.bar.map((b, i) => `<button class="tile ${b.g ? "goldt" : col[(b.id || i) % 8]} ${PS.sel === i ? "sel" : ""}" data-i="${i}" translate="no">${esc(disp(b.w))}${cfg.glossBar ? `<small>${esc(gloss(b.w, LANG))}</small>` : ""}</button>`).join("");
   for (let i = n; i < L.hi; i++) html += `<span class="slot ${i === n ? "next" : ""} ${i >= L.lo ? "opt" : ""}">${i === n ? "?" : ""}</span>`;
   sl.innerHTML = html;
   sl.className = "slots";
   $("#scount").textContent = `${n}/${L.hi}`;
+  // what this sentence is worth right now (length, level, combo, golden word)
+  const sp = $("#spts");
+  if (sp) { const gold = GAME.st.set.gd !== 0 && PS.bar.some((b) => b.g); const v = sentencePts(Math.max(n, L.lo), levelOf(GAME.st.set.l).mul, (PS.combo || 0) + 1, gold);
+    sp.className = "spts" + (gold ? " gold" : "") + (n >= L.lo ? "" : " dim"); sp.innerHTML = `${gold ? ico("star", 16, 2.6, "currentColor", "currentColor") : ""}<span class="en">+${v}</span>`; }
   const ok = cfg.liveOk && liveValid();
   const hint = $("#sHint");
   if (ok) { hint.className = "b good"; hint.textContent = T_("משפט נכון! לחצו שלח"); }
   else { hint.className = "b"; hint.textContent = n < L.lo ? T_("אספו מילים מהמסלול") : T_("סדרו את המילים ושלחו"); }
   $("#bSend").classList.toggle("ready", !!ok); $("#bSend").disabled = !!PS.pending;
-  $$(".tile", sl).forEach((t) => (t.onclick = () => tapTile(+t.dataset.i)));
+  $$(".tile", sl).forEach((t) => {
+    const i = +t.dataset.i; let lp = 0, long = false;
+    t.onpointerdown = () => { long = false; clearTimeout(lp); lp = setTimeout(() => { long = true; pickTile(i); }, 420); };
+    t.onpointerup = t.onpointerleave = t.onpointercancel = () => clearTimeout(lp);
+    t.oncontextmenu = (e) => e.preventDefault();
+    t.onclick = () => { if (long) { long = false; return; } if (PS.sel >= 0) pickTile(i); else removeTile(i); };
+  });
   // shrink the tiles until they fit
   const bar = $("#sbar");
   for (const cls of ["t1", "t2"]) { if (bar.scrollWidth <= bar.clientWidth + 1 && sl.scrollWidth <= sl.clientWidth + 1) break; sl.classList.add(cls); }
 }
+/* tap a word = take it out of the bar; long-press one word, then tap another = swap them */
+function removeTile(i) { if (i >= PS.bar.length) return; PS.bar.splice(i, 1); PS.sel = -1; SFX.tap(); renderBar(); }
+function pickTile(i) { tapTile(i); }
 function tapTile(i) {
   if (i >= PS.bar.length) return;
   if (PS.sel < 0) PS.sel = i;
@@ -787,7 +928,7 @@ function submitSentence() {
   if (performance.now() < GAME.startPerf) return;
   if (w.length < L.lo) { toast(T_("צריך לפחות") + " " + L.lo + " " + T_("מילים במשפט"), "bad", 1500); SFX.no(); return; }
   PS.seq++; PS.pending = { k: PS.seq, w, t: now() };
-  toHost({ t: "sent", w, k: PS.seq });
+  toHost({ t: "sent", w, k: PS.seq, g: PS.bar.filter((b) => b.g).map((b) => b.id) });
   renderBar();
   setTimeout(() => { if (PS.pending && PS.pending.k === PS.seq) { PS.pending = null; renderBar(); } }, 4000);
 }
@@ -796,20 +937,25 @@ function onSentenceResult(m) {
   PS.pending = null;
   const words = p.w, level = GAME ? GAME.st.set.l : "normal";
   if (m.ok) {
-    PS.bar = []; PS.sel = -1; renderBar(); SFX.ok();
-    if (GEN[level] && GEN[level].glossBar) speak(pretty(words));
+    PS.combo = m.c || (PS.combo || 0) + 1;
+    PS.bar = []; PS.sel = -1; renderBar(); SFX.ok(); if ((m.cm || 1) > 1 || m.gd) setTimeout(SFX.combo, 180);
+    speak(pretty(words));                     // every correct sentence is read aloud, on every level
     recordAnswer(words, true);
-    bumpScore(m.pts);
-    if (m.pu) roulette(words, m.pts, m.pu); else toast(`+${m.pts} · ${T_("משפט נכון!")}`, "good", 1600);
+    bumpScore(m.pts); renderCombo();
+    if (PS.G) PS.G.apply("cheer");
+    const extra = [m.n ? `${m.n} ${T_("מילים")}` : "", (m.cm || 1) > 1 ? `${T_("קומבו")} x${m.cm}` : "", m.gd ? `${T_("מילה זהובה")} x2` : ""].filter(Boolean).join(" · ");
+    if (m.pu) roulette(words, m.pts, m.pu, extra); else toast(`+${m.pts} · ${T_("משפט נכון!")}${extra ? " · " + extra : ""}`, "good", 1800);
   } else if (m.why === "dup") { toast(T_("כבר בניתם את המשפט הזה. נסו משפט אחר"), "bad", 1800); SFX.no(); renderBar(); }
   else if (m.why === "fast") renderBar();
   else {
     SFX.no(); if (PS.G) PS.G.apply("wrong");
+    if (PS.combo) { PS.combo = 0; renderCombo(); }
     const sb = $("#sbar"); if (sb) { sb.classList.remove("shake"); void sb.offsetWidth; sb.classList.add("shake"); }
     toast(T_("זה עדיין לא משפט נכון. סדרו או החליפו מילים"), "bad", 1900);
     recordAnswer(words, false); renderBar();
   }
 }
+function renderCombo() { const c = $("#hCombo"); if (!c) return; const m = comboMul(PS.combo || 0); c.style.display = m > 1 ? "" : "none"; $("b", c).textContent = "x" + m; c.classList.remove("pop"); void c.offsetWidth; c.classList.add("pop"); renderBar(); }
 function bumpScore(pts) { const b = $("#hPts b"); if (b) b.textContent = String((+b.textContent || 0) + pts); }
 /* ---------- power-ups ---------- */
 function renderPower() {
@@ -839,6 +985,7 @@ function onUseResult(m) {
 function onFx(m, G) {
   if (!G) return;
   const mine = !GAME.projector && m.b === PS.pid && m.a !== PS.pid;
+  if (m.k === "yay") { G.addFx(m.gd ? "gold" : "yay", m.a); if (GAME.projector) feedBurst(m); return; }
   if (!PU[m.k]) return;
   if (PU[m.k].boost) return;   // boosts are drawn from the owner's flags
   G.addFx(m.bl ? "blocked" : m.k, m.a, m.b);
@@ -848,18 +995,31 @@ function onFx(m, G) {
     toast(`${T_(PU[m.k].he)}! (${m.an || ""})`, "bad", 1500);
   }
 }
+/* projector: a short burst next to the newest feed line (SVG sparkles, no emoji) */
+function feedBurst(m) {
+  const fd = $("#feed"); if (!fd || LOW) return;
+  const b = document.createElement("div"); b.className = "fburst" + (m.gd ? " gold" : "");
+  b.innerHTML = [0, 1, 2, 3, 4, 5].map((i) => `<i style="--a:${i * 60}deg">${ico("star", 22, 2, "currentColor", "currentColor")}</i>`).join("");
+  fd.appendChild(b); setTimeout(() => b.remove(), 1100);
+}
 function onSnap(m, G) {
   const t = performance.now();
   for (const [pid, x, y, f] of m.p) G.sample(pid, x, y, f, t);
 }
-function roulette(words, pts, pu) {
+function fitRou() {
+  const box = $("#ov .ovk"); if (!box || !box.querySelector(".rou") || !GAME) return;
+  const needH = box.scrollHeight + 24, k = parseFloat(getComputedStyle(GAME.el).getPropertyValue("--k")) || 1, vv = window.visualViewport;
+  const W = vv ? Math.min(innerWidth, vv.width) : innerWidth, Hh = vv ? Math.min(innerHeight, vv.height) : innerHeight;
+  box.style.transform = `translate(-50%,-50%) scale(${Math.min(k, Hh / needH, W / 1240).toFixed(3)})`;
+}
+function roulette(words, pts, pu, extra) {
   const ov = $("#ov"); if (!ov) return;
   const keys = PU_KEYS, items = [];
   for (let i = 0; i < 26; i++) items.push(keys[Math.floor(Math.random() * keys.length)]);
   const win = 21; items[win] = pu;
   const ch = PS.ch;
   ov.innerHTML = `<div class="ovk"><div class="rou">
-    <div class="head"><span class="hi green" style="width:46px;height:46px;border-radius:50%">${ico("check", 28, 3.4, "#fff")}</span><span class="ttl" style="font-size:44px">משפט נכון!</span><span class="plus en">+${pts}</span></div>
+    <div class="head"><span class="hi green" style="width:46px;height:46px;border-radius:50%">${ico("check", 28, 3.4, "#fff")}</span><span class="ttl" style="font-size:44px">משפט נכון!</span><span class="plus en">+${pts}</span></div>${extra ? `<div class="rx">${esc(extra)}</div>` : ""}
     <div class="sent">${words.map((w) => `<span class="tile">${esc(disp(w))}</span>`).join("")}</div>
     <div class="arr d"></div>
     <div class="strip"><div class="rail" id="rail">${items.map((k) => `<div class="it"><img src="${IMG_BASE}${PU[k].img}.png" alt=""><i style="background:${PU[k].boost ? "#14b05a" : "#f2392c"}"></i></div>`).join("")}</div><div class="win"></div></div>
@@ -869,8 +1029,7 @@ function roulette(words, pts, pu) {
     ${MOBILE || LOW ? "" : `<img class="cheer" src="${IMG_BASE}cheer-${ch}.png" alt="">`}
   </div></div>`;
   ov.classList.add("dim"); ov.classList.toggle("lowfx", LOW); GAME.el.classList.add("rouon");
-  const box = ov.firstElementChild, needH = box.scrollHeight + 24, k = parseFloat(getComputedStyle(GAME.el).getPropertyValue("--k")) || 1;
-  box.style.transform = `translate(-50%,-50%) scale(${Math.min(k, window.innerHeight / needH, window.innerWidth / 1240).toFixed(3)})`;
+  fitRou();
   const rail = $("#rail"), itemW = 118 + 22, stripW = 760;
   const target = -(win * itemW + itemW / 2 - stripW / 2) + 11;
   rail.style.transform = "translateX(0px)";
@@ -899,20 +1058,50 @@ function showFinish() {
     <div class="sm"><span class="en" style="color:var(--o2);font-weight:700">+${PS.finBonus}</span> <span>${esc(T_("נקודות על הסיום"))}</span></div><div class="sm" id="finWait">${esc(T_("ממתינים לשאר הרצים…"))}</div></div></div>`;
 }
 function gameMenu() {
+  if (PS.G) PS.G.input = { l: 0, r: 0 };
   const dlg = document.createElement("div"); dlg.className = "menu-dlg";
-  dlg.innerHTML = `<div class="card" style="--k2:${Math.min(1.2, Math.max(0.7, Math.min(window.innerWidth, window.innerHeight) / 420))}"><h3>תפריט</h3>
+  const vh0 = window.visualViewport ? visualViewport.height : window.innerHeight;
+  dlg.innerHTML = `<div class="card" style="--k2:${Math.min(1.2, Math.max(0.5, Math.min(window.innerWidth / 420, vh0 / 560)))}"><h3>תפריט</h3>
     <button class="btn wbtn" id="mSound">${ico(MUTE ? "volume-x" : "volume-on", 22, 2.6)}<span>${MUTE ? "צליל: כבוי" : "צליל: פועל"}</span></button>
+    <button class="btn wbtn" id="mVoice">${ico(VOICE ? "speak" : "volume-x", 22, 2.6)}<span>${VOICE ? "הקראת משפטים: פועלת" : "הקראת משפטים: כבויה"}</span></button>
+    <button class="btn wbtn" id="mHelp">${ico("help", 22, 2.6)}<span>איך משחקים</span></button>
     <button class="btn wbtn" id="mGfx">${ico(LOW ? "gauge" : "image", 22, 2.6)}<span>${LOW ? "גרפיקה: חסכונית" : "גרפיקה: רגילה"}</span></button>
     ${H ? `<button class="btn orange" id="mEnd">${ico("flag-fin", 22, 2.4)}<span>סיים את המירוץ לכולם</span></button>` : ""}
     <button class="btn red" id="mLeave">${ico("door", 22, 2.6)}<span>יציאה מהמירוץ</span></button>
     <button class="btn green" id="mClose">${ico("play", 22, 2.6, "#fff", "#fff")}<span>חזרה למירוץ</span></button></div>`;
-  GAME.el.appendChild(dlg);
+  GAME.el.appendChild(dlg); fitDlg(dlg);
   const close = () => dlg.remove();
   $("#mClose", dlg).onclick = close;
   $("#mSound", dlg).onclick = () => { MUTE = !MUTE; LS.set("ss-mute", MUTE); close(); };
+  $("#mVoice", dlg).onclick = () => { VOICE = !VOICE; LS.set("ss-voice", VOICE); if (!VOICE) try { speechSynthesis.cancel(); } catch (e) {} close(); };
+  $("#mHelp", dlg).onclick = () => { close(); helpDlg(); };
   $("#mGfx", dlg).onclick = () => { LOW = !LOW; LS.set("ss-gfx", LOW ? "low" : "normal"); document.body.classList.toggle("low", LOW); if (GAME) { GAME.G.low = LOW; GAME.G.resize(); } close(); };
   if ($("#mEnd", dlg)) $("#mEnd", dlg).onclick = () => { close(); hostEnd(); };
   $("#mLeave", dlg).onclick = () => { if (confirm(T_("לצאת מהמירוץ?"))) { LS.set("ss-join", null); homeScreen(); } };
+}
+/* in-game help: controls, points by length, golden words, combo, power-ups */
+function helpDlg() {
+  const old = $("#helpDlg"); if (old) { old.remove(); return; }
+  const st = GAME ? GAME.st : null, mul = st ? levelOf(st.set.l).mul : 1, L = GAME ? GAME.L : { lo: 2, hi: 8 };
+  const rows = []; for (let n = Math.max(2, L.lo); n <= L.hi; n++) rows.push(`<span><b class="en">${n}</b> ${T_("מילים")}</span><span class="en">+${sentencePts(n, mul, 1, 0)}</span>`);
+  const dlg = document.createElement("div"); dlg.className = "menu-dlg"; dlg.id = "helpDlg";
+  dlg.innerHTML = `<div class="card help" style="--k2:${1}"><h3>${ico("help", 24, 2.6)}<span>איך משחקים</span></h3>
+    <div class="hgrid">
+      <div class="hsec"><h4>שליטה</h4>
+        <p>${ico("arrow-right", 18, 3)}<span>ריצה: לוחצים ומחזיקים את החיצים (במחשב ← → או A D). עוזבים = עוצרים. אפשר לחזור קצת אחורה כדי לתפוס מילה</span></p>
+        <p>${ico("arrow-up", 18, 3)}<span>קפיצה: כפתור הקפיצה, מקש רווח או ↑ (פעמיים = קפיצה כפולה)</span></p>
+        <p>${ico("arrow-down", 18, 3)}<span>ירידה קומה: כפתור הירידה, ↓ או S. יורדים דרך הפלטפורמה לקומה שמתחת (לא דרך הקרקע)</span></p>
+        <p>${ico("puzzle", 18, 2.6)}<span>רצים לתוך בועות מילים ובונים מהן משפט בפס. לחיצה על מילה מוציאה אותה, כפתור "מחק" מוחק את האחרונה. להחלפת סדר: לחיצה ארוכה על מילה ואז לחיצה על מילה אחרת. שולחים ב"שלח" (Enter)</span></p>
+        <p>${ico("zap", 18, 2.6)}<span>משפט נכון מגריל כוח-על. מפעילים בכפתור הכוח או במקש E</span></p></div>
+      <div class="hsec"><h4>ניקוד: כל מילה נוספת שווה יותר</h4><div class="ptab">${rows.join("")}</div>
+        <p class="gold">${ico("star", 18, 2.4, "currentColor", "currentColor")}<span>מילה זהובה במשפט: ניקוד כפול</span></p>
+        <p>${ico("zap", 18, 2.6)}<span>קומבו: 2 משפטים נכונים ברצף x1.5, שלושה ומעלה x2. משפט שגוי מאפס את הקומבו</span></p>
+        <p>${ico("x", 18, 2.8)}<span>משפט שגוי: האטה קצרה. המילים נשארות בפס כדי לתקן</span></p></div>
+    </div>
+    <button class="btn green" id="hOk">${ico("play", 22, 2.6, "#fff", "#fff")}<span>הבנתי</span></button></div>`;
+  (GAME ? GAME.el : document.body).appendChild(dlg); fitDlg(dlg);
+  $("#hOk", dlg).onclick = () => dlg.remove();
+  dlg.onclick = (e) => { if (e.target === dlg) dlg.remove(); };
 }
 /* new room state during the race: names, ranks, points, finish */
 function gameState(st) {
@@ -930,7 +1119,7 @@ function renderBoard(st) {
   const lb = $("#lb"); if (!lb) return;
   const order = st.pl.slice().sort((a, b) => a[9] - b[9]).slice(0, 8);
   lb.innerHTML = `<h4>${ico("trophy", 22, 2.6, "#ff7a00")}<span>טבלת הניקוד</span></h4>` + order.map((p) => `<div class="rr"><span class="rk">${p[9]}</span>${av(p[2], 32)}<span class="n" translate="no">${esc(p[1])}</span><span class="s">${p[3]}</span></div>`).join("");
-  const fd = $("#feed"); if (fd) fd.innerHTML = (st.feed || []).slice(-3).map((f) => `<div class="fi">${av(f.ch, 34)}<span translate="no">${esc(f.n)}</span><span class="en" translate="no">${esc(f.s)}</span><b>+${f.pts}</b></div>`).join("");
+  const fd = $("#feed"); if (fd) fd.innerHTML = (st.feed || []).slice(-3).map((f) => `<div class="fi">${av(f.ch, 34)}<span translate="no">${esc(f.n)}</span><span class="en" translate="no">${esc(f.s)}</span><b>+${f.pts}</b>${f.gd ? `<span class="fg">${ico("star", 18, 2.4, "currentColor", "currentColor")}x2</span>` : ""}${f.c > 1 ? `<span class="fc en">x${comboMul(f.c)}</span>` : ""}</div>`).join("");
 }
 function fmt(ms) { const s = Math.max(0, Math.ceil(ms / 1000)); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); }
 function hudTick() {

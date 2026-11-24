@@ -1,7 +1,7 @@
-/* Sentence Sprint 1.0 — the level: three floors built from Imagina's level art (bg tile 1280x720,
+/* Sentence Sprint 1.0.1 — the level: three floors built from Imagina's level art (bg tile 1280x720,
    every second tile mirrored so the seams match), word bubbles placed from a seed so every device
    builds the same track without sending it. © 2026 Amir · Englishia */
-import { makeGenerator, wordPool, LENS, GEN, rng } from "./grammar.js?v=1.0";
+import { makeGenerator, wordPool, LENS, GEN, rng } from "./grammar.js?v=1.0.1";
 
 export const TILE = 1280;
 export const VIEW_TOP = -80, VIEW_H = 720;           // world rows shown on screen (as in the mockup)
@@ -43,7 +43,8 @@ export function buildLevel(set, seed) {
   const bubbles = [];
   const COLORS = 8;
   let id = 0;
-  const gap = GEN[set.level] && GEN[set.level].tier === 1 ? 250 : 235;
+  const few = set.dens === "f";
+  const gap = Math.round((GEN[set.level] && GEN[set.level].tier === 1 ? 250 : 235) * (few ? 1.4 : 1));
   for (let x = 820; x < finish - 260; x += gap) {
     const used = new Set();
     for (const s of streams) {
@@ -54,9 +55,11 @@ export function buildLevel(set, seed) {
       let fl = opts.includes(s.fl) && R() < 0.55 ? s.fl : opts[Math.floor(R() * opts.length)];
       s.fl = fl; used.add(fl);
       const w = s.q.shift();
-      bubbles.push({ id: id++, x: x + Math.round((R() - 0.5) * 50), y: yOf(x, fl) - 82, w, c: Math.floor(R() * COLORS), fl });
+      const b = { id: id++, x: x + Math.round((R() - 0.5) * 50), y: yOf(x, fl) - 82, w, c: Math.floor(R() * COLORS), fl };
+      if (R() < 0.07 && set.gold !== false) b.g = 1;          // golden word: a sentence with it scores double
+      bubbles.push(b);
     }
-    if (R() < 0.45) {
+    if (R() < (few ? 0.2 : 0.45)) {
       const free = [0, 1, 2].filter((f) => !used.has(f) && has(x, f));
       if (free.length) {
         const fl = free[Math.floor(R() * free.length)];
@@ -80,11 +83,13 @@ export function step(L, r, dt, speed) {
     let best = null;
     for (const f of cand) {
       // land on a surface we were above (one-way platforms), or walk onto a slightly higher one (steps)
+      if (r.dropY != null && (f.y <= r.dropY + 2 || f.fl >= r.dropFl)) continue;          // dropping through this platform
       if (wasY <= f.y + 2 && ny >= f.y) { if (!best || f.y < best.y) best = f; }
       else if (r.onY != null && Math.abs(f.y - r.onY) <= PHYS.step && Math.abs(ny - f.y) <= PHYS.step && wasY <= f.y + PHYS.step) { if (!best || f.y < best.y) best = f; }
     }
     if (best) { ny = best.y; r.vy = 0; r.ground = true; r.onY = best.y; r.fl = best.fl; r.air = 0; r.jumps = 0; }
   }
+  if (r.ground || (r.dropY != null && ny > r.dropY + 60)) r.dropY = null;
   if (!r.ground) { r.onY = null; r.air = (r.air || 0) + dt; }
   r.y = ny;
   if (r.y > 760) { r.y = GROUND; r.vy = 0; r.ground = true; r.onY = GROUND; r.fl = 0; }
