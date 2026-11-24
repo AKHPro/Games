@@ -2,9 +2,9 @@
    runner's physics, and smooths the other runners from the host's snapshots (interpolation with
    dead-reckoning, so slow links still look smooth). Light by design: one background image per tile,
    pre-rendered bubbles and name tags, 30 fps and 1x pixels in low graphics. © 2026 Amir · Englishia */
-import { VIEW_TOP, VIEW_H, TILE, PHYS, step } from "./level.js?v=1.1";
-import { disp } from "./grammar.js?v=1.1";
-import { RUN_FRAMES } from "./frames.js?v=1.1";
+import { VIEW_TOP, VIEW_H, TILE, PHYS, step } from "./level.js?v=1.1.1";
+import { disp } from "./grammar.js?v=1.1.1";
+import { RUN_FRAMES } from "./frames.js?v=1.1.1";
 
 export const CHAR_COLORS = {
   zik: ["#ffd84a", "#ffb800", "#b97f00"], gal: ["#5cb2ff", "#1f6fff", "#1449b5"], ale: ["#52e08a", "#14b05a", "#0b7a3c"],

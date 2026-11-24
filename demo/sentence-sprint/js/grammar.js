@@ -1,4 +1,4 @@
-/* Sentence Sprint 1.0 — sentence checker and generator.
+/* Sentence Sprint 1.1.1 — sentence checker, generator and "why is it wrong" hints.
    ANY grammatical English sentence built from the game's word set counts: there is no target sentence.
    A small feature grammar (subject–verb agreement, a/an, count/mass nouns, transitivity, object classes,
    tense-matching time words) parses the player's word sequence. The same grammar generates the sentences
@@ -556,4 +556,70 @@ export function findOrder(words) {
     for (let i = 0; i < a.length; i++) if (!used[i] && !seen.has(a[i])) { seen.add(a[i]); used[i] = true; cur.push(a[i]); rec(); cur.pop(); used[i] = false; }
   })();
   return found;
+}
+
+/* ---------- 1.1.1 why is it wrong? ----------
+   Tries small repairs of a sentence the checker rejected (one changed word form, a/an, one added word, one moved word,
+   one removed word). A hint is given only when a repair really makes the checker accept the sentence, so a hint never
+   points at something that is not wrong; with no clean repair the caller shows the general message.
+   Returns null or {k, a, b, c}: k = hint kind, a/b/c = English words for the message. */
+const FORMS = new Map();          // word -> other forms of the same verb / noun
+for (const v of VERBS) { const f = [v[0], v[1], v[2], v[3]].filter(Boolean); for (const w of f) FORMS.set(w, f.filter((x) => x !== w)); }
+for (const x of NOUNS) if (x[1]) { FORMS.set(x[0], [x[1]]); FORMS.set(x[1], [x[0]]); }
+const BEW = ["am", "is", "are", "was", "were"];
+const MISSW = ["a", "an", "the", "am", "is", "are", "to", "at", "in", "with", "very", "my"];
+const isA = (w, p) => (LEX.get(w) || []).some((e) => e.p === p);
+const isVerb = (w) => isA(w, "V") || isA(w, "BE") || isA(w, "MD");
+export function diagnose(words) {
+  const T = words.map((w) => String(w).toLowerCase().trim()), n = T.length;
+  if (n < 2 || !T.every((w) => LEX.has(w)) || check(T).ok) return null;
+  const ok = (arr) => check(arr).ok;
+  const subj = (k) => { const s = T.slice(0, k); return (s.length && s.length <= 3 ? s : s.slice(-1)).map(disp).join(" "); };
+  const out = [];
+  const put = (rank, h) => out.push([rank, out.length, h]);
+  for (let i = 0; i < n; i++) {
+    const w = T[i], prev = i ? T[i - 1] : "";
+    // 1) another form of the same word
+    for (const f of FORMS.get(w) || []) {
+      const t2 = T.slice(); t2[i] = f; if (!ok(t2)) continue;
+      const fe = (LEX.get(f) || []).find((e) => e.p === "V"), we = (LEX.get(w) || []).find((e) => e.p === "V");
+      if (!fe && !isA(prev, "D")) continue;                     // cat/cats: only "two cat", "this cats"; otherwise a missing word is likelier
+      if (fe && i === 0) continue;                              // "drinks juice": the subject is missing, not the form
+      if (fe && we && i > 0 && fe.f === "s" && we.f === "base" && !isA(prev, "MD") && !isA(prev, "BE")) put(1, { k: "s3", a: subj(i), b: f });
+      else if (fe && we && i > 0 && fe.f === "base" && we.f === "s" && !isA(prev, "MD") && prev !== "to") put(1, { k: "nos", a: subj(i), b: f });
+      else if (i > 0 && (isA(prev, "MD") || isA(prev, "BE") || isA(prev, "D") || prev === "to")) put(3, { k: "after", a: disp(prev), b: f });
+      else put(6, { k: "form", b: f, c: disp(w) });
+    }
+    // 1b) "I sleeping" -> am/is/are is missing before the -ing word
+    if (i > 0 && (LEX.get(w) || []).some((e) => e.p === "V" && e.f === "ing") && !isA(prev, "BE"))
+      for (const f of ["am", "is", "are", "was", "were"]) { const t2 = T.slice(0, i).concat([f], T.slice(i)); if (ok(t2)) { put(2, { k: "art", a: disp(w), b: f }); break; } }
+    // 2) am / is / are / was / were
+    if (BEW.includes(w)) for (const f of BEW) { if (f === w) continue; const t2 = T.slice(); t2[i] = f; if (ok(t2) && i > 0) put(1, { k: "be", a: subj(i), b: f }); }
+    // 3) a <-> an
+    if (w === "a" || w === "an") { const t2 = T.slice(); t2[i] = w === "a" ? "an" : "a"; if (i + 1 < n && ok(t2)) put(2, { k: "an", a: disp(T[i + 1]), b: t2[i] }); }
+  }
+  {
+    // 4) one missing word
+    for (let i = 0; i <= n; i++) for (const m of MISSW) {
+      const t2 = T.slice(0, i).concat([m], T.slice(i)); if (!ok(t2)) continue;
+      if (/^(a|an|the|my)$/.test(m) && i < n) put(5, { k: "art", a: disp(T[i]), b: m });
+      else if (BEW.includes(m) && !T.some(isVerb)) put(5, { k: "verb", b: m });
+      else put(7, { k: "miss", b: m });
+    }
+    // 4b) no subject: "is happy" -> "he is happy"
+    if (!isA(T[0], "PS") && !isA(T[0], "NAME")) for (const m of ["he", "she", "it", "they", "i"]) { if (ok([m].concat(T))) { put(5, { k: "subj", b: disp(m) }); break; } }
+    // 5) one word in the wrong place
+    for (let i = 0; i < n; i++) for (let j = 0; j <= n; j++) {
+      if (j === i || j === i + 1) continue;
+      const rest = T.slice(0, i).concat(T.slice(i + 1)), at = j > i ? j - 1 : j;
+      const t2 = rest.slice(0, at).concat([T[i]], rest.slice(at)); if (!ok(t2)) continue;
+      if (at < rest.length) put(6, { k: "before", a: disp(T[i]), b: disp(rest[at]) });
+      else put(6, { k: "after2", a: disp(T[i]), b: disp(rest[at - 1]) });
+    }
+    // 6) one extra word
+    for (let i = 0; i < n; i++) { const t2 = T.slice(0, i).concat(T.slice(i + 1)); if (t2.length >= 2 && ok(t2)) put(8, { k: "extra", a: disp(T[i]) }); }
+  }
+  if (!out.length) return T.some(isVerb) ? null : { k: "noverb" };
+  out.sort((x, y) => x[0] - y[0] || x[1] - y[1]);
+  return out[0][2];
 }

@@ -1,14 +1,14 @@
-/* Sentence Sprint 1.1 · ספרינט המשפטים — online, real-time multiplayer platformer for building English sentences.
+/* Sentence Sprint 1.1.1 · ספרינט המשפטים — online, real-time multiplayer platformer for building English sentences.
    1.1: three game modes (room setting): Sentence Building, Balloons (questions) and Translation.
    Rooms work like Word Race: online room or presentation mode (code + QR on the projector), host-authoritative
    over the same PeerJS / signaling relay / ntfy transport (net.js). Each device runs its own runner; the host
    checks sentences, gives points and power-ups, aims attacks at the player directly ahead and relays positions.
    © 2026 Amir · Englishia · All rights reserved */
-import { check, pretty, disp, gloss, knownWord, GEN, LENS, findOrder } from "./grammar.js?v=1.1";
-import { buildLevel } from "./level.js?v=1.1";
-import { createGame, loadImages, img, PU, PU_KEYS, DUR, F, CHAR_COLORS } from "./game.js?v=1.1";
+import { check, pretty, disp, gloss, knownWord, GEN, LENS, findOrder, diagnose } from "./grammar.js?v=1.1.1";
+import { buildLevel } from "./level.js?v=1.1.1";
+import { createGame, loadImages, img, PU, PU_KEYS, DUR, F, CHAR_COLORS } from "./game.js?v=1.1.1";
 
-const VERSION = "1.1", GAME_ID = "sentence-sprint", MAX_PLAYERS = 30;
+const VERSION = "1.1.1", GAME_ID = "sentence-sprint", MAX_PLAYERS = 30;
 const DEMO = /\/demo\//.test(location.pathname);
 const HUB = DEMO ? "../" : "../../";
 const URLP = new URLSearchParams(location.search);
@@ -94,7 +94,7 @@ let QZ = null, QZP = null;
 function ensureQuiz() {
   if (QZ) return Promise.resolve(QZ);
   if (!QZP) QZP = new Promise((res) => { if (window.WD) return res(); const sc = document.createElement("script"); sc.src = "../word-detective/js/data.js"; sc.onload = sc.onerror = () => res(); document.head.appendChild(sc); })
-    .then(() => import("./quiz.js?v=1.1")).then((m) => (QZ = m)).catch((e) => { QZP = null; throw e; });
+    .then(() => import("./quiz.js?v=1.1.1")).then((m) => (QZ = m)).catch((e) => { QZP = null; throw e; });
   return QZP;
 }
 /* points: clearly progressive by length (2 words = 4, each extra word worth more), times level, combo and golden word */
@@ -212,7 +212,7 @@ document.addEventListener("click", (e) => { const b = e.target.closest && e.targ
 /* the outline is a separate layer behind the gradient letters, so it can never eat into them */
 const logoW = (cls, t) => `<span class="lw"><span class="bk" aria-hidden="true">${t}</span><span class="${cls}">${t}</span></span>`;
 const logo = (size, st = 9, sh = 7, stack) => `<div class="logo" translate="no" style="font-size:${size}px;--st:${st}px;--sh:${sh}px">${logoW("s1", "Sentence")}${stack ? "<br>" : " "}${logoW("s2", "Sprint")}</div>`;
-const backHub = () => `<a class="pill" id="bHub" href="${HUB}" title="חזרה לאנגלישיה">${ico(BACK, 20, 2.8)}<span>${MOBILE ? "אנגלישיה" : "חזרה לאנגלישיה"}</span></a>`;
+const backHub = (short) => `<a class="pill" id="bHub" href="${HUB}" title="חזרה לאנגלישיה">${ico(BACK, 20, 2.8)}<span>${MOBILE || short ? "אנגלישיה" : "חזרה לאנגלישיה"}</span></a>`;
 const soundBtn = () => `<button class="pill iconbtn" id="bSound" aria-label="צליל" title="צליל" style="padding:0;justify-content:center">${ico(MUTE ? "volume-x" : "volume-on", 22, 2.6)}</button>`;
 const gfxBtn = () => `<button class="pill iconbtn" id="bGfx" aria-pressed="${LOW}" aria-label="${LOW ? "גרפיקה: חסכונית" : "גרפיקה: רגילה"}" title="${LOW ? "גרפיקה: חסכונית" : "גרפיקה: רגילה"}" style="padding:0;justify-content:center">${ico(LOW ? "gauge" : "image", 22, 2.6, LOW ? "#ff7a00" : "#1d2350")}</button>`;
 function topLeft() { return `<div class="grp">${soundBtn()}${gfxBtn()}${fullBtn()}<span id="langSlot"></span>${MOBILE ? "" : '<span class="brand" id="engSlot"><i></i>Englishia</span>'}</div>`; }
@@ -308,14 +308,15 @@ function characterScreen(o) {
     const grid = CHARS.map((c) => `<button class="chc ${c.id === ch ? "on" : ""}" data-ch="${c.id}" aria-pressed="${c.id === ch}"><img src="${IMG_BASE}cheer-${c.id}.png" alt="">${c.id === ch ? `<span class="ok">${ico("check", 16, 3.4, "#fff")}</span>` : ""}<div class="n">${c.he}</div></button>`).join("");
     const pc = CHAR_COLORS[ch];
     const roomPill = code ? `<span class="pill"><span>חדר</span> <b class="en">${code.slice(0, 3)} ${code.slice(3)}</b></span>` : "";
+    const backBtn = `<button class="pill iconbtn" id="bBack" aria-label="${o.change ? "חזרה לחדר" : "חזרה לתפריט"}" title="${o.change ? "חזרה לחדר" : "חזרה לתפריט"}" style="padding:0;justify-content:center">${ico(BACK, 22, 2.8)}</button>`;
     if (MOBILE) {
-      const gh = 2 * 128 + 8 + 30, top = 70, prevH = Math.max(130, Math.min(300, MH - top - 162 - (gh + 20) - 96));
+      const gh = 2 * 128 + 8 + 30, top = 70, room = MH - top - 162 - (gh + 20) - 96, showPrev = room >= 110, prevH = showPrev ? Math.max(130, Math.min(300, room)) : -10;   // 1.1.1: short Safari heights
       stage.innerHTML = `<section class="scr" id="s-char">${bgDiv()}
-        <div class="topbar"><div class="grp"><span id="langSlot"></span></div><div class="grp">${backHub()}</div></div>
+        <div class="topbar"><div class="grp"><span id="langSlot"></span></div><div class="grp">${backHub()}${backBtn}</div></div>
         <div class="ttl" style="position:absolute;top:${top - 4}px;left:0;right:0;text-align:center;font-size:30px">בחרו רץ ושם</div>
-        <div class="card mcard" style="top:${top + 58}px;height:${prevH}px;padding:0;overflow:hidden;background:linear-gradient(180deg,#e9f5ff,#fff)">
+        ${showPrev ? `<div class="card mcard" style="top:${top + 58}px;height:${prevH}px;padding:0;overflow:hidden;background:linear-gradient(180deg,#e9f5ff,#fff)">
           <span class="btn sm orange" style="position:absolute;top:10px;inset-inline-start:12px;z-index:2">${CH[ch].he}</span>
-          <img src="${IMG_BASE}cheer-${ch}.png" alt="" style="position:absolute;left:50%;transform:translateX(-50%);bottom:6px;height:${prevH - 14}px"></div>
+          <img src="${IMG_BASE}cheer-${ch}.png" alt="" style="position:absolute;left:50%;transform:translateX(-50%);bottom:6px;height:${prevH - 14}px"></div>` : ""}
         <div style="position:absolute;left:16px;right:16px;top:${top + 68 + prevH}px">
           <label class="sub" for="nameIn" style="margin-bottom:4px">השם שלי במירוץ</label>
           <div class="inp" style="height:50px">${ico("user", 22, 2.6, "#8b93b8")}<input id="nameIn" maxlength="12" autocomplete="off" value="${esc(name)}"><span class="cc" id="nc">${name.length}/12</span></div>
@@ -325,7 +326,7 @@ function characterScreen(o) {
       </section>`;
     } else {
       stage.innerHTML = `<section class="scr" id="s-char">${bgDiv()}
-        <div class="topbar"><div class="grp">${soundBtn()}<span id="langSlot"></span>${roomPill}</div><div class="grp"><span class="ttl" style="font-size:34px">בחרו רץ ושם</span>${backHub()}</div></div>
+        <div class="topbar"><div class="grp">${soundBtn()}<span id="langSlot"></span>${roomPill}</div><div class="grp"><span class="ttl" style="font-size:34px">בחרו רץ ושם</span>${backHub()}${backBtn}</div></div>
         <div class="card ch-prev"><span class="btn sm orange nm">${CH[ch].he}</span><div class="spot"></div><div class="big"><img src="${IMG_BASE}cheer-${ch}.png" alt=""></div>
           <div class="namebox"><label for="nameIn">השם שלי במירוץ</label><div class="inp">${ico("user", 24, 2.6, "#8b93b8")}<input id="nameIn" maxlength="12" autocomplete="off" value="${esc(name)}"><span class="cc" id="nc">${name.length}/12</span></div><div class="err" id="nerr"></div></div></div>
         <div class="card ch-grid-c"><h3 style="font:900 20px var(--ui);display:flex;gap:9px;align-items:center"><span class="hi pink">${ico("shirt", 20, 2.6, "#fff")}</span>בחרו את הרץ שלכם</h3><div class="ch-grid">${grid}</div></div>
@@ -333,6 +334,7 @@ function characterScreen(o) {
       </section>`;
     }
     wireTop();
+    $("#bBack").onclick = () => { SFX.tap(); if (o.change && (PS.code || H)) lobbyScreen(); else leaveToMenu(); };
     const inp = $("#nameIn");
     inp.oninput = () => { name = cleanName(inp.value); $("#nc").textContent = inp.value.length + "/12"; };
     inp.onkeydown = (e) => { if (e.key === "Enter") $("#bReady").click(); };
@@ -663,6 +665,12 @@ function setSummary(s) {
     <span class="chip">${ico("layers", 15, 2.6)}<span>${qm ? ((s.dn || "n") === "f" ? "3 בלונים לשאלה" : "3–4 בלונים לשאלה") : (s.dn || "n") === "f" ? "מעט מילים" : "מילים: רגיל"}</span></span>
     <span class="chip">${ico("zap", 15, 2.6)}<span>${s.pu ? "כוחות-על" : "בלי כוחות-על"}</span></span><span class="chip ${s.gd !== 0 ? "gold" : ""}">${ico("star", 15, 2.6)}<span>${s.gd !== 0 ? (qm ? "בלונים זהובים" : "מילים זהובות") : (qm ? "בלי בלונים זהובים" : "בלי מילים זהובות")}</span></span>`;
 }
+/* 1.1.1: an obvious way out of every room screen. The host closes the room (players see "the room closed"). */
+const closeRoomBtn = (mob) => `<button class="pill closeroom${mob ? " mob" : ""}" id="bCloseRoom">${ico("door", mob ? 16 : 20, 2.6)}<span>${H ? "סגירת חדר וחזרה לתפריט" : "יציאה לתפריט"}</span></button>`;
+function leaveToMenu() {
+  if (H) { const n = [...H.players.values()].filter((p) => !p.local).length; if (n && !confirm(T_("יש שחקנים בחדר. לסגור את החדר ולחזור לתפריט?"))) return; }
+  LS.set("ss-join", null); homeScreen();
+}
 function lobbyScreen() {
   show("lobby", () => {
     const d = lobbyData(), code = d.code, url = H ? joinURL() : location.origin + location.pathname + "?code=" + code;
@@ -677,7 +685,7 @@ function lobbyScreen() {
         <div class="topbar"><div class="grp"><span id="langSlot"></span></div><div class="grp">${backHub()}</div></div>
         ${short ? "" : `<div class="ttl" style="position:absolute;top:${top}px;left:0;right:0;text-align:center;font-size:30px">חדר המשחק</div>`}
         <div class="card mcard" id="joinCard" style="top:${short ? 70 : top + 58}px">
-          <div style="text-align:center;font:800 15px var(--ui)">קוד החדר</div>
+          <div class="coderow"><span>קוד החדר</span>${closeRoomBtn(true)}</div>
           <div class="code en" translate="no" id="roomCode" style="margin:4px 0 10px">${digits}</div>
           <div class="qrrow"><div class="qrt" style="flex:1">הזמינו חברים<small>שיסרקו את הקוד או ייכנסו ל־</small><div class="en" style="font:700 13px var(--fred);color:var(--b2);margin-top:3px;word-break:break-all" translate="no">${esc(shown)}</div></div><div class="qrbox">${qr}</div></div>
           ${d.host ? `<button class="btn purple setbtn" id="bSet">${ico("sliders", 22, 2.6)}<span>הגדרות המירוץ</span></button>` : ""}
@@ -690,11 +698,13 @@ function lobbyScreen() {
           : `<div class="sub" style="position:absolute;left:0;right:0;bottom:78px;justify-content:center;color:#fff;text-shadow:0 2px 0 var(--navy)">${ico("clock", 18, 2.6, "#fff")}<span>מחכים שהמורה יתחיל את המירוץ</span></div>
              <button class="btn wbtn" id="bChange" style="position:absolute;left:20px;right:20px;bottom:16px;font-size:20px">${ico("shirt", 22, 2.6)}<span>החלפת רץ ושם</span></button>`}
       </section>`;
-      const place = () => { const jc = $("#joinCard"), pc = $("#plCard"); if (jc && pc) pc.style.top = (jc.offsetTop + jc.offsetHeight + 12) + "px"; };
+      const place = () => { const jc = $("#joinCard"), pc = $("#plCard"); if (!jc || !pc) return; pc.style.top = (jc.offsetTop + jc.offsetHeight + 12) + "px";
+        // 1.1.1: short Safari screens / long labels: drop the settings summary so the players list keeps its room
+        if (pc.offsetHeight < 150 && !jc.classList.contains("tight")) { jc.classList.add("tight"); pc.style.top = (jc.offsetTop + jc.offsetHeight + 12) + "px"; } };
       place(); requestAnimationFrame(place); setTimeout(place, 250);
     } else {
       stage.innerHTML = `<section class="scr" id="s-lobby">${bgDiv()}
-        <div class="topbar">${topLeft()}<div style="position:absolute;left:50%;transform:translateX(-50%);top:-4px">${logo(42, 6, 4)}</div><div class="grp"><span class="pill"><span>חדר</span> <b class="en" translate="no">${code.slice(0, 3)} ${code.slice(3)}</b></span>${backHub()}</div></div>
+        <div class="topbar">${topLeft()}<div style="position:absolute;left:50%;transform:translateX(-50%);top:-4px">${logo(42, 6, 4)}</div><div class="grp">${closeRoomBtn(false)}${backHub(true)}</div></div>
         <div class="card lob-col join-c" id="joinCard">
           <h3><span class="hi blue">${ico(d.present ? "projector" : "smartphone", 20, 2.6, "#fff")}</span><span>מצטרפים למירוץ!</span>${H ? netBadge() : ""}</h3>
           <div class="lob-step"><b>1</b><span>היכנסו לכתובת</span></div>
@@ -714,6 +724,7 @@ function lobbyScreen() {
     if ($("#bStart")) $("#bStart").onclick = () => { SFX.go(); hostStart(); };
     if ($("#bChange")) $("#bChange").onclick = () => characterScreen({ change: true, code: PS.code });
     if ($("#bSet")) $("#bSet").onclick = () => settingsSheet();
+    if ($("#bCloseRoom")) $("#bCloseRoom").onclick = () => { SFX.tap(); leaveToMenu(); };
     const hb = $("#bHub"); if (hb && H) hb.onclick = (e) => { if (H.players.size && !confirm(T_("לסגור את החדר?"))) e.preventDefault(); };
     renderLobbyPlayers();
   });
@@ -1049,7 +1060,9 @@ function onSentenceResult(m) {
     SFX.no(); if (PS.G) PS.G.apply("wrong");
     if (PS.combo) { PS.combo = 0; renderCombo(); }
     const sb = $("#sbar"); if (sb) { sb.classList.remove("shake"); void sb.offsetWidth; sb.classList.add("shake"); }
-    toast(T_("זה עדיין לא משפט נכון. סדרו או החליפו מילים"), "bad", 1900);
+    let h = null; try { h = diagnose(words || []); } catch (e) { h = null; }
+    if (h && WHY[h.k === "be" && /^(was|were)$/.test(h.b) ? "bep" : h.k]) hintToast(h);
+    else toast(T_("זה עדיין לא משפט נכון. סדרו או החליפו מילים"), "bad", 1900);
     recordAnswer(words, false); renderBar();
   }
 }
@@ -1194,10 +1207,28 @@ function roulette(words, pts, pu, extra, head) {
   }, 2100);
 }
 let toastT = 0;
+/* 1.1.1: why a sentence is wrong, in short words. {a} {b} {c} are English words from the sentence (kept left-to-right). */
+const WHY = {
+  s3: "עם {a} צריך {b} (עם s)", nos: "עם {a} צריך {b} (בלי s)",
+  be: "עם {a} צריך {b} (I am · he is · they are)", bep: "עם {a} צריך {b} (I/he was · they were)",
+  an: "לפני {a} כותבים {b}", after: "אחרי {a} צריך {b}", art: "חסר {b} לפני {a}",
+  verb: "חסר פועל, למשל {b}", subj: "חסר נושא, למשל {b}", noverb: "אין פועל במשפט",
+  before: "{a} צריך לבוא לפני {b}", after2: "{a} צריך לבוא אחרי {b}",
+  extra: "המילה {a} מיותרת", miss: "חסרה המילה {b}", form: "צריך {b} ולא {c}"
+};
+function hintToast(h) {
+  if (!GAME) return;
+  const k = h.k === "be" && /^(was|were)$/.test(h.b) ? "bep" : h.k;
+  const tpl = T_(WHY[k]);
+  const html = esc(tpl).replace(/\{([abc])\}/g, (_, x) => `<bdi class="en hw" dir="ltr" translate="no">${esc(h[x] || "")}</bdi>`);
+  let t = $("#toast"); if (!t) { t = document.createElement("div"); t.id = "toast"; GAME.el.appendChild(t); }
+  t.className = "toast bad hint"; t.innerHTML = `<span dir="auto">${html}</span>`; t.style.display = "";
+  clearTimeout(toastT); toastT = setTimeout(() => { t.style.display = "none"; }, 3400);
+}
 function toast(txt, kind, ms) {
   if (!GAME) return;
   let t = $("#toast"); if (!t) { t = document.createElement("div"); t.id = "toast"; GAME.el.appendChild(t); }
-  t.className = "toast " + (kind || ""); t.textContent = txt; t.style.display = "";
+  t.className = "toast " + (kind || "") + (kind === "bad" ? " hint" : ""); t.textContent = txt; t.style.display = "";   // 1.1.1: red messages may wrap
   clearTimeout(toastT); toastT = setTimeout(() => { t.style.display = "none"; }, ms || 1500);
 }
 function showFinish() {
