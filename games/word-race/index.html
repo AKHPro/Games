@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Word Race · מירוץ המילים · Englishia</title>
+<meta name="description" content="מירוץ המילים: מירוץ אנגלית מרובה משתתפים לכיתה. המורה פותח חדר, התלמידים מצטרפים עם קוד ועונים כדי להתקדם במסלול.">
+<meta name="theme-color" content="#6fd0ff">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='4' y='4' width='56' height='56' rx='16' fill='%23ff9a1f' stroke='%232b2140' stroke-width='5'/%3E%3Cpath d='M20 44V20l24 12z' fill='%23fff' stroke='%232b2140' stroke-width='4' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/fonts.css?v=1.0.2">
+<link rel="stylesheet" href="css/race.css?v=1.0.2">
+<script src="../../js/englishia-lang.js?v=1.0" data-nomount></script>
+</head>
+<body>
+<div id="vp"><div id="stage" class="d" aria-live="polite"></div></div>
+<noscript><p style="padding:24px;font:700 20px Arial">Word Race needs JavaScript.</p></noscript>
+<script src="../word-detective/lib/peerjs.min.js"></script>
+<script src="../word-detective/lib/qrcode.js"></script>
+<script src="js/net.js?v=1.0.2"></script>
+<script src="js/chars.js?v=1.0.2"></script>
+<script type="module" src="js/app.js?v=1.0.2"></script>
+<script>
+/* Englishia account (one login for all games). Guests play with just a name if it can't load. */
+(function(){var s=document.createElement("script");s.src="../../js/englishia-auth.js?v=12.8";
+s.onload=function(){try{EnglishiaAuth.init({gameId:"word-race",gameTitle:"\u05DE\u05D9\u05E8\u05D5\u05E5 \u05D4\u05DE\u05D9\u05DC\u05D9\u05DD",mount:false});if(window.WRApp)WRApp.onAuth();}catch(e){console.warn(e);}};
+s.onerror=function(){};document.head.appendChild(s);})();
+</script>
+</body>
+</html>
