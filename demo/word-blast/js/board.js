@@ -1,7 +1,7 @@
 /* Word Blast 1.0 - the bubble board (canvas). Hex grid, aiming, shots, popping, falling, baskets.
    All sizes come from the layout object passed in, so bubble and cannon size are one constant each (see LAYOUT in app.js).
    (c) 2026 Amir - Englishia */
-import { sameWord } from "./content.js";
+import { sameWord } from "./content.js?v=1.0.1";
 
 export const COLORS = ["red", "orange", "green", "teal", "blue", "violet"];
 const RING = { ok: "#3dffa0", bad: "#ff4d6d", hint: "#ffe680" };
@@ -50,7 +50,7 @@ export function createBoard(canvas, IMG, hooks) {
     const rows = Math.min(o.rows, B.maxR - 2);
     for (let r = 0; r < rows; r++) for (let c = 0; c < width(r); c++) {
       // a few gaps in the lowest row so the words have open lanes
-      if (r === rows - 1 && r > 1 && Math.random() < 0.25) continue;
+      if (r === rows - 1 && r >= 1 && Math.random() < 0.3) continue;   // 1.0.1: gaps from the second row on
       B.grid[r][c] = mk(randColor());
     }
     B.loaded = randColor(); B.next = randColor();
@@ -87,9 +87,9 @@ export function createBoard(canvas, IMG, hooks) {
   function setChoices(answer, wrong, copies = 1) {
     // keep enough bubbles to choose from
     let guard = 0;
-    while ((count() < B.cols * 2 || targets(1).length < wrong.length + copies + 1) && lowestRow() + 2 < B.maxR && guard++ < 3) insertRow();
+    while ((count() < B.cols + 2 || targets(1).length < wrong.length + copies + 1) && lowestRow() + 2 < B.maxR && guard++ < 3) insertRow();
     B.answer = answer;
-    // every grid bubble carries a word; the answer may appear only where we put it
+    // 1.0.1: only the chosen bubbles carry words (filler is off); the answer may appear only where we put it
     each((b) => { if (b.st !== "wrong") b.st = ""; if (b.shot) return; if (!b.word || sameWord(b.word, answer) || wrong.some((w) => sameWord(w, b.word))) b.word = B.filler ? B.filler(answer) : null; });
     const words = []; for (let i = 0; i < copies; i++) words.push(answer); words.push(...wrong);
     let ex = targets(4).filter((e) => !e.b.shot); if (ex.length < words.length) ex = targets(1).filter((e) => !e.b.shot); if (ex.length < words.length) ex = exposed().filter((e) => !e.b.shot);

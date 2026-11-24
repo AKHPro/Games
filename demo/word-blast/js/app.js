@@ -1,10 +1,10 @@
 /* Word Blast 1.0 · פיצוץ מילים - English bubble shooter for the classroom (projector) and phones.
    Design: Imagina (handoff/README.md). (c) 2026 Amir · Englishia · All rights reserved */
-import { ICONS } from "./icons.js";
-import { LEVELS, levelOf, AGES, TYPES, typeOf, buildLevel, parseTeacher, TEACHER_SAMPLE, sameWord, PROMPTS_PER_LEVEL } from "./content.js";
-import { createBoard, COLORS } from "./board.js";
+import { ICONS } from "./icons.js?v=1.0.1";
+import { LEVELS, levelOf, AGES, TYPES, typeOf, buildLevel, parseTeacher, TEACHER_SAMPLE, sameWord, PROMPTS_PER_LEVEL } from "./content.js?v=1.0.1";
+import { createBoard, COLORS } from "./board.js?v=1.0.1";
 
-const VERSION = "1.0";
+const VERSION = "1.0.1";
 const GAME_ID = "word-blast";
 const DEMO = /\/demo\//.test(location.pathname);
 const HUB = DEMO ? "../" : "../../";
@@ -17,15 +17,17 @@ const LAYOUT = {
     stageW: 1920, stageH: 1080,
     board: { x: 455, y: 14, w: 1010, h: 962 },   // the glass play area (design px)
     prompt: { x: 455, y: 988, w: 1010, h: 84 },
-    D: 140, cols: 7,                              // bubble diameter and bubbles per row (6 on the offset rows), as in the v1 design
+    D: 112, cols: 6,                              // bubble diameter and bubbles per row (one less on the offset rows). 1.0.1: 112 x 6 (was 140 x 7)
+    startRows: 3, pad: 24,                        // most rows at the start (levels ask for 2 or 3); glass padding around the grid
     cannon: 0.8, loaded: 1.0,                     // shooter sprite scale (x D) and loaded-ball size (x D)
-    wordFs: 0.27, wordMin: 22, labelMax: 1.45,    // word size (x D), smallest word size in px, widest label (x D) for very long words
-    dangerGap: 0.85, dotGap: 0.25, speed: 130, basketW: 1.25, basketPts: 50, shooterPad: 1.36
+    wordFs: 0.26, wordMin: 22, labelMax: 1.75,    // word size (x D), smallest word size in px, widest label (x D) for long words
+    dangerGap: 0.85, dotGap: 0.25, speed: 130, basketW: 1.15, basketPts: 50, shooterPad: 1.36
   },
   phone: {
     stageW: 390,
-    D: 72, cols: 5, cannon: 0.8, loaded: 1.0, wordFs: 0.27, wordMin: 13, labelMax: 1.45,
-    dangerGap: 0.85, dotGap: 0.24, speed: 125, basketW: 1.25, basketPts: 50, shooterPad: 1.36
+    D: 62, Dmin: 54, cols: 5, startRows: 2, pad: 12, // 1.0.1: 62px bubbles (was 72) in a narrower glass; D shrinks to Dmin only on short screens
+    cannon: 0.8, loaded: 1.0, wordFs: 0.25, wordMin: 13, labelMax: 1.8,
+    dangerGap: 0.8, dotGap: 0.24, speed: 125, basketW: 1.15, basketPts: 50, shooterPad: 1.36
   }
 };
 
@@ -280,24 +282,28 @@ function startLevel(again) {
   LOCK = true; fit();
   show("game", gameScreen);
 }
+const PH_PROMPT = 96, PH_BOTTOM = 58;   // phone prompt and bottom bar heights
 function boardLayout() {
   const P = MOBILE ? LAYOUT.phone : LAYOUT.desk;
   let bx, by, bw, bh;
-  if (MOBILE) { bx = 6; by = 112; bw = 378; bh = MH - by - 112 - 66 - 10; }
+  if (MOBILE) { bx = 6; by = 64; bw = 378; bh = MH - by - PH_PROMPT - PH_BOTTOM - 24; }
   else ({ x: bx, y: by, w: bw, h: bh } = P.board);
-  const D = P.D, inner = D * P.cols, mx = (bw - inner) / 2;
-  const pivotY = bh - D * P.shooterPad * (P.cannon / 0.8) - (MOBILE ? 4 : 8);
+  // on short phone screens shrink the bubbles a little so at least 6 rows fit above the line
+  const k = P.cannon / 0.8, room = (bh - 10) / (P.shooterPad * k + P.dangerGap + 6 * 0.866 + 0.5);
+  const D = MOBILE ? Math.max(P.Dmin, Math.min(P.D, Math.floor(room))) : P.D, inner = D * P.cols;
+  // the glass hugs the grid (its sides are the walls the ball bounces off), centred where the design board was
+  const cx = bx + bw / 2; bw = Math.min(bw, inner + P.pad * 2); bx = Math.round(cx - bw / 2);
+  const mx = (bw - inner) / 2;
+  const pivotY = bh - D * P.shooterPad * k - (MOBILE ? 4 : 8);
   const bw2 = D * P.basketW;
-  return { bx, by, bw, bh, L: Object.assign({}, P, { W: bw, H: bh, mx, top: MOBILE ? 6 : 10, pivotY, scale: SCALE, showAim: true,
+  return { bx, by, bw, bh, L: Object.assign({}, P, { D, W: bw, H: bh, mx, top: MOBILE ? 6 : 10, pivotY, scale: SCALE, showAim: true,
     baskets: [{ x: mx + bw2 * 0.5, y: bh - bw2 * 0.42, w: bw2 }, { x: bw - mx - bw2 * 0.5, y: bh - bw2 * 0.42, w: bw2 }], basketPts: Math.round(P.basketPts * G.L.mul) }) };
 }
 function gameScreen() {
   const { bx, by, bw, bh, L } = boardLayout();
-  const promptBox = MOBILE ? { x: 6, y: by + bh + 8, w: 378, h: 98 } : LAYOUT.desk.prompt;
+  const promptBox = MOBILE ? { x: 6, y: by + bh + 8, w: 378, h: PH_PROMPT } : LAYOUT.desk.prompt;
   const hud = MOBILE ? `
-      <div class="topbar">${`<div class="grp">${backBtn()}</div>`}<div class="grp"><button class="gbtn iconbtn" id="bPause" aria-label="השהיה" title="השהיה">${ico("pause", 22)}</button>${soundBtn()}<span id="langSlot"></span></div></div>
-      <div class="mhud"><div class="pill sc">${ico("star", 18)}<b class="en" id="hScore">0</b></div><div class="pill lvl"><span>${G.L.he}</span> · <span>שלב</span> <b class="en">${G.stage}</b></div>
-        <div class="pill prog">${ico("target", 18)}<b class="en" id="hProg">0/${G.prompts.length}</b><span class="bar"><i id="hBar"></i></span></div></div>` : `
+      <div class="topbar mtop"><div class="grp">${backBtn()}</div><div class="grp mstat"><div class="pill sc">${ico("star", 18)}<b class="en" id="hScore">0</b></div><div class="pill prog">${ico("target", 18)}<b class="en" id="hProg">0/${G.prompts.length}</b></div><button class="gbtn iconbtn" id="bPause" aria-label="השהיה" title="השהיה">${ico("pause", 22)}</button></div></div>` : `
       <div class="lcol">
         <div class="grp">${soundBtn()}<button class="gbtn iconbtn" id="bPause" aria-label="השהיה" title="השהיה">${ico("pause", 30)}</button><button class="gbtn iconbtn" id="bFull" aria-label="מסך מלא" title="מסך מלא">${ico("maximize", 28)}</button></div>
         <div id="langSlot" class="lslot"></div>
@@ -311,12 +317,10 @@ function gameScreen() {
         <div class="card glass"><div class="kick">${ico("gauge", 24)}<span>רמת קושי</span></div><div class="lvrow"><span class="lvchip" style="--c:${G.L.color}">${G.L.he}</span><span class="stg"><span>שלב</span> <b class="en">${G.stage}</b></span></div>
           <div class="timer"><span class="kick sm">${ico("clock", 22)}<span>זמן</span></span><b class="en" id="hTime">00:00</b></div></div>
         <div class="card glass"><div class="kick">${ico("target", 24)}<span>${G.type === "gap" ? "משפטים" : "משימות"}</span><b class="en pr" id="hProg">0/${G.prompts.length}</b></div><div class="bar"><i id="hBar"></i></div><div class="stars" id="hStars">${[0, 1, 2].map(() => ico("star", 34, 2.4)).join("")}</div></div>
-        <div class="card glass strk"><div class="kick">${ico("flame", 24)}<span>רצף תשובות</span></div><b class="en big2" id="hStreak">×0</b></div>
       </div>`;
-  const mBottom = MOBILE ? `<div class="mbottom" style="top:${promptBox.y + promptBox.h + 8}px">
+  const mBottom = MOBILE ? `<div class="mbottom" style="top:${promptBox.y + promptBox.h + 8}px;height:${PH_BOTTOM}px">
       <button class="btn yellow hintbtn" id="bHint">${ico("lightbulb", 22)}<span>רמז</span><b class="en hn" id="hHints">${G.hints}</b></button>
-      <div class="mnext"><button class="gbtn swapbtn" id="bSwap">${ico("swap", 20)}<span>החלפה</span></button><img id="nextBall" alt=""><span class="nl">הבא</span></div>
-      <img class="owl-m" id="owl" src="${owl("idle", true)}" alt="Lexi"></div>` : "";
+      <button class="mnext" id="bSwap" aria-label="החלפה" title="החלפה"><span class="nl">הבא</span><img id="nextBall" alt="">${ico("swap", 18, 2.6)}</button></div>` : "";
   stage.innerHTML = `<section class="scr on game" id="s-game">${bokeh()}
     ${hud}
     <div class="board" id="board" style="left:${bx}px;top:${by}px;width:${bw}px;height:${bh}px"><canvas id="cv" aria-label="לוח הכדורים"></canvas>
@@ -329,7 +333,7 @@ function gameScreen() {
   const cv = $("#cv");
   board = createBoard(cv, IMG, { result: onResult, sound: (k) => SFX[k] && SFX[k]() });
   board.layout(L);
-  board.reset({ colors: G.L.colors, aimHelp: G.L.aimHelp, shots: G.L.shots, rows: G.L.rows, filler: makeFiller() });
+  board.reset({ colors: G.L.colors, aimHelp: G.L.aimHelp, shots: G.L.shots, rows: Math.min(G.L.rows, (MOBILE ? LAYOUT.phone : LAYOUT.desk).startRows), filler: null });   // 1.0.1: only the answer and its few wrong options carry words
   wireGame(cv);
   nextPrompt(true);
   startLoop();
@@ -383,7 +387,7 @@ const cur = () => G.prompts[G.i];
 function nextPrompt(first) {
   const p = cur(); if (!p) return;
   G.qStart = now(); G.timeLeft = G.L.timer || 0; G.wrongOnThis = false; G.usedHint = false;
-  board.setChoices(p.ans, p.wrong, G.L.copies || 1);
+  board.setChoices(p.ans, p.wrong.slice(0, 4), 1);   // 1.0.1: one correct bubble, at most 5 words in all
   paintPrompt(); paintNext(); paintHud();
   if (!first) owlPose("idle");
 }
@@ -463,7 +467,8 @@ function pause(on) {
   if (!G || G.over) return;
   G.paused = on; board.frozen = on;
   const ov = $("#ov");
-  if (on) { G.pauseAt = now(); ov.hidden = false; ov.innerHTML = `<div class="ovcard glass"><h2>${ico("pause", 40)}<span>הפסקה</span></h2><button class="btn green" id="oResume">${ico("play", 34, 3)}<span>המשך</span></button><button class="btn wbtn sm" id="oRestart">${ico("rotate", 26)}<span>מתחילים מחדש</span></button><button class="btn gbtn sm" id="oMenu">${ico("home", 26)}<span>לתפריט</span></button></div>`;
+  if (on) { G.pauseAt = now(); ov.hidden = false; ov.innerHTML = `<div class="ovcard glass"><h2>${ico("pause", 40)}<span>הפסקה</span></h2><button class="btn green" id="oResume">${ico("play", 34, 3)}<span>המשך</span></button><button class="btn wbtn sm" id="oRestart">${ico("rotate", 26)}<span>מתחילים מחדש</span></button><button class="btn gbtn sm" id="oMenu">${ico("home", 26)}<span>לתפריט</span></button>${MOBILE ? `<div class="ovmeta"><span>${G.L.he}</span> · <span>שלב</span> <b class="en">${G.stage}</b></div><div class="ovtools">${soundBtn()}<span id="langSlot"></span></div>` : ""}</div>`;
+    if (MOBILE) { wireSound(); mountShared(); }
     $("#oResume").onclick = () => pause(false); $("#oRestart").onclick = () => { ov.hidden = true; startLevel(true); }; $("#oMenu").onclick = () => { G.over = true; menuScreen(); };
   } else { G.pausedFor += now() - G.pauseAt; ov.hidden = true; }
 }

@@ -278,3 +278,20 @@ a.gbtn:active,button.gbtn:active{transform:translateY(4px);box-shadow:0 2px 0 rg
 /* phone end stats: long labels (ar/ru) wrap inside their box instead of spilling over */
 .m .stat{flex:1 1 0;overflow:hidden}
 .m .stat .kick{white-space:normal;text-align:center;justify-content:center;line-height:1.1;min-height:2.2em;align-items:center;flex-wrap:wrap;overflow-wrap:anywhere}
+/* ===== 1.0.1: calmer phone HUD - one top row (back, score, progress, pause); sound + language in the pause card ===== */
+.m .game .topbar.mtop{padding-top:10px}
+.m .mstat{gap:6px!important;flex:none}
+.m .mstat .pill{flex:none;display:flex;flex-direction:row;align-items:center;justify-content:center;gap:6px;height:44px;min-width:78px;padding:0 12px;border-radius:999px;background:linear-gradient(180deg,rgba(255,255,255,.16),rgba(255,255,255,.06));border:2px solid rgba(175,200,255,.3);font:800 15px var(--ui);white-space:nowrap}
+.m .mstat .pill b{font-size:19px}
+.m .mtop .backbtn{height:44px}
+.m .mbottom{justify-content:space-between;padding:0 4px}
+.mnext{display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.07);border:2px solid rgba(175,200,255,.25);border-radius:999px;padding:4px 12px 4px 6px;color:var(--txt2);cursor:pointer;font:inherit}
+.mnext #nextBall{width:46px;height:46px}
+.mnext svg{opacity:.8}
+.mnext:active{transform:scale(.96)}
+.ovmeta{font:700 17px var(--ui);color:var(--txt2)}
+.ovtools{display:flex;gap:10px;align-items:center;justify-content:center}
+/* desktop: the glass hugs the smaller grid */
+.d .rcol .card{padding-top:18px;padding-bottom:18px}
+.d .lvrow .lvchip,.d .lvrow .stg{white-space:nowrap}
+.d .lvrow .lvchip{font-size:min(1em,26px)}

@@ -9,12 +9,12 @@ import { wordsForAge } from "../../mila-quest/js/age.js";
 
 /* six difficulty levels, same names and score multipliers as the other Englishia games */
 export const LEVELS = [
-  { k: "veryeasy", he: "קל מאוד", mul: 0.5, choices: 2, shots: 35, drop: 6, rows: 3, colors: 4, hints: 3, lv: [1, 1], wd: [1, 2], v3: false, aimHelp: true, copies: 2, color: "#22b573" },
-  { k: "easy", he: "קל", mul: 1, choices: 3, shots: 32, drop: 5, rows: 3, colors: 4, hints: 3, lv: [1, 2], wd: [1, 2], v3: false, aimHelp: true, copies: 2, color: "#7bc63a" },
-  { k: "normal", he: "רגיל", mul: 1.5, choices: 3, shots: 30, drop: 4, rows: 3, colors: 5, hints: 2, lv: [1, 2], wd: [1, 3], v3: true, aimHelp: true, color: "#2f7bff" },
-  { k: "hard", he: "קשה", mul: 2, choices: 4, shots: 26, drop: 3, rows: 4, colors: 5, hints: 2, lv: [2, 3], wd: [2, 4], v3: true, aimHelp: false, similar: true, color: "#ff9a1f" },
-  { k: "veryhard", he: "קשה מאוד", mul: 3, choices: 5, shots: 22, drop: 2, rows: 4, colors: 6, hints: 1, lv: [3, 3], wd: [3, 5], v3: true, aimHelp: false, similar: true, color: "#ff5a4f" },
-  { k: "master", he: "אלוף", mul: 4, choices: 5, shots: 20, drop: 1, rows: 4, colors: 6, hints: 1, lv: [3, 3], wd: [4, 5], v3: true, aimHelp: false, similar: true, timer: 20, color: "#8b5cf6" }
+  { k: "veryeasy", he: "קל מאוד", mul: 0.5, choices: 3, shots: 35, drop: 6, rows: 2, colors: 4, hints: 3, lv: [1, 1], wd: [1, 2], v3: false, aimHelp: true, color: "#22b573" },
+  { k: "easy", he: "קל", mul: 1, choices: 3, shots: 32, drop: 5, rows: 2, colors: 4, hints: 3, lv: [1, 2], wd: [1, 2], v3: false, aimHelp: true, color: "#7bc63a" },
+  { k: "normal", he: "רגיל", mul: 1.5, choices: 4, shots: 30, drop: 4, rows: 2, colors: 5, hints: 2, lv: [1, 2], wd: [1, 3], v3: true, aimHelp: true, color: "#2f7bff" },
+  { k: "hard", he: "קשה", mul: 2, choices: 4, shots: 26, drop: 3, rows: 2, colors: 5, hints: 2, lv: [2, 3], wd: [2, 4], v3: true, aimHelp: false, similar: true, color: "#ff9a1f" },
+  { k: "veryhard", he: "קשה מאוד", mul: 3, choices: 5, shots: 22, drop: 2, rows: 3, colors: 6, hints: 1, lv: [3, 3], wd: [3, 5], v3: true, aimHelp: false, similar: true, color: "#ff5a4f" },
+  { k: "master", he: "אלוף", mul: 4, choices: 5, shots: 20, drop: 1, rows: 3, colors: 6, hints: 1, lv: [3, 3], wd: [4, 5], v3: true, aimHelp: false, similar: true, timer: 20, color: "#8b5cf6" }
 ];
 export const levelOf = (k) => LEVELS.find((l) => l.k === k) || LEVELS[2];
 export const AGES = [{ k: "de", he: "ד׳–ה׳" }, { k: "vz", he: "ו׳–ז׳" }, { k: "ht", he: "ח׳–ט׳" }, { k: "y12", he: "י׳–י״ב" }];
