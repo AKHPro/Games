@@ -115,7 +115,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:4px solid var(-
 .saybtn{display:inline-grid;place-items:center;width:46px;height:46px;border-radius:50%;background:var(--teal);border:3px solid var(--ink);box-shadow:0 3px 0 var(--ink);color:#fff;flex:none;vertical-align:middle}
 .saybtn.big{width:84px;height:84px}
 .fbk{position:absolute;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:10px;font:900 28px var(--ui);color:#fff;border:3.5px solid var(--ink);border-radius:999px;padding:6px 22px;box-shadow:0 5px 0 var(--ink);z-index:2000;white-space:nowrap}
-.fbk.ok{background:var(--green)} .fbk.no{background:var(--red)} .fbk.wait{background:var(--ink2)}
+.fbk.ok{background:var(--green)} .fbk.no{background:var(--red)} .fbk.wait{background:var(--ink2)} .fbk.skip{background:var(--blue)}
 
 /* timer ring */
 .timer{position:relative;display:grid;place-items:center;flex:none}
@@ -507,3 +507,40 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:4px solid var(-
 .m .xcf-card{padding:22px 20px 24px;max-width:340px;border-radius:24px;border-width:4px;gap:10px}
 .m .xcf-ic{width:70px;height:70px;border-width:4px} .m .xcf-t{font-size:28px} .m .xcf-s{font-size:18px}
 .m .xcf .btn{font-size:21px;padding:10px 18px;width:100%}
+
+/* 1.0.5: mid-race join dock (host / projector) — link, room code, small QR */
+.jdock{position:absolute;z-index:1600;background:#fff;border:3.5px solid var(--ink);border-radius:22px;box-shadow:0 5px 0 var(--ink);padding:12px 14px 10px;display:flex;flex-direction:column;align-items:center;gap:8px;direction:ltr;width:228px}
+.jdock-hide{position:absolute;top:-12px;left:-12px;width:36px;height:36px;border-radius:12px;z-index:2}
+.jdock-qr{width:120px;height:120px;padding:6px;background:#fff;border:3px solid var(--ink);border-radius:14px;flex:none}
+.jdock-qr svg{width:100%;height:100%;display:block}
+.jdock-qr .qr-zoom{width:32px;height:32px;right:-8px;bottom:-8px;border-width:3px}
+.jdock-meta{display:flex;flex-direction:column;align-items:center;gap:4px;width:100%;text-align:center}
+.jdock-k{display:flex;align-items:center;justify-content:center;gap:4px}
+.jdock-code{font-size:36px;font-weight:700;letter-spacing:3px;line-height:1}
+.jdock-url{display:flex;align-items:flex-start;gap:4px;font-size:14px;font-weight:600;color:var(--blue);line-height:1.25;word-break:break-all;text-align:start;width:100%}
+.jdock-url span{min-width:0}
+.jdock-show{position:absolute;z-index:1600;width:52px;height:52px}
+/* projector: top-right corner, question card is inset so it stays clear */
+#s-race.proj.has-jdock .pq{right:260px}
+#s-race.proj .jdock,#s-race.proj .jdock-show{right:16px;top:16px}
+/* online host (player race UI): left side, under the rank pill, above the question panel */
+#s-race:not(.proj) .jdock,#s-race:not(.proj) .jdock-show{left:16px;top:86px;right:auto}
+.m .jdock{width:152px;padding:8px 8px 6px;border-radius:16px;gap:4px;border-width:3px;box-shadow:0 4px 0 var(--ink)}
+.m .jdock-qr{width:88px;height:88px;padding:4px}
+.m .jdock-code{font-size:22px;letter-spacing:1px}
+.m .jdock-url{font-size:10px}
+.m .jdock-hide{width:30px;height:30px;top:-8px;left:-8px}
+.m .jdock-show{width:40px;height:40px}
+.m #s-race:not(.proj) .jdock,.m #s-race:not(.proj) .jdock-show{left:8px;top:52px}
+
+/* 1.0.5: skip question */
+.skipbtn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:56px;padding:10px 22px;border-radius:18px;background:#fff;color:var(--ink);border:3.5px solid var(--ink);box-shadow:0 5px 0 var(--ink);font:800 24px var(--ui);flex:none;z-index:1600}
+.skipbtn:active{transform:translateY(2px);box-shadow:0 3px 0 var(--ink)}
+.skipbtn[disabled]{opacity:.45;pointer-events:none}
+.panel .skipbtn{align-self:stretch;margin-top:12px;min-height:56px}
+.pq .skipbtn{margin-top:12px;min-width:240px;min-height:60px;font-size:26px;align-self:flex-start}
+.skn{display:inline-flex;align-items:center;gap:4px;font:700 18px var(--ui);color:var(--blue);margin-inline-start:8px;white-space:nowrap}
+.skn .fred{font-size:22px}
+.m .skipbtn{min-height:52px;font-size:20px;border-radius:16px;padding:8px 14px;margin-top:8px;box-shadow:0 4px 0 var(--ink)}
+.m .panel{padding-bottom:10px}
+.m .skn{font-size:14px} .m .skn .fred{font-size:16px}

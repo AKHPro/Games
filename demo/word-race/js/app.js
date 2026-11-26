@@ -3,7 +3,7 @@
    © 2026 Amir · Englishia · All rights reserved */
 import { LEVELS, levelOf, AGES, QTYPES, buildRace, publicQ, localize } from "./questions.js";
 
-const VERSION = "1.0.4", GAME_ID = "word-race", MAX_PLAYERS = 30;
+const VERSION = "1.0.5", GAME_ID = "word-race", MAX_PLAYERS = 30;
 const DEMO = /\/demo\//.test(location.pathname);
 /* absolute (from this script's own URL) so the address bar can show /word-race/ without moving the Englishia link */
 const HUB = new URL(DEMO ? "../../" : "../../../", import.meta.url).href;
@@ -58,6 +58,8 @@ const P = {
   "music-off": '<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/><path d="m3 3 18 18"/>',
   "log-out": '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/>',
   "zoom-in": '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/><path d="M11 8v6"/><path d="M8 11h6"/>',
+  "eye-off": '<path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/>',
+  "skip-forward": '<polygon points="5 4 15 12 5 20 5 4"/><line x1="19" x2="19" y1="5" y2="19"/>',
   image: '<rect x="3" y="3" width="18" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.09-3.09a2 2 0 0 0-2.82 0L6 21"/>'
 };
 const ico = (n, s = 24, sw = 2.4, c = "currentColor", f = "none") =>
@@ -152,7 +154,8 @@ class Track {
 }
 
 /* ---------- settings / prefs ---------- */
-const PREF = Object.assign({ level: "normal", age: "vz", types: QTYPES.filter((t) => t.on).map((t) => t.k), n: 15, time: 20 }, LS.get("wr-settings", {}));
+const PREF = Object.assign({ level: "normal", age: "vz", types: QTYPES.filter((t) => t.on).map((t) => t.k), n: 15, time: 20, skip: true }, LS.get("wr-settings", {}));
+if (typeof PREF.skip !== "boolean") PREF.skip = true;
 if (!LEVELS.some((l) => l.k === PREF.level)) PREF.level = "normal";
 if (!Array.isArray(PREF.types) || !PREF.types.length) PREF.types = QTYPES.filter((t) => t.on).map((t) => t.k);
 const gfxPref = LS.get("wr-gfx", null);
@@ -300,6 +303,9 @@ function settingsScreen(mode, edit) {
         <div class="card pane" style="display:flex;gap:26px;flex-wrap:wrap">
           <div><h3><span class="hi" style="background:#22b573">${ico("flag", 22, 2.8, "#fff")}</span>אורך המירוץ</h3><div class="segs">${seg([10, 15, 20], S.n, "שאלות", "n")}</div></div>
           <div><h3><span class="hi" style="background:#ff4f8b">${ico("timer", 24, 2.8, "#fff")}</span>זמן לשאלה</h3><div class="segs">${seg([10, 15, 20, 30], S.time, "שניות", "tm")}</div></div>
+          <div><h3><span class="hi" style="background:#2f7bff">${ico("skip-forward", 22, 2.6, "#fff")}</span>דילוג על שאלה</h3>
+            <div class="segs"><button class="seg ${S.skip !== false ? "on" : ""}" data-sk="1" aria-pressed="${S.skip !== false}"><b>מותר</b></button>
+              <button class="seg ${S.skip === false ? "on" : ""}" data-sk="0" aria-pressed="${S.skip === false}"><b>לא מותר</b></button></div></div>
         </div></div>
         <div class="set-col"><div class="card pane" style="height:100%"><h3><span class="hi" style="background:#8b5cf6">${ico("sliders", 22, 2.8, "#fff")}</span>סוגי שאלות<small>אפשר לבחור כמה</small></h3><div class="chips qts">${qt}</div></div></div>
       </div>
@@ -311,6 +317,7 @@ function settingsScreen(mode, edit) {
     $$("[data-age]").forEach((b) => (b.onclick = () => { S.age = b.dataset.age; SFX.tap(); VIEW.render(); }));
     $$("[data-n]").forEach((b) => (b.onclick = () => { S.n = +b.dataset.n; SFX.tap(); VIEW.render(); }));
     $$("[data-tm]").forEach((b) => (b.onclick = () => { S.time = +b.dataset.tm; SFX.tap(); VIEW.render(); }));
+    $$("[data-sk]").forEach((b) => (b.onclick = () => { S.skip = b.dataset.sk === "1"; SFX.tap(); VIEW.render(); }));
     $$("[data-qt]").forEach((b) => (b.onclick = () => { const k = b.dataset.qt; if (S.types.includes(k)) { if (S.types.length > 1) S.types = S.types.filter((x) => x !== k); } else S.types = S.types.concat(k); SFX.tap(); VIEW.render(); }));
     $("#bCreate").onclick = () => {
       SFX.tap(); LS.set("wr-settings", S);
@@ -353,11 +360,13 @@ function freeLane() { const used = new Set([...H.players.values()].map((p) => p.
 function addPlayer(cid, name, ch, local) {
   let p = H.players.get(cid);
   if (p) { p.on = true; p.last = now(); if (H.ph === "lobby") { p.name = name; p.ch = ch; } return p; }   // rejoin keeps lane + score
-  if (H.ph !== "lobby") return "late";
+  if (H.ph === "end") return "ended";   // results are final; they wait and join the next race
+  if (H.ph !== "lobby" && H.ph !== "count" && H.ph !== "q" && H.ph !== "rev") return "late";
   if (H.players.size >= MAX_PLAYERS) return "full";
   const pid = H.players.size ? Math.max(...[...H.players.values()].map((x) => x.pid)) + 1 : 1;
-  p = { cid, pid, name, ch, lane: freeLane(), ok: 0, pts: 0, tsum: 0, ans: {}, on: true, last: now(), local: !!local };
+  p = { cid, pid, name, ch, lane: freeLane(), ok: 0, pts: 0, tsum: 0, sk: 0, ans: {}, on: true, last: now(), local: !!local };
   H.players.set(cid, p); SFX.tap();
+  if (H.ph !== "lobby" && !local) toast(T_("שחקן הצטרף באמצע המירוץ"));
   return p;
 }
 function hostRecv(m, cid) {
@@ -367,10 +376,12 @@ function hostRecv(m, cid) {
   if (m.t === "hello") {
     const name = cleanName(m.name) || "Player", ch = CH[m.ch] ? m.ch : CHARS[0].id;
     const r = addPlayer(cid, name, ch, false);
+    if (r === "ended") { H.net.send(cid, { t: "ended" }); return; }   // stay connected: they join when the teacher starts the next race
     if (r === "late" || r === "full") { H.net.send(cid, { t: r }); H.net.forget(cid); return; }
     H.net.send(cid, { t: "you", pid: r.pid });
     hostBroadcast(); hostView();
   } else if (m.t === "ans") hostAnswer(p, m.qi, m.a);
+  else if (m.t === "skip") hostSkip(p, m.qi);
   else if (m.t === "ping") { if (p) { const was = p.on; p.on = true; p.last = now(); if (!was) { hostBroadcast(); hostView(); } } }
   else if (m.t === "leave") { if (p) { hostDrop(cid); H.net.forget(cid); } }   // player pressed the exit button: gone for good (no ban)
   else if (m.t === "bye" || m.t === "_drop") {
@@ -394,14 +405,29 @@ function hostAnswer(p, qi, a) {
   if ([...H.players.values()].filter((x) => x.on || x.local).every((x) => x.ans[qi])) H.phEnd = Math.min(H.phEnd, now() + 800);
   hostBroadcast(); hostView();
 }
+function hostSkip(p, qi) {
+  if (!H || !p || H.ph !== "q" || qi !== H.qi || p.ans[qi] || H.set.skip === false) return;
+  p.on = true; p.last = now();
+  p.ans[qi] = { a: -1, ok: false, skip: true, ms: now() - H.t0, pts: 0 };
+  p.sk = (p.sk || 0) + 1;
+  if ([...H.players.values()].filter((x) => x.on || x.local).every((x) => x.ans[qi])) H.phEnd = Math.min(H.phEnd, now() + 800);
+  hostBroadcast(); hostView();
+}
+/* presentation host: skip this question for everyone still unanswered (no points, no penalty) */
+function hostSkipQuestion() {
+  if (!H || H.ph !== "q" || H.set.skip === false) return;
+  for (const p of H.players.values()) if (!p.ans[H.qi]) { p.ans[H.qi] = { a: -1, ok: false, skip: true, ms: now() - H.t0, pts: 0 }; p.sk = (p.sk || 0) + 1; }
+  H.ph = "rev"; H.phEnd = now() + 2400;
+  hostBroadcast(); hostView();
+}
 const ranked = () => [...H.players.values()].sort((a, b) => b.ok - a.ok || a.tsum - b.tsum || b.pts - a.pts || a.lane - b.lane);
 function stateMsg() {
   const rank = new Map(ranked().map((p, i) => [p.cid, i + 1]));
   const pl = [...H.players.values()].sort((a, b) => a.lane - b.lane).map((p) => {
     const an = H.ph === "q" || H.ph === "rev" ? p.ans[H.qi] : null;
-    return [p.pid, p.name, p.ch, p.lane, p.ok, p.pts, p.on || p.local ? 1 : 0, an ? (an.ok ? 2 : 1) : 0, rank.get(p.cid), an ? an.a : -1];
+    return [p.pid, p.name, p.ch, p.lane, p.ok, p.pts, p.on || p.local ? 1 : 0, an ? (an.skip ? 3 : an.ok ? 2 : 1) : 0, rank.get(p.cid), an ? an.a : -1, p.sk || 0];
   });
-  const m = { t: "st", ph: H.ph, code: H.code, mode: H.mode, set: { l: H.set.level, a: H.set.age, n: H.set.n, tm: H.set.time }, n: H.set.n, qi: H.qi, race: H.race, pl, left: Math.max(0, H.phEnd - now()), dur: H.dur };
+  const m = { t: "st", ph: H.ph, code: H.code, mode: H.mode, set: { l: H.set.level, a: H.set.age, n: H.set.n, tm: H.set.time, sk: H.set.skip !== false }, n: H.set.n, qi: H.qi, race: H.race, pl, left: Math.max(0, H.phEnd - now()), dur: H.dur };
   if ((H.ph === "q" || H.ph === "rev") && H.qs[H.qi]) m.q = publicQ(H.qs[H.qi]);
   if (H.ph === "rev") m.ok = H.qs[H.qi].ans;
   return m;
@@ -438,14 +464,14 @@ function hostQuestion(i) {
 function hostStart() {
   if (!H || H.ph !== "lobby" || !H.players.size) return;
   H.qs = buildRace({ types: H.set.types, level: H.set.level, age: H.set.age, n: H.set.n, seed: (Math.random() * 4294967295) >>> 0 });
-  [...H.players.values()].sort((a, b) => a.lane - b.lane).forEach((p, i) => { p.lane = i; p.ok = 0; p.pts = 0; p.tsum = 0; p.ans = {}; });
+  [...H.players.values()].sort((a, b) => a.lane - b.lane).forEach((p, i) => { p.lane = i; p.ok = 0; p.pts = 0; p.tsum = 0; p.sk = 0; p.ans = {}; });
   H.race++; H.ph = "count"; H.qi = -1; H.phEnd = now() + 3200;
   hostBroadcast(); hostView();
 }
 function hostRematch() {
   if (!H) return;
   H.ph = "lobby"; H.qi = -1; H.qs = []; H.editing = false;
-  for (const p of [...H.players.values()]) { p.ok = 0; p.pts = 0; p.tsum = 0; p.ans = {}; if (!p.on && !p.local) H.players.delete(p.cid); }
+  for (const p of [...H.players.values()]) { p.ok = 0; p.pts = 0; p.tsum = 0; p.sk = 0; p.ans = {}; if (!p.on && !p.local) H.players.delete(p.cid); }
   hostBroadcast();
   if (VIEW.name !== "lobby") lobbyScreen();
 }
@@ -455,7 +481,7 @@ function hostApplySettings(S) {
   if (!H) return;
   H.editing = false;
   if (H.ph === "lobby") {
-    H.set = { level: S.level, age: S.age, n: S.n, time: S.time, types: S.types.slice() };
+    H.set = { level: S.level, age: S.age, n: S.n, time: S.time, types: S.types.slice(), skip: S.skip !== false };
     Object.assign(PREF, H.set, { types: S.types.slice() }); LS.set("wr-settings", PREF);
     hostBroadcast();
   }
@@ -635,6 +661,13 @@ function playerOnMsg0(m, local) {
   if (m.t === "you") { PS.pid = m.pid; clearInterval(PS.helloT); clearBanner(); if (PS.st) playerOnMsg(PS.st, false); return; }
   if (m.t === "kick") { if (!local) noticeScreen("kicked"); return; }
   if (m.t === "closed") { if (!local && PS.code) noticeScreen("closed"); return; }
+  if (m.t === "ended") {
+    if (local) return;
+    const msg = "המירוץ הסתיים. המתינו שהמורה יתחיל מירוץ חדש.";
+    if (VIEW.name !== "wait") waitScreen(null, msg);
+    else { const t = $("#waitT"); if (t) t.textContent = T_(msg); }
+    return;
+  }
   if (m.t === "late" || m.t === "full") {
     if (local) return;
     const msg = { late: "המירוץ כבר התחיל. חכו למירוץ הבא", full: "החדר מלא (30 שחקנים)" }[m.t];
@@ -642,7 +675,7 @@ function playerOnMsg0(m, local) {
   }
   if (m.t !== "st") return;
   PS.st = m;
-  if (!local && !PS.pid) return;            // not (yet) a member of this room
+  if (!local && !PS.pid) { sendHello(); return; }   // wait for membership (including after a finished race)
   if (!local && !m.pl.some((x) => x[0] === PS.pid)) { PS.pid = 0; sendHello(); return; }
   clearBanner();
   if (m.race !== PS.race) { PS.race = m.race; PS.recorded = {}; PS.sessionStart = now(); }
@@ -736,7 +769,7 @@ function raceScreen(m, projector) {
       body = `${trackWrap}
         <div class="card pq" id="pq" translate="no"><div style="display:flex;align-items:center;gap:18px;direction:ltr">${timerHTML(92, 10, 38)}
           <div style="flex:1;min-width:0"><div class="en qlead" style="font-size:22px" id="qLead"></div><div class="en qtext" id="qText" style="font-size:40px"></div></div><span id="qMeta"></span></div>
-          <div class="answers" id="answers" style="margin-top:12px"></div></div>
+          <div class="answers" id="answers" style="margin-top:12px"></div>${skipBtnHTML(true)}</div>
         <div class="card ansd" id="ansd"><div style="font:800 20px var(--ui)" id="ansN"></div><div class="dotsp" id="dotsp"></div></div>
         ${musicBtn("position:absolute;right:24px;bottom:84px;z-index:1500")}${exitBtn("position:absolute;right:90px;bottom:84px;z-index:1500")}
         <div class="hud" style="position:absolute;right:24px;bottom:24px;font-size:20px;z-index:1500">${ico("projector", 22, 2.6, "#ff4f8b")}<span>מצב הצגה · עונים בטלפון</span></div>`;
@@ -754,15 +787,19 @@ function raceScreen(m, projector) {
         <div class="panel" id="panel">
           <div class="qrow"><div class="qbox card" translate="no">${qhead}<div class="qlead en" id="qLead"></div><div class="qtext en" id="qText"></div></div>${MOBILE ? "" : timerHTML(128, 13, 50)}</div>
           <div class="answers" id="answers" translate="no"></div>
+          ${skipBtnHTML(false)}
         </div>`;
     }
-    stage.innerHTML = `<section class="scr on" id="s-race" style="${MOBILE ? "background:#5cc43f" : ""}">${body}</section>`;
-    if (MOBILE) { const pn = $("#panel"); pn.style.top = (trackH - 8) + "px"; pn.style.borderTop = "4px solid var(--ink)"; pn.style.display = "flex"; pn.style.flexDirection = "column"; }
+    const dockOn = !!H && JOINDOCK_ON;
+    stage.innerHTML = `<section class="scr on${projector ? " proj" : ""}${dockOn ? " has-jdock" : ""}" id="s-race" style="${MOBILE ? "background:#5cc43f" : ""}">${body}${H ? joinDockHTML() : ""}</section>`;
+    if (MOBILE) { const pn = $("#panel"); if (pn) { pn.style.top = (trackH - 8) + "px"; pn.style.borderTop = "4px solid var(--ink)"; pn.style.display = "flex"; pn.style.flexDirection = "column"; } }
     raceUpdate(m, projector);
   });
   clearInterval(TIMER_IV); TIMER_IV = setInterval(updateTimer, 200);
 }
 function placeRunners(m) {
+  const need = Math.max(4, m.pl.length, ...m.pl.map((p) => p[3] + 1));
+  if (need > RACE.L) { raceScreen(m, RACE.projector); return; }
   const { T, sp, L, projector } = RACE, box = $("#runners"); if (!box) return;
   const meP = m.pl.find((p) => p[0] === PS.pid && !projector);
   const base = Math.min(sp.base, (sp.bw / L) * 0.76), seen = new Set(), wk = Math.round(base);
@@ -824,7 +861,9 @@ function raceUpdate(m, projector) {
   if (m.ph === "count") {
     RACE.cdEnd = now() + m.left;
     if (!cd) { const d = document.createElement("div"); d.id = "countdown"; d.className = "countdown"; d.innerHTML = "<b class='fred'></b>"; $("#s-race").appendChild(d); }
-    tickCountdown(); return;
+    tickCountdown();
+    const bsk = $("#bSkip"); if (bsk) { bsk.classList.add("hidden"); bsk.disabled = true; }
+    return;
   }
   if (cd) cd.remove();
   if (!m.q) return;
@@ -852,15 +891,19 @@ function raceUpdate(m, projector) {
   }
   if (meP) {
     const st = meP[7];
-    if (RACE.picked < 0 && meP[9] >= 0) RACE.picked = meP[9];
-    $$(".ans").forEach((b) => { const i = +b.dataset.a; b.disabled = st > 0 || m.ph !== "q" || RACE.picked >= 0; b.classList.toggle("chosen", i === RACE.picked); });
-    if (st && RACE.fbk !== key + st) { RACE.fbk = key + st; feedback(st === 2 ? "ok" : "no"); if (st === 2) SFX.ok(); else SFX.no(); }
+    if (RACE.picked === -1 && st === 3) RACE.picked = -2;
+    if (RACE.picked === -1 && meP[9] >= 0) RACE.picked = meP[9];
+    $$(".ans").forEach((b) => { const i = +b.dataset.a; b.disabled = st > 0 || m.ph !== "q" || RACE.picked !== -1; b.classList.toggle("chosen", i === RACE.picked && RACE.picked >= 0); });
+    if (st && RACE.fbk !== key + st) { RACE.fbk = key + st; feedback(st === 3 ? "skip" : st === 2 ? "ok" : "no"); if (st === 2) SFX.ok(); else if (st === 1) SFX.no(); }
   }
   if (m.ph === "rev") {
     $$(".ans").forEach((b) => { const i = +b.dataset.a; b.disabled = true; b.classList.toggle("right", i === m.ok); b.classList.toggle("dim", i !== m.ok); });
     if (meP && !meP[7] && RACE.fbk !== key + "r") { RACE.fbk = key + "r"; feedback("late"); SFX.no(); }
     RACE.end = now();
   } else if (m.ph === "q") RACE.end = now() + m.left;
+  { const allow = !m.set || m.set.sk !== false && m.set.sk !== 0;
+    const can = allow && m.ph === "q" && (projector ? !!H : (RACE.picked === -1 && !(meP && meP[7])));
+    const bsk = $("#bSkip"); if (bsk) { bsk.classList.toggle("hidden", !can); bsk.disabled = !can; } }
   if (projector) {
     const on = m.pl.filter((p) => p[6]), done = m.pl.filter((p) => p[7] > 0).length;
     $("#ansN").innerHTML = m.ph === "rev"
@@ -871,10 +914,32 @@ function raceUpdate(m, projector) {
   }
   updateTimer(); popRefresh();
 }
+function skipBtnHTML(projector) {
+  const label = projector ? "דילוג על השאלה" : "דילוג";
+  return `<button class="skipbtn${projector ? " host" : ""} hidden" id="bSkip" type="button" aria-label="דילוג על השאלה" title="דילוג על השאלה">${ico("skip-forward", projector ? 28 : MOBILE ? 26 : 24, 2.6)}<span>${label}</span></button>`;
+}
+function pickSkip() {
+  if (!RACE || RACE.picked !== -1) return;
+  if (RACE.projector && H) {
+    if (H.ph !== "q" || H.set.skip === false) return;
+    SFX.tap(); hostSkipQuestion(); return;
+  }
+  if (!PS.st || PS.st.ph !== "q") return;
+  const allow = !PS.st.set || (PS.st.set.sk !== false && PS.st.set.sk !== 0);
+  if (!allow) return;
+  RACE.picked = -2; SFX.tap();
+  $$(".ans").forEach((b) => { b.disabled = true; });
+  const bsk = $("#bSkip"); if (bsk) { bsk.disabled = true; bsk.classList.add("hidden"); }
+  feedback("skip");
+  const qi = PS.st.qi;
+  if (PS.local && H) hostSkip(H.players.get("host-" + CID), qi);
+  else if (PS.net) { PS.net.send({ t: "skip", qi }); setTimeout(() => { if (RACE && RACE.picked === -2 && PS.st && PS.st.qi === qi && PS.st.ph === "q") { const me = PS.st.pl.find((p) => p[0] === PS.pid); if (me && !me[7]) PS.net.send({ t: "skip", qi }); } }, 1500); }
+}
 function pickAnswer(i) {
-  if (!RACE || RACE.picked >= 0 || !PS.st || PS.st.ph !== "q") return;
+  if (!RACE || RACE.picked !== -1 || !PS.st || PS.st.ph !== "q") return;
   RACE.picked = i; SFX.tap();
   $$(".ans").forEach((b) => { b.disabled = true; b.classList.toggle("chosen", +b.dataset.a === i); });
+  const bsk = $("#bSkip"); if (bsk) { bsk.disabled = true; bsk.classList.add("hidden"); }
   feedback("wait");
   const qi = PS.st.qi;
   if (PS.local && H) hostAnswer(H.players.get("host-" + CID), qi, i);
@@ -883,8 +948,8 @@ function pickAnswer(i) {
 function feedback(kind) {
   let f = $("#fbk");
   if (!f) { f = document.createElement("div"); f.id = "fbk"; ($("#panel") || $("#s-race") || stage).appendChild(f); }
-  const txt = { ok: ico("check", 28, 3.4, "#fff") + "<span>נכון!</span>", no: ico("x", 28, 3.4, "#fff") + "<span>לא נכון</span>", wait: ico("timer", 26, 2.8, "#fff") + "<span>התשובה נשלחה</span>", late: ico("timer", 26, 2.8, "#fff") + "<span>נגמר הזמן</span>" }[kind];
-  f.className = "fbk " + (kind === "ok" ? "ok" : kind === "wait" ? "wait" : "no");
+  const txt = { ok: ico("check", 28, 3.4, "#fff") + "<span>נכון!</span>", no: ico("x", 28, 3.4, "#fff") + "<span>לא נכון</span>", wait: ico("timer", 26, 2.8, "#fff") + "<span>התשובה נשלחה</span>", late: ico("timer", 26, 2.8, "#fff") + "<span>נגמר הזמן</span>", skip: ico("skip-forward", 26, 2.6, "#fff") + "<span>דולג</span>" }[kind];
+  f.className = "fbk " + (kind === "ok" ? "ok" : kind === "wait" ? "wait" : kind === "skip" ? "skip" : "no");
   f.innerHTML = txt;
   const pn = $("#panel");
   if (MOBILE && pn && $("#s-race")) { if (f.parentNode !== $("#s-race")) $("#s-race").appendChild(f); f.classList.add("onedge"); f.style.top = (parseFloat(pn.style.top) - 26) + "px"; }
@@ -915,10 +980,10 @@ function recordAnswer(m) {
     if (!window.EnglishiaAuth || !EnglishiaAuth.user || !m.q) return;
     const key = m.race + ":" + m.qi; if (PS.recorded[key]) return; PS.recorded[key] = 1;
     const meP = m.pl.find((p) => p[0] === PS.pid); if (!meP) return;
-    const q = localize(m.q), given = meP[9] >= 0 ? q.opts[meP[9]] : "";
+    const q = localize(m.q), skipped = meP[7] === 3, given = skipped ? "(skipped)" : (meP[9] >= 0 ? q.opts[meP[9]] : "");
     const prompt = (q.lead + " " + (q.listen ? "(listen) " + (q.speak || "") : String(q.text || "").replace("\u0001", "___"))).slice(0, 200);
     const item = q.type + ":" + String(q.te || (q.oe ? q.oe[m.ok] : "") || q.speak || q.text || "").replace("\u0001", "___").slice(0, 60);
-    EnglishiaAuth.recordAnswer(GAME_ID, { item, topic: q.cat, level: m.set.l, prompt, correct: meP[7] === 2, given: String(given), expected: String(q.opts[m.ok]) });
+    EnglishiaAuth.recordAnswer(GAME_ID, { item, topic: q.cat, level: m.set.l, prompt, correct: meP[7] === 2, given: String(given), expected: String(q.opts[m.ok]), skipped });
   } catch (e) {}
 }
 function recordEnd(m) {
@@ -953,10 +1018,11 @@ function podiumScreen(m, myPid) {
   clearInterval(TIMER_IV); RACE = null;
   show("podium", () => {
     const order = m.pl.slice().sort((a, b) => a[8] - b[8]);
+    const skn = (p) => (p[10] > 0 ? `<span class="skn">${ico("skip-forward", 16, 2.6, "#2f7bff")}<span class="fred">${p[10]}</span> דולגו</span>` : "");
     const block = (p, h, cls, place) => !p ? `<div class="pod ${cls}" style="visibility:hidden"></div>` : `<div class="pod ${cls}"><div class="pod-tag" style="background:${shirt(p[2])}" translate="no">${esc(p[1])}</div><div class="pod-ch">${place === 1 ? `<div class="crown">${ico("crown", 54, 2.6, "#2b2140", "#ffc21a")}</div>` : ""}${front(p[2], p[3] + 1, place === 1 ? 150 : 130, true)}</div>
-      <div class="pod-b" style="height:${h}px"><b class="fred">${place}</b><span><span class="fred">${p[4]}</span> ${W_OK()}</span></div></div>`;
+      <div class="pod-b" style="height:${h}px"><b class="fred">${place}</b><span><span class="fred">${p[4]}</span> ${W_OK()}</span>${skn(p)}</div></div>`;
     const pods = block(order[1], 170, "p2", 2) + block(order[0], 230, "p1", 1) + block(order[2], 126, "p3", 3);
-    const row = (p, cls) => `<div class="rr ${cls}"><b class="rkb">${p[8]}</b><span class="rr-av" style="background:${shirt(p[2])}">${front(p[2], p[3] + 1, 44)}</span><span class="rr-n" translate="no">${esc(p[1])}</span><span class="rr-s"><span class="fred">${p[4]}</span> ${W_OK()}</span></div>`;
+    const row = (p, cls) => `<div class="rr ${cls}"><b class="rkb">${p[8]}</b><span class="rr-av" style="background:${shirt(p[2])}">${front(p[2], p[3] + 1, 44)}</span><span class="rr-n" translate="no">${esc(p[1])}</span><span class="rr-s"><span class="fred">${p[4]}</span> ${W_OK()}${skn(p)}</span></div>`;
     const rest = order.slice(3).map((p) => row(p, p[0] === myPid ? "me" : "")).join("");
     const me = myPid ? order.find((p) => p[0] === myPid) : null;
     stage.innerHTML = `<section class="scr on" id="s-podium">${LOW ? "" : clouds([[90, 120, 140, 0.6], [980, 90, 170, 0.7]])}${confetti(46, 1260, 80, 480)}${musicBtn("position:absolute;left:24px;top:18px;z-index:60")}
@@ -964,7 +1030,7 @@ function podiumScreen(m, myPid) {
       <div class="stage-p">${pods}</div>
       <div class="card restc">
         ${rest ? `<div class="rt">${ico("medal", 26, 2.6, "#ff9a1f")}<span>שאר המשתתפים</span></div><div class="rlist">${rest}</div>` : ""}
-        ${me ? `<div class="muted" style="font:800 22px var(--ui);color:var(--ink)">${ico("trophy", 22, 2.6, "#ff9a1f")}<span>הניקוד שלי:</span> <b class="fred">${me[5]}</b></div>` : ""}
+        ${me ? `<div class="muted" style="font:800 22px var(--ui);color:var(--ink)">${ico("trophy", 22, 2.6, "#ff9a1f")}<span>הניקוד שלי:</span> <b class="fred">${me[5]}</b>${skn(me)}</div>` : ""}
         <div class="muted">${ico("flag", 18, 2.6)}<span>${setSummary({ level: m.set.l, age: m.set.a, n: m.n })}</span></div>
         <button class="btn orange" id="bAgain" style="width:100%;margin-top:16px;font-size:30px">${ico("rotate", 30, 3)}משחק חדש</button>
         ${H ? `<button class="btn blue" id="bEditEnd" style="width:100%;margin-top:12px;font-size:24px">${ico("sliders", 26, 2.8, "#fff")}שינוי הגדרות</button>` : ""}
@@ -982,12 +1048,13 @@ function resultScreen(m) {
     const me = order.find((p) => p[0] === PS.pid) || order[0], place = me[8];
     const col = place === 1 ? "var(--gold)" : place === 2 ? "var(--silver)" : place === 3 ? "var(--bronze)" : "#c9bfe0";
     let list = order.slice(0, 4); if (!list.includes(me)) list = order.slice(0, 3).concat([me]);
-    const rows = list.map((p) => `<div class="rr ${p === me ? "me" : ""}"><b class="rkb rk${p[8]}">${p[8]}</b><span class="rr-av" style="background:${shirt(p[2])}">${front(p[2], p[3] + 1, 36)}</span><span class="rr-n" translate="no">${esc(p[1])}</span>${p === me ? "<span class='rr-s'>(אני)</span>" : ""}<span class="rr-s"><span class="fred">${p[4]}</span> ${W_OK()}</span></div>`).join("");
+    const skn = (p) => (p[10] > 0 ? `<span class="skn">${ico("skip-forward", 14, 2.6, "#2f7bff")}<span class="fred">${p[10]}</span> דולגו</span>` : "");
+    const rows = list.map((p) => `<div class="rr ${p === me ? "me" : ""}"><b class="rkb rk${p[8]}">${p[8]}</b><span class="rr-av" style="background:${shirt(p[2])}">${front(p[2], p[3] + 1, 36)}</span><span class="rr-n" translate="no">${esc(p[1])}</span>${p === me ? "<span class='rr-s'>(אני)</span>" : ""}<span class="rr-s"><span class="fred">${p[4]}</span> ${W_OK()}${skn(p)}</span></div>`).join("");
     const small = MH < 780, listTop = Math.min(410, MH - 168 - list.length * 49 - 16);
     stage.innerHTML = `<section class="scr on" id="s-result">${confetti(22, 380, 60, 270)}${musicBtn("position:absolute;right:12px;top:10px;z-index:60")}
       <div style="position:absolute;top:${small ? 18 : 58}px;left:0;right:0;text-align:center"><div class="mt">סיימת במקום ${place}!</div></div>
       <div class="mres" style="top:${small ? 64 : 112}px"><div style="position:relative">${front(me[2], me[3] + 1, small ? 104 : 132, true)}<div style="position:absolute;right:-10px;top:${small ? 60 : 84}px;width:50px;height:50px;border-radius:50%;background:${col};border:3px solid var(--ink);display:grid;place-items:center">${ico("medal", 30, 2.6, "#2b2140")}</div></div>
-        <div class="mblock" style="background:${col}"><b class="fred">${place}</b><span><span class="fred">${me[4]}</span> נכונות מתוך ${m.n}</span></div></div>
+        <div class="mblock" style="background:${col}"><b class="fred">${place}</b><span><span class="fred">${me[4]}</span> נכונות מתוך ${m.n}</span>${skn(me)}</div></div>
       <div class="card restc" style="top:${listTop}px">${rows}</div>
       <div class="mbtns"><button class="btn orange mbtn" id="bAgain">${ico("rotate", 26, 3)}משחק חדש</button>${H ? `<button class="btn blue mbtn" id="bEditEnd" style="height:54px;font-size:20px">${ico("sliders", 22, 2.8, "#fff")}שינוי הגדרות</button>` : ""}<button class="btn mbtn" id="bMenu" style="height:62px;font-size:22px">${ico("home", 24, 2.8)}חזרה לתפריט</button></div>
     </section>`;
@@ -1130,6 +1197,33 @@ function exitRace() {
   try { if (PS.net) PS.net.send({ t: "leave" }); } catch (e) {}
   LS.set("wr-join", null); homeScreen();
 }
+/* 1.0.5: small join dock on the host / projector during the race (link, room code, QR) */
+let JOINDOCK_ON = LS.get("wr-joindock", true) !== false;
+const joinShown = () => shortAddr().replace(/\/$/, "") + (H && H.code ? "?code=" + H.code : "");
+function makeQR() {
+  let qr = "";
+  try { const q = qrcode(0, "M"); q.addData(joinURL()); q.make(); qr = q.createSvgTag({ cellSize: 4, margin: 0, scalable: true }); } catch (e) {}
+  QRSVG = qr;
+  return qr;
+}
+function joinDockHTML() {
+  if (!H) return "";
+  if (!JOINDOCK_ON) return `<button class="iconbtn jdock-show" id="bJoinDock" aria-pressed="false" aria-label="הצגת קוד ההצטרפות" title="הצגת קוד ההצטרפות">${ico("hash", 26, 2.6)}</button>`;
+  const digits = H.code.slice(0, 3) + " " + H.code.slice(3), qr = makeQR();
+  return `<div class="jdock" id="jdock"><button class="iconbtn jdock-hide" id="bJoinDock" aria-pressed="true" aria-label="הסתרת קוד ההצטרפות" title="הסתרת קוד ההצטרפות">${ico("eye-off", 20, 2.6)}</button>
+    <div class="jdock-qr qrbox" id="qr" role="button" tabindex="0" aria-label="הגדלת קוד ה-QR" title="הגדלת קוד ה-QR">${qr}<span class="qr-zoom">${ico("zoom-in", 16, 2.8, "#fff")}</span></div>
+    <div class="jdock-meta"><div class="jdock-k">${ico("hash", 18, 2.8, "#22b573")}<span class="jdock-code fred en" translate="no" dir="ltr">${digits}</span></div>
+      <div class="jdock-url en" translate="no" dir="ltr">${ico("link", 16, 2.8, "#2f7bff")}<span>${esc(joinShown())}</span></div></div></div>`;
+}
+function joinDockToggle() {
+  JOINDOCK_ON = !JOINDOCK_ON; LS.set("wr-joindock", JOINDOCK_ON);
+  const host = $("#s-race"); if (!host || !H) return;
+  const old = $("#jdock") || $("#bJoinDock");
+  const wrap = document.createElement("div"); wrap.innerHTML = joinDockHTML();
+  if (old) old.replaceWith(wrap.firstElementChild); else host.appendChild(wrap.firstElementChild);
+  host.classList.toggle("has-jdock", JOINDOCK_ON);
+}
+
 /* QR lightbox: same window, closes on click / Esc / X */
 function openQR() {
   if (!H) return;
@@ -1147,7 +1241,7 @@ function openQR() {
   stage.appendChild(el);
   try { $("#qrlbX").focus({ preventScroll: true }); } catch (e) {}
 }
-function closeQR() { const el = $("#qrlb"); if (el) { el.remove(); const q = $("#qr"); if (q && VIEW.name === "lobby") try { q.focus({ preventScroll: true }); } catch (e) {} } }
+function closeQR() { const el = $("#qrlb"); if (el) { el.remove(); const q = $("#qr"); if (q && (VIEW.name === "lobby" || VIEW.name === "race")) try { q.focus({ preventScroll: true }); } catch (e) {} } }
 (function bindHostUI() {
   const pidOf = (t) => +t.dataset.pid;
   stage.addEventListener("click", (e) => {
@@ -1158,6 +1252,8 @@ function closeQR() { const el = $("#qrlb"); if (el) { el.remove(); const q = $("
     const xc = tg.closest("[data-xc]"); if (xc) { if (xc.dataset.xc === "yes") exitRace(); else closeExit(); return; }
     if (tg.classList && tg.classList.contains("xcf")) { closeExit(); return; }
     if (tg.closest("#bMusic")) { musicToggle(); return; }
+    if (tg.closest("#bJoinDock")) { joinDockToggle(); return; }
+    if (tg.closest("#bSkip")) { pickSkip(); return; }
     const qb = tg.closest("#qr"); if (qb) { openQR(); return; }
     const pa = tg.closest("[data-pp]"); if (pa) { popAction(pa.dataset.pp); return; }
     if (tg.closest(".ppop")) return;
@@ -1332,4 +1428,4 @@ fit();
 }
 window.addEventListener("pagehide", () => { try { if (PS.net) PS.net.send({ t: "bye" }); } catch (e) {} });
 // read-only status for the automated tests (nothing here can change a score)
-window.__WR = { get host() { return H ? { code: H.code, ph: H.ph, qi: H.qi, n: H.players.size, status: H.status, ans: [...H.players.values()].map((p) => [p.pid, p.ans[H.qi] ? p.ans[H.qi].a : -1, p.ok]) } : null; }, get player() { return { pid: PS.pid, ph: PS.st && PS.st.ph, qi: PS.st && PS.st.qi, view: VIEW.name }; } };
+window.__WR = { get host() { return H ? { code: H.code, ph: H.ph, qi: H.qi, n: H.players.size, status: H.status, skip: H.set.skip !== false, ans: [...H.players.values()].map((p) => [p.pid, p.ans[H.qi] ? p.ans[H.qi].a : -1, p.ok, p.sk || 0, !!(p.ans[H.qi] && p.ans[H.qi].skip)]) } : null; }, get player() { return { pid: PS.pid, ph: PS.st && PS.st.ph, qi: PS.st && PS.st.qi, view: VIEW.name }; }, get joindock() { return !!(H && JOINDOCK_ON && document.getElementById("jdock")); } };
