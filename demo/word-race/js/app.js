@@ -3,9 +3,10 @@
    © 2026 Amir · Englishia · All rights reserved */
 import { LEVELS, levelOf, AGES, QTYPES, buildRace, publicQ, localize } from "./questions.js";
 
-const VERSION = "1.0.3", GAME_ID = "word-race", MAX_PLAYERS = 30;
+const VERSION = "1.0.4", GAME_ID = "word-race", MAX_PLAYERS = 30;
 const DEMO = /\/demo\//.test(location.pathname);
-const HUB = DEMO ? "../" : "../../";
+/* absolute (from this script's own URL) so the address bar can show /word-race/ without moving the Englishia link */
+const HUB = new URL(DEMO ? "../../" : "../../../", import.meta.url).href;
 const URLP = new URLSearchParams(location.search);
 const LANG = (window.EnglishiaLang && EnglishiaLang.lang) || "he";
 const CHARS = window.WR_CHARS || [];
@@ -55,6 +56,7 @@ const P = {
   "user-x": '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="m17 8 5 5"/><path d="m22 8-5 5"/>',
   music: '<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>',
   "music-off": '<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/><path d="m3 3 18 18"/>',
+  "log-out": '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/>',
   "zoom-in": '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/><path d="M11 8v6"/><path d="M8 11h6"/>',
   image: '<rect x="3" y="3" width="18" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.09-3.09a2 2 0 0 0-2.82 0L6 21"/>'
 };
@@ -165,6 +167,7 @@ if (!/^[a-z0-9]{12}$/.test(CID)) { CID = (Math.random().toString(36).slice(2) + 
 let AC = null;
 function beep(fr, d = 0.12, type = "sine", v = 0.12, delay = 0) {
   if (MUTE) return;
+  muDuck((d + delay) * 1000 + 150);
   try {
     AC = AC || new (window.AudioContext || window.webkitAudioContext)();
     if (AC.state === "suspended") AC.resume().catch(() => {});
@@ -176,11 +179,12 @@ function beep(fr, d = 0.12, type = "sine", v = 0.12, delay = 0) {
 const SFX = {
   tap: () => beep(520, 0.06, "triangle", 0.08), ok: () => { beep(660, 0.1, "triangle"); beep(990, 0.16, "triangle", 0.12, 0.09); },
   no: () => beep(200, 0.25, "sawtooth", 0.06), tick: () => beep(880, 0.05, "square", 0.04), go: () => beep(1180, 0.3, "triangle", 0.14),
-  win: () => [523, 659, 784, 1047].forEach((fr, i) => beep(fr, 0.18, "triangle", 0.12, i * 0.12))
+  win: () => { if (typeof MU !== "undefined" && MU.cur === "win") return; [523, 659, 784, 1047].forEach((fr, i) => beep(fr, 0.18, "triangle", 0.12, i * 0.12)); }
 };
 const CAN_SPEAK = "speechSynthesis" in window && typeof SpeechSynthesisUtterance !== "undefined";
 function speak(text) {
   if (!CAN_SPEAK || !text || MUTE) return;
+  muDuck(2800);
   try {
     speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text); u.lang = "en-US"; u.rate = 0.85;
@@ -213,7 +217,7 @@ function fit() {
   return changed;
 }
 let VIEW = { name: "", render: null };
-function show(name, render) { closePop(); closeQR(); VIEW = { name, render }; render(); stage.scrollTop = 0; stage.scrollLeft = 0; }
+function show(name, render) { closePop(); closeQR(); VIEW = { name, render }; render(); stage.scrollTop = 0; stage.scrollLeft = 0; musicSync(); }
 let rsz = 0;
 window.addEventListener("resize", () => { clearTimeout(rsz); rsz = setTimeout(() => { const ch = fit(); if (VIEW.name === "race") fitAnswers(); if (ch && VIEW.render) { if (VIEW.name === "race" && PS.st) raceScreen(PS.st, RACE && RACE.projector); else VIEW.render(); } }, 120); });
 const T_ = (s) => { try { return window.EnglishiaLang ? EnglishiaLang.t(s) : s; } catch (e) { return s; } };
@@ -368,6 +372,7 @@ function hostRecv(m, cid) {
     hostBroadcast(); hostView();
   } else if (m.t === "ans") hostAnswer(p, m.qi, m.a);
   else if (m.t === "ping") { if (p) { const was = p.on; p.on = true; p.last = now(); if (!was) { hostBroadcast(); hostView(); } } }
+  else if (m.t === "leave") { if (p) { hostDrop(cid); H.net.forget(cid); } }   // player pressed the exit button: gone for good (no ban)
   else if (m.t === "bye" || m.t === "_drop") {
     if (!p) return;
     if (m.t === "bye" && H.ph === "lobby") { H.players.delete(cid); H.net.forget(cid); }
@@ -476,7 +481,7 @@ function lobbyScreen() {
     const present = H.mode === "present";
     stage.innerHTML = `<section class="scr on" id="s-lobby">${LOW ? "" : clouds([[560, 40, 160, 0.7], [1120, 620, 150, 0.5]])}
       <div class="topbar"><div class="tb-r"><button class="iconbtn" id="bBack" aria-label="חזרה">${ico(BACK, 30, 3)}</button>${MOBILE ? "" : logo(46, 7, 5)}
-        <span class="hud" style="font-size:${MOBILE ? 16 : 20}px">${present ? ico("projector", 22, 2.6, "#ff4f8b") + "<span>מצב הצגה</span>" : ico("globe", 22, 2.6, "#2f7bff") + "<span>חדר אונליין</span>"}</span>${netBadge()}${present ? musicBtn() : ""}${MOBILE ? `<button class="iconbtn" id="bEditSet" aria-label="שינוי הגדרות" title="שינוי הגדרות">${ico("sliders", 24, 2.6)}</button>` : ""}</div>
+        <span class="hud" style="font-size:${MOBILE ? 16 : 20}px">${present ? ico("projector", 22, 2.6, "#ff4f8b") + "<span>מצב הצגה</span>" : ico("globe", 22, 2.6, "#2f7bff") + "<span>חדר אונליין</span>"}</span>${netBadge()}${musicBtn()}${MOBILE ? `<button class="iconbtn" id="bEditSet" aria-label="שינוי הגדרות" title="שינוי הגדרות">${ico("sliders", 24, 2.6)}</button>` : ""}</div>
         ${MOBILE ? "" : `<button class="hud hudedit" id="bEditSet" style="font-size:20px" aria-label="שינוי הגדרות" title="שינוי הגדרות">${ico("gauge", 22, 2.6, "#ff9a1f")}<span>${setSummary(H.set)}</span><span class="hudedit-i">${ico("pen", 18, 2.8, "#fff")}</span></button>`}</div>
       <div class="card joincard">
         <div class="jt">הצטרפו למירוץ!</div>
@@ -517,7 +522,7 @@ function leaveAll() {
   if (PS.net) { try { PS.net.send({ t: "bye" }); } catch (e) {} const n = PS.net; setTimeout(() => { try { n.close(); } catch (e) {} }, 300); }
   clearInterval(PS.helloT); clearInterval(PS.pingT); clearInterval(PS.watch); clearTimeout(PS._rc); PS._rc = null;
   Object.assign(PS, { code: "", net: null, pid: 0, st: null, local: false, recorded: {}, race: -1 });
-  if (H) { const n = H.net; try { n && n.broadcast({ t: "closed" }); } catch (e) {} clearInterval(H.timer); clearInterval(H.beat); setTimeout(() => { try { n && n.close(); } catch (e) {} }, 400); H = null; }
+  if (H) { const n = H.net; try { n && n.broadcast({ t: "closed" }); setTimeout(() => { try { n.broadcast({ t: "closed" }); } catch (e) {} }, 200); } catch (e) {} clearInterval(H.timer); clearInterval(H.beat); setTimeout(() => { try { n && n.close(); } catch (e) {} }, 400); H = null; }
   clearInterval(TIMER_IV); RACE = null;
   try { speechSynthesis.cancel(); } catch (e) {}
   musicSync();
@@ -623,14 +628,16 @@ function banner(txt, ms) {
 }
 const clearBanner = () => { const b = $("#banner"); if (b) b.remove(); };
 
-function playerOnMsg(m, local) {
+function playerOnMsg(m, local) { try { playerOnMsg0(m, local); } finally { musicSync(); } }
+function playerOnMsg0(m, local) {
   if (!m || !m.t) return;
   PS.lastMsg = now();
   if (m.t === "you") { PS.pid = m.pid; clearInterval(PS.helloT); clearBanner(); if (PS.st) playerOnMsg(PS.st, false); return; }
-  if (m.t === "kick") { if (!local) kickedScreen(); return; }
-  if (m.t === "late" || m.t === "full" || m.t === "closed") {
+  if (m.t === "kick") { if (!local) noticeScreen("kicked"); return; }
+  if (m.t === "closed") { if (!local && PS.code) noticeScreen("closed"); return; }
+  if (m.t === "late" || m.t === "full") {
     if (local) return;
-    const msg = { late: "המירוץ כבר התחיל. חכו למירוץ הבא", full: "החדר מלא (30 שחקנים)", closed: "החדר נסגר" }[m.t];
+    const msg = { late: "המירוץ כבר התחיל. חכו למירוץ הבא", full: "החדר מלא (30 שחקנים)" }[m.t];
     const code = PS.code; LS.set("wr-join", null); joinScreen(code, T_(msg)); return;
   }
   if (m.t !== "st") return;
@@ -654,7 +661,7 @@ function waitScreen(m, msg) {
   show("wait", () => {
     const code = PS.code;
     stage.innerHTML = `<section class="scr on" id="s-wait">${LOW ? "" : clouds([[24, 110, 100, 0.8], [270, 170, 90, 0.7], [900, 120, 160, 0.6]])}
-      <div class="topbar"><div class="tb-r"><button class="iconbtn" id="bBack" aria-label="יציאה">${ico(BACK, 30, 3)}</button><div class="hud" style="font-size:${MOBILE ? 17 : 20}px"><span>חדר</span> <span class="num en" translate="no">${code.slice(0, 3)} ${code.slice(3)}</span></div></div>${MOBILE ? "" : logo(40, 5, 3)}</div>
+      <div class="topbar"><div class="tb-r"><button class="iconbtn" id="bBack" aria-label="יציאה">${ico(BACK, 30, 3)}</button><div class="hud" style="font-size:${MOBILE ? 17 : 20}px"><span>חדר</span> <span class="num en" translate="no">${code.slice(0, 3)} ${code.slice(3)}</span></div>${musicBtn()}</div>${MOBILE ? "" : logo(40, 5, 3)}</div>
       <div class="wait-t"><div class="title" style="font-size:${MOBILE ? 34 : 48}px" id="waitT">${msg || "ממתינים למורה"}</div><div class="dots3"><i></i><i></i><i></i></div></div>
       <div class="wait-me"><div class="ptag" style="--c:${shirt(PS.ch)};font-size:${MOBILE ? 26 : 32}px" translate="no">${esc(PS.name)}</div>
         <div style="position:relative;margin-top:6px;z-index:2">${front(PS.ch, CHARS.findIndex((c) => c.id === PS.ch) + 1, MOBILE ? 190 : 200, true)}</div><div class="spot"></div></div>
@@ -731,7 +738,7 @@ function raceScreen(m, projector) {
           <div style="flex:1;min-width:0"><div class="en qlead" style="font-size:22px" id="qLead"></div><div class="en qtext" id="qText" style="font-size:40px"></div></div><span id="qMeta"></span></div>
           <div class="answers" id="answers" style="margin-top:12px"></div></div>
         <div class="card ansd" id="ansd"><div style="font:800 20px var(--ui)" id="ansN"></div><div class="dotsp" id="dotsp"></div></div>
-        ${musicBtn("position:absolute;right:24px;bottom:84px;z-index:1500")}
+        ${musicBtn("position:absolute;right:24px;bottom:84px;z-index:1500")}${exitBtn("position:absolute;right:90px;bottom:84px;z-index:1500")}
         <div class="hud" style="position:absolute;right:24px;bottom:24px;font-size:20px;z-index:1500">${ico("projector", 22, 2.6, "#ff4f8b")}<span>מצב הצגה · עונים בטלפון</span></div>`;
     } else {
       const qhead = MOBILE ? `<div class="qhead">${timerHTML(46, 6, 20)}<span class="qmeta" id="qMeta"></span></div>` : `<div class="qmeta" id="qMeta"></div>`;
@@ -742,6 +749,7 @@ function raceScreen(m, projector) {
           <div class="hud" style="${hs}"><span class="fred" style="font-weight:600">שאלה</span><span class="num" style="font-size:${MOBILE ? 22 : 28}px" id="hQ">1</span><span style="opacity:.6">/ ${m.n}</span></div>
           <div class="hud dark" style="${hs}">${ico("trophy", MOBILE ? 20 : 24, 2.6, "#ffc21a")}<span>${MOBILE ? "מקום" : "אני במקום"}</span><span class="num" style="font-size:${MOBILE ? 22 : 28}px;color:#ffc21a" id="hR">1</span></div>
         </div>
+        <div class="racetools">${musicBtn()}${exitBtn()}</div>
         ${MOBILE ? "" : `<div class="card lb" id="lb"><div class="lbt">${ico("flag", 20, 2.8)}<span>מיקומים</span></div><div id="lbRows"></div></div>`}
         <div class="panel" id="panel">
           <div class="qrow"><div class="qbox card" translate="no">${qhead}<div class="qlead en" id="qLead"></div><div class="qtext en" id="qText"></div></div>${MOBILE ? "" : timerHTML(128, 13, 50)}</div>
@@ -951,7 +959,7 @@ function podiumScreen(m, myPid) {
     const row = (p, cls) => `<div class="rr ${cls}"><b class="rkb">${p[8]}</b><span class="rr-av" style="background:${shirt(p[2])}">${front(p[2], p[3] + 1, 44)}</span><span class="rr-n" translate="no">${esc(p[1])}</span><span class="rr-s"><span class="fred">${p[4]}</span> ${W_OK()}</span></div>`;
     const rest = order.slice(3).map((p) => row(p, p[0] === myPid ? "me" : "")).join("");
     const me = myPid ? order.find((p) => p[0] === myPid) : null;
-    stage.innerHTML = `<section class="scr on" id="s-podium">${LOW ? "" : clouds([[90, 120, 140, 0.6], [980, 90, 170, 0.7]])}${confetti(46, 1260, 80, 480)}${H && H.mode === "present" ? musicBtn("position:absolute;left:24px;top:18px;z-index:60") : ""}
+    stage.innerHTML = `<section class="scr on" id="s-podium">${LOW ? "" : clouds([[90, 120, 140, 0.6], [980, 90, 170, 0.7]])}${confetti(46, 1260, 80, 480)}${musicBtn("position:absolute;left:24px;top:18px;z-index:60")}
       <div class="topbar" style="justify-content:center;top:10px"><div class="title" style="font-size:58px;-webkit-text-stroke:10px var(--ink);text-shadow:0 7px 0 var(--ink)">${me ? `סיימת במקום ${me[8]}!` : "המירוץ הסתיים!"}</div></div>
       <div class="stage-p">${pods}</div>
       <div class="card restc">
@@ -976,7 +984,7 @@ function resultScreen(m) {
     let list = order.slice(0, 4); if (!list.includes(me)) list = order.slice(0, 3).concat([me]);
     const rows = list.map((p) => `<div class="rr ${p === me ? "me" : ""}"><b class="rkb rk${p[8]}">${p[8]}</b><span class="rr-av" style="background:${shirt(p[2])}">${front(p[2], p[3] + 1, 36)}</span><span class="rr-n" translate="no">${esc(p[1])}</span>${p === me ? "<span class='rr-s'>(אני)</span>" : ""}<span class="rr-s"><span class="fred">${p[4]}</span> ${W_OK()}</span></div>`).join("");
     const small = MH < 780, listTop = Math.min(410, MH - 168 - list.length * 49 - 16);
-    stage.innerHTML = `<section class="scr on" id="s-result">${confetti(22, 380, 60, 270)}
+    stage.innerHTML = `<section class="scr on" id="s-result">${confetti(22, 380, 60, 270)}${musicBtn("position:absolute;right:12px;top:10px;z-index:60")}
       <div style="position:absolute;top:${small ? 18 : 58}px;left:0;right:0;text-align:center"><div class="mt">סיימת במקום ${place}!</div></div>
       <div class="mres" style="top:${small ? 64 : 112}px"><div style="position:relative">${front(me[2], me[3] + 1, small ? 104 : 132, true)}<div style="position:absolute;right:-10px;top:${small ? 60 : 84}px;width:50px;height:50px;border-radius:50%;background:${col};border:3px solid var(--ink);display:grid;place-items:center">${ico("medal", 30, 2.6, "#2b2140")}</div></div>
         <div class="mblock" style="background:${col}"><b class="fred">${place}</b><span><span class="fred">${me[4]}</span> נכונות מתוך ${m.n}</span></div></div>
@@ -1072,27 +1080,55 @@ function hostKick(cid) {
   H.banned.add(cid);
   try { H.net.send(cid, { t: "kick" }); } catch (e) {}
   const net = H.net; setTimeout(() => { try { net.forget(cid); } catch (e) {} }, 1500);
+  return hostDrop(cid);
+}
+/* remove a player from the room (kick, or the player left): counts, track, leaderboard and "answered X of N" follow */
+function hostDrop(cid) {
+  if (!H) return false;
+  const p = H.players.get(cid); if (!p || p.local) return false;
+  if (H.ph === "end") { p.on = false; hostBroadcast(); hostView(); return true; }   // results are final
   H.players.delete(cid);
-  if (H.ph !== "lobby" && H.ph !== "end") {
+  if (H.ph !== "lobby") {
     if (!H.players.size) { hostRematch(); return true; }
     if (H.ph === "q" && [...H.players.values()].some((x) => x.on || x.local) && [...H.players.values()].filter((x) => x.on || x.local).every((x) => x.ans[H.qi])) H.phEnd = Math.min(H.phEnd, now() + 800);
   }
   hostBroadcast(); hostView(); popRefresh();
   return true;
 }
-/* what a removed player sees */
-function kickedScreen() {
+/* what a removed player sees (kicked) / what everyone sees when the host closes the room (closed). No music here. */
+function noticeScreen(kind) {
   leaveAll(); LS.set("wr-join", null);
-  show("kicked", () => {
+  const kicked = kind === "kicked";
+  show(kind, () => {
     stage.innerHTML = `<section class="scr on" id="s-kicked">${LOW ? "" : clouds([[80, 120, 150, 0.6], [900, 90, 140, 0.6]])}
       <div class="topbar"><div class="tb-r"><a class="pillbtn" id="bHub" href="${HUB}" title="חזרה לאינגלישיה">${ico("home", 24, 2.6)}<span class="fred" translate="no">Englishia</span></a></div>${MOBILE ? "" : logo(40, 5, 3)}</div>
-      <div class="card kickc" role="alert"><div class="kick-ic">${ico("user-x", MOBILE ? 48 : 72, 2.6, "#fff")}</div>
-        <div class="kick-t">הוצאת מהמשחק על ידי המורה</div><div class="kick-s">אפשר לחזור לתפריט.</div>
+      <div class="card kickc" role="alert"><div class="kick-ic">${ico(kicked ? "user-x" : "log-out", MOBILE ? 48 : 72, 2.6, "#fff")}</div>
+        <div class="kick-t">${kicked ? "הוצאת מהמשחק על ידי המורה" : "המורה סגר/ה את החדר"}</div><div class="kick-s">אפשר לחזור לתפריט.</div>
         <button class="btn orange kick-b" id="bKMenu">${ico("home", 28, 3)}חזרה לתפריט</button></div>
       ${credit()}
     </section>`;
     $("#bKMenu").onclick = () => homeScreen();
   });
+}
+/* exit during the race: a player leaves; the host/creator closes the room for everyone (both ask first) */
+const exitBtn = (style) => `<button class="iconbtn exitbtn" id="bExit" style="${style || ""}" aria-label="יציאה מהמירוץ" title="יציאה מהמירוץ">${ico("log-out", 26, 2.8)}</button>`;
+function openExit() {
+  if ($("#xcf")) return;
+  closePop(); closeQR();
+  const host = !!H, el = document.createElement("div");
+  el.id = "xcf"; el.className = "xcf"; el.setAttribute("role", "alertdialog"); el.setAttribute("aria-modal", "true");
+  el.innerHTML = `<div class="xcf-card"><div class="xcf-ic">${ico("log-out", MOBILE ? 36 : 52, 2.8, "#fff")}</div>
+    <div class="xcf-t">${host ? "לסגור את החדר לכולם?" : "לצאת מהמירוץ?"}</div>${host ? `<div class="xcf-s">כל השחקנים יחזרו לתפריט.</div>` : ""}
+    <div class="xcf-b"><button class="btn red" data-xc="yes">${host ? "כן, לסגור את החדר" : "כן, לצאת"}</button><button class="btn" data-xc="no">${host ? "המשך במירוץ" : "ביטול"}</button></div></div>`;
+  stage.appendChild(el);
+  try { $('[data-xc="no"]', el).focus({ preventScroll: true }); } catch (e) {}
+}
+function closeExit() { const el = $("#xcf"); if (el) el.remove(); }
+function exitRace() {
+  closeExit();
+  if (H) { homeScreen(); return; }                       // host / creator: closes the room, everyone gets "המורה סגר/ה את החדר"
+  try { if (PS.net) PS.net.send({ t: "leave" }); } catch (e) {}
+  LS.set("wr-join", null); homeScreen();
 }
 /* QR lightbox: same window, closes on click / Esc / X */
 function openQR() {
@@ -1118,6 +1154,9 @@ function closeQR() { const el = $("#qrlb"); if (el) { el.remove(); const q = $("
     const tg = e.target;
     if (!tg.closest) return;
     if (tg.closest("#qrlb")) return;
+    if (tg.closest("#bExit")) { openExit(); return; }
+    const xc = tg.closest("[data-xc]"); if (xc) { if (xc.dataset.xc === "yes") exitRace(); else closeExit(); return; }
+    if (tg.classList && tg.classList.contains("xcf")) { closeExit(); return; }
     if (tg.closest("#bMusic")) { musicToggle(); return; }
     const qb = tg.closest("#qr"); if (qb) { openQR(); return; }
     const pa = tg.closest("[data-pp]"); if (pa) { popAction(pa.dataset.pp); return; }
@@ -1140,19 +1179,25 @@ function closeQR() { const el = $("#qrlb"); if (el) { el.remove(); const q = $("
     const t = e.target.closest("[data-pid]"), to = e.relatedTarget && e.relatedTarget.closest ? e.relatedTarget.closest("[data-pid]") : null;
     if (t && t !== to) closePop();
   });
-  document.addEventListener("keydown", (e) => { if (e.key === "Escape") { if ($("#qrlb")) closeQR(); else closePop(); } });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") { if ($("#xcf")) closeExit(); else if ($("#qrlb")) closeQR(); else closePop(); } });
 })();
 
 /* ================= 1.0.3: host-screen music (original loops, generated live with WebAudio — no audio files) =================
-   Plays only on the projector (present-mode host screen), never on players' phones. Starts after the first tap/key.
+   1.0.4: every device (projector, creator, players' phones) plays its own music, each with its own toggle. Starts after the first tap/key.
    Lobby: relaxed bouncy loop · race: faster driving loop (speeds up in the last third) · results: short victory jingle.
    Off when the game's sound is muted or the music button is off (remembered in localStorage). Kept well below the SFX. */
 let MUSIC_ON = LS.get("wr-music", true) !== false;
-const MU = { cur: "", key: "", step: 0, next: 0, tempo: 1, g: null, an: null, iv: 0, gest: false, noise: null };
+/* briefly lower the music under a sound effect / spoken word so they never fight */
+function muDuck(ms) {
+  if (typeof MU === "undefined" || !MU.d || !AC || !MU.cur) return;
+  try { const t = AC.currentTime, g = MU.d.gain; g.cancelScheduledValues(t); g.setValueAtTime(g.value, t); g.linearRampToValueAtTime(0.4, t + 0.04); g.setValueAtTime(0.4, t + ms / 1000); g.linearRampToValueAtTime(1, t + ms / 1000 + 0.3); } catch (e) {}
+}
+const MU = { cur: "", key: "", base: 0.5, d: null, step: 0, next: 0, tempo: 1, g: null, an: null, iv: 0, gest: false, noise: null };
 const mtof = (n) => 440 * Math.pow(2, (n - 69) / 12);
 const musicActive = () => MUSIC_ON && !MUTE;
 const musicBtn = (style) => `<button class="iconbtn musicbtn ${musicActive() ? "" : "off"}" id="bMusic" style="${style || ""}" aria-pressed="${musicActive()}" aria-label="מוזיקת רקע" title="מוזיקת רקע">${ico(musicActive() ? "music" : "music-off", 28, 2.6)}</button>`;
-function musicBtnRefresh() { const b = $("#bMusic"); if (!b) return; b.classList.toggle("off", !musicActive()); b.setAttribute("aria-pressed", String(musicActive())); b.innerHTML = ico(musicActive() ? "music" : "music-off", 28, 2.6); }
+function musicBtnRefresh() { $$("#bMusic").forEach(musicBtnFix); }
+function musicBtnFix(b) { b.classList.toggle("off", !musicActive()); b.setAttribute("aria-pressed", String(musicActive())); b.innerHTML = ico(musicActive() ? "music" : "music-off", 28, 2.6); }
 function musicToggle() {
   if (MUTE) { MUTE = false; MUSIC_ON = true; LS.set("wr-mute", false); } else MUSIC_ON = !MUSIC_ON;
   LS.set("wr-music", MUSIC_ON); musicBtnRefresh(); musicSync(); if (musicActive()) SFX.tap();
@@ -1234,24 +1279,39 @@ function muStart(kind, key) {
   if (!muCtx()) return;
   muStop(0.2);
   const g = AC.createGain(), t = AC.currentTime;
-  g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.5, t + 0.4);   // overall music level: moderate, under the SFX
-  g.connect(AC.destination);
-  if (!MU.an) { MU.an = AC.createAnalyser(); MU.an.fftSize = 512; }
-  g.connect(MU.an);
+  g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(MU.base || 0.5, t + 0.4);   // overall music level: moderate, under the SFX
+  if (!MU.d) { MU.d = AC.createGain(); MU.d.connect(AC.destination); MU.an = AC.createAnalyser(); MU.an.fftSize = 512; MU.d.connect(MU.an); }
+  g.connect(MU.d);
   MU.g = g; MU.cur = kind; MU.key = key; MU.step = 0; MU.next = t + 0.08;
-  if (kind === "win") { g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(0.5, t); muJingle(t + 0.05); return; }
+  if (kind === "win") { g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(MU.base || 0.5, t); muJingle(t + 0.05); return; }
   muSched(); MU.iv = setInterval(muSched, 90);
 }
 /* decide what the host screen should be playing right now (called on every room state change) */
+/* what this device should be hearing: the room state it is looking at (host: its own table; player: the last state it got) */
+function musicState() {
+  if (!musicActive() || document.visibilityState === "hidden") return null;
+  const v = VIEW.name; let st = null;
+  if (H) {
+    if (H.mode === "online" && ![...H.players.values()].some((p) => p.local)) return null;   // creator still picking a runner
+    st = { ph: H.ph, race: H.race, qi: H.qi, n: H.set.n };
+  } else if (PS.code && PS.pid && PS.st) st = { ph: PS.st.ph, race: PS.st.race, qi: PS.st.qi, n: PS.st.n };
+  if (!st) return null;
+  if (st.ph === "lobby") return v === "wait" || v === "lobby" || (v === "settings" && H && H.editing) ? st : null;
+  if (st.ph === "q" || st.ph === "rev") return v === "race" ? st : null;
+  if (st.ph === "end") return v === "podium" ? st : null;
+  return null;   // countdown, kicked / closed screens, menu, join, runner pick: silent
+}
 function musicSync() {
   let kind = "", key = "";
-  if (H && H.mode === "present" && musicActive() && document.visibilityState !== "hidden") {
-    if (H.ph === "lobby") kind = "lobby"; else if (H.ph === "q" || H.ph === "rev") kind = "race"; else if (H.ph === "end") kind = "win";
-    key = kind === "win" ? "win" + H.race : kind;
+  const st = musicState();
+  if (st) {
+    if (st.ph === "lobby") kind = "lobby"; else if (st.ph === "q" || st.ph === "rev") kind = "race"; else if (st.ph === "end") kind = "win";
+    key = kind === "win" ? "win" + st.race : kind;
   }
   if (!kind) { if (MU.cur || MU.key) muStop(0.3); return; }
-  if (kind === "race") { const f = (H.qi + 1) / Math.max(1, H.set.n); MU.tempo = H.qi + 1 >= H.set.n ? 1.25 : f >= 0.7 ? 1.12 : 1; } else MU.tempo = 1;
+  if (kind === "race") { const f = (st.qi + 1) / Math.max(1, st.n); MU.tempo = st.qi + 1 >= st.n ? 1.25 : f >= 0.7 ? 1.12 : 1; } else MU.tempo = 1;
   if (!MU.gest || key === MU.key) return;
+  MU.base = H && H.mode === "present" ? 0.5 : 0.36;   // phones / creator devices a little softer than the projector
   muStart(kind, key);
 }
 ["pointerdown", "keydown", "touchend", "click"].forEach((ev) => document.addEventListener(ev, () => {
