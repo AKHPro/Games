@@ -2,9 +2,9 @@
    runner's physics, and smooths the other runners from the host's snapshots (interpolation with
    dead-reckoning, so slow links still look smooth). Light by design: one background image per tile,
    pre-rendered bubbles and name tags, 30 fps and 1x pixels in low graphics. © 2026 Amir · Englishia */
-import { VIEW_TOP, VIEW_H, TILE, PHYS, step } from "./level.js?v=1.1.1";
-import { disp } from "./grammar.js?v=1.1.1";
-import { RUN_FRAMES } from "./frames.js?v=1.1.1";
+import { VIEW_TOP, VIEW_H, TILE, PHYS, step } from "./level.js?v=1.2";
+import { disp } from "./grammar.js?v=1.2";
+import { RUN_FRAMES } from "./frames.js?v=1.2";
 
 export const CHAR_COLORS = {
   zik: ["#ffd84a", "#ffb800", "#b97f00"], gal: ["#5cb2ff", "#1f6fff", "#1449b5"], ale: ["#52e08a", "#14b05a", "#0b7a3c"],
@@ -48,7 +48,7 @@ export function createGame(canvas, o) {
   const G = {
     L: o.level, low: !!o.low, projector: !!o.projector, myPid: o.myPid || 0, players: o.players, // Map pid -> {name, ch, rank}
     me: null, remote: new Map(), got: new Set(), fx: [], items: [], t0: 0, running: false, finAt: 0,
-    k: 1, W: 0, H: 0, dpr: 1, camX: 0, eff: {}, held: null, onCollect: o.onCollect || (() => true), onFinish: o.onFinish || (() => {}),
+    watch: 0, focusPid: 0, leadPid: 0, shown: [], k: 1, W: 0, H: 0, dpr: 1, camX: 0, eff: {}, held: null, onCollect: o.onCollect || (() => true), onFinish: o.onFinish || (() => {}),
     canCollect: o.canCollect || (() => true), qb: null, qbs: new Map(), buf: 0, coyote: 0, startAt: 0, stopped: false, tick: 0, speed: o.speed || 255
   };
   const L = G.L;
@@ -150,8 +150,8 @@ export function createGame(canvas, o) {
     c.beginPath(); c.moveTo(-26, -16); c.lineTo(4, -16); c.lineTo(4, -32); c.lineTo(34, 0); c.lineTo(4, 32); c.lineTo(4, 16); c.lineTo(-26, 16); c.closePath(); c.stroke(); c.fill();
     c.restore();
   }
-  function tagCanvas(p, me) {
-    const key = "t" + p.name + "|" + p.rank + "|" + p.ch + (me ? "m" : "");
+  function tagCanvas(p, me, watched) {
+    const key = "t" + p.name + "|" + p.rank + "|" + p.ch + (me ? "m" : "") + (watched ? "w" : "");
     let cv = cache.get(key); if (cv) return cv;
     const s = G.k, [c1, c2, cd] = CHAR_COLORS[p.ch] || CHAR_COLORS.zik;
     const c0 = document.createElement("canvas").getContext("2d");
@@ -181,6 +181,7 @@ export function createGame(canvas, o) {
       c.fillStyle = "#fff"; rr(c, ex, 5, meW, h - 10, (h - 10) / 2); c.fill();
       c.fillStyle = "#1d2350"; c.textAlign = "center"; c.fillText(meTxt, ex + meW / 2, h / 2 + 1);
     }
+    if (watched) { c.lineWidth = 3.5; c.strokeStyle = "#fff"; rr(c, -1, -1, w + 2, h + 2, (h + 2) / 2); c.stroke(); c.lineWidth = 2; c.strokeStyle = "#ff7a00"; rr(c, -3, -3, w + 6, h + 6, (h + 6) / 2); c.stroke(); }
     cv._w = w + 4; cv._h = h + 14; cache.set(key, cv); return cv;
   }
 
@@ -341,7 +342,15 @@ export function createGame(canvas, o) {
     for (const R of G.remote.values()) remotePos(R, now, dt);
     // camera
     let fx;
-    if (G.projector) { let lead = -1e9; for (const R of G.remote.values()) lead = Math.max(lead, R.dx); fx = lead === -1e9 ? L.start : Math.min(lead, L.finish + 200) - G.vw * 0.62; }
+    if (G.projector) {
+      // 1.2: auto = follow the runner in front; or follow the player the teacher picked (G.watch = pid)
+      let lead = -1e9, lp = 0; for (const [pid, R] of G.remote) if (R.dx > lead) { lead = R.dx; lp = pid; }
+      G.leadPid = lp;
+      const W = G.watch && G.remote.get(G.watch);
+      G.focusPid = W ? G.watch : lp;
+      if (W) fx = Math.min(W.dx, L.finish + 200) - G.vw * 0.5;
+      else fx = lead === -1e9 ? L.start : Math.min(lead, L.finish + 200) - G.vw * 0.62;
+    }
     else fx = me.x - G.vw * (G.W < G.H ? 0.25 : 0.3);
     fx = Math.max(-200, fx);
     G.camX += (fx - G.camX) * Math.min(1, dt * (G.projector ? 3 : 10));
@@ -402,7 +411,18 @@ export function createGame(canvas, o) {
     for (const [pid, R] of G.remote) { const p = G.players.get(pid); if (p && R.s.length) { R.vy = (R.vy || 0) * 0.7 + ((R.dy - (R.py == null ? R.dy : R.py)) * 60) * 0.3; R.py = R.dy; R.vxe = (R.vxe || 0) * 0.8 + ((R.dx - (R.px == null ? R.dx : R.px)) * 60) * 0.2; R.px = R.dx; list.push([pid, R.dx, R.dy, R.f, p, 0, R.vy, (R.f & F.walk) ? (R.f & F.left ? -1 : 1) * Math.max(60, Math.abs(R.vxe)) : 0]); } }
     if (G.me) { const p = G.players.get(G.myPid) || { name: "", ch: o.myCh || "zik", rank: 0 }; list.push([G.myPid, G.me.x, G.me.y, G.flags(), p, 1, G.me.vy, G.me.vx]); }
     for (const it of list) drawRunner(c, it, t);
-    for (const it of list) { if (it[1] < x0 - 100 || it[1] > x1 + 100) continue; const cv = tagCanvas(it[4], !!it[5]); c.drawImage(cv, it[1] - cv._w / 2, it[2] - 150, cv._w, cv._h); }
+    G.shown = [];
+    for (const it of list) {
+      if (it[1] < x0 - 100 || it[1] > x1 + 100) continue;
+      const wt = G.projector && G.watch && it[0] === G.watch, cv = tagCanvas(it[4], !!it[5], wt);
+      c.drawImage(cv, it[1] - cv._w / 2, it[2] - 150, cv._w, cv._h); G.shown.push([it[0], it[1], it[2], cv._w]);
+      if (wt) {   // who is being watched: a bouncing arrow over the name tag + a soft ring under the feet
+        const bob = Math.sin(t * 5) * 5, ax = it[1], ay = it[2] - 150 - 10 + bob;
+        c.save(); c.fillStyle = "#ff7a00"; c.strokeStyle = "#fff"; c.lineWidth = 4; c.lineJoin = "round";
+        c.beginPath(); c.moveTo(ax - 17, ay - 26); c.lineTo(ax + 17, ay - 26); c.lineTo(ax, ay - 2); c.closePath(); c.stroke(); c.fill();
+        c.globalAlpha = 0.55 + 0.25 * Math.sin(t * 5); c.strokeStyle = "#ffd23a"; c.lineWidth = 6; c.beginPath(); c.ellipse(it[1], it[2] + 4, 46, 12, 0, 0, 7); c.stroke(); c.restore();
+      }
+    }
     // fx
     G.fx = G.fx.filter((e) => t - e.t < 1.25);
     for (const e of G.fx) drawFx(c, e, t);
@@ -545,6 +565,17 @@ export function createGame(canvas, o) {
   G.stop = function () { G.running = false; cancelAnimationFrame(raf); raf = 0; };
   G.progress = function (x) { return Math.max(0, Math.min(1, (x - L.start) / (L.finish - L.start))); };
   G.posOf = posOf;
+  /* 1.2: which runner is at this screen point (projector: tap a runner or its name tag to watch / see details) */
+  G.pickAt = function (sx, sy) {
+    const wx = sx / G.k + G.camX, wy = (sy - G.oy) / G.k + VIEW_TOP;
+    let best = 0, bd = 1e9;
+    for (const [pid, x, y, w] of G.shown) {
+      if (pid === G.myPid) continue;
+      const hw = Math.max(46, w / 2 + 6);
+      if (Math.abs(wx - x) < hw && wy > y - 190 && wy < y + 14) { const d = Math.abs(wx - x); if (d < bd) { bd = d; best = pid; } }
+    }
+    return best;
+  };
   G.resize();
   return G;
 }

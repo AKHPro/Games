@@ -1,7 +1,7 @@
 /* Sentence Sprint 1.1 — the level: three floors built from Imagina's level art (bg tile 1280x720,
    every second tile mirrored so the seams match), word bubbles placed from a seed so every device
    builds the same track without sending it. © 2026 Amir · Englishia */
-import { makeGenerator, wordPool, LENS, GEN, rng } from "./grammar.js?v=1.1.1";
+import { makeGenerator, wordPool, LENS, GEN, rng } from "./grammar.js?v=1.2";
 
 export const TILE = 1280;
 export const VIEW_TOP = -80, VIEW_H = 720;           // world rows shown on screen (as in the mockup)

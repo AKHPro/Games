@@ -1,4 +1,4 @@
-/* Sentence Sprint 1.1.1 — sentence checker, generator and "why is it wrong" hints.
+/* Sentence Sprint 1.2 — sentence checker, generator and "why is it wrong" hints.
    ANY grammatical English sentence built from the game's word set counts: there is no target sentence.
    A small feature grammar (subject–verb agreement, a/an, count/mass nouns, transitivity, object classes,
    tense-matching time words) parses the player's word sequence. The same grammar generates the sentences

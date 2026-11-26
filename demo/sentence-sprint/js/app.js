@@ -1,14 +1,16 @@
-/* Sentence Sprint 1.1.1 · ספרינט המשפטים — online, real-time multiplayer platformer for building English sentences.
+/* Sentence Sprint 1.2 · ספרינט המשפטים — online, real-time multiplayer platformer for building English sentences.
    1.1: three game modes (room setting): Sentence Building, Balloons (questions) and Translation.
+   1.2: host tools like Word Race — bigger QR lightbox, tap a player (details / watch / remove), join dock during the race, exit button,
+   music on every device (per-device mute), skip question, late joiners; ranking and badges follow the race position (not points).
    Rooms work like Word Race: online room or presentation mode (code + QR on the projector), host-authoritative
    over the same PeerJS / signaling relay / ntfy transport (net.js). Each device runs its own runner; the host
    checks sentences, gives points and power-ups, aims attacks at the player directly ahead and relays positions.
    © 2026 Amir · Englishia · All rights reserved */
-import { check, pretty, disp, gloss, knownWord, GEN, LENS, findOrder, diagnose } from "./grammar.js?v=1.1.1";
-import { buildLevel } from "./level.js?v=1.1.1";
-import { createGame, loadImages, img, PU, PU_KEYS, DUR, F, CHAR_COLORS } from "./game.js?v=1.1.1";
+import { check, pretty, disp, gloss, knownWord, GEN, LENS, findOrder, diagnose } from "./grammar.js?v=1.2";
+import { buildLevel } from "./level.js?v=1.2";
+import { createGame, loadImages, img, PU, PU_KEYS, DUR, F, CHAR_COLORS } from "./game.js?v=1.2";
 
-const VERSION = "1.1.1", GAME_ID = "sentence-sprint", MAX_PLAYERS = 30;
+const VERSION = "1.2", GAME_ID = "sentence-sprint", MAX_PLAYERS = 30;
 const DEMO = /\/demo\//.test(location.pathname);
 const HUB = DEMO ? "../" : "../../";
 const URLP = new URLSearchParams(location.search);
@@ -63,6 +65,15 @@ const P = {
   balloon: '<path d="M12 16c-3.3 0-6-3.1-6-7a6 6 0 0 1 12 0c0 3.9-2.7 7-6 7z"/><path d="m12 16-1.6 2.2h3.2z"/><path d="M12 18.2c0 1.8-1.6 2.2-1.6 3.8"/>',
   languages: '<path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/>',
   layers: '<path d="m12 2 10 5-10 5L2 7z"/><path d="m2 17 10 5 10-5"/><path d="m2 12 10 5 10-5"/>',
+  "user-x": '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="m17 8 5 5"/><path d="m22 8-5 5"/>',
+  music: '<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>',
+  "music-off": '<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/><path d="m3 3 18 18"/>',
+  "log-out": '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/>',
+  "zoom-in": '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/><path d="M11 8v6"/><path d="M8 11h6"/>',
+  eye: '<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>',
+  "eye-off": '<path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/>',
+  "skip-forward": '<polygon points="5 4 15 12 5 20 5 4"/><line x1="19" x2="19" y1="5" y2="19"/>',
+  info: '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>',
   "phone-rot": '<rect x="2" y="7" width="20" height="10" rx="2"/><path d="M18 12h.01"/>', door: '<path d="M13 4h3a2 2 0 0 1 2 2v14"/><path d="M2 20h3"/><path d="M13 20h9"/><path d="M10 12v.01"/><path d="M13 4.56v16.88a.5.5 0 0 1-.68.47l-6-2.25A2 2 0 0 1 5 17.78V6.22a2 2 0 0 1 1.32-1.88l6-2.25a.5.5 0 0 1 .68.47Z"/>'
 };
 const ico = (n, s = 24, sw = 2.6, c = "currentColor", f = "none") => `<svg class="ico" width="${s}" height="${s}" viewBox="0 0 24 24" fill="${f}" stroke="${c}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${P[n] || ""}</svg>`;
@@ -94,7 +105,7 @@ let QZ = null, QZP = null;
 function ensureQuiz() {
   if (QZ) return Promise.resolve(QZ);
   if (!QZP) QZP = new Promise((res) => { if (window.WD) return res(); const sc = document.createElement("script"); sc.src = "../word-detective/js/data.js"; sc.onload = sc.onerror = () => res(); document.head.appendChild(sc); })
-    .then(() => import("./quiz.js?v=1.1.1")).then((m) => (QZ = m)).catch((e) => { QZP = null; throw e; });
+    .then(() => import("./quiz.js?v=1.2")).then((m) => (QZ = m)).catch((e) => { QZP = null; throw e; });
   return QZP;
 }
 /* points: clearly progressive by length (2 words = 4, each extra word worth more), times level, combo and golden word */
@@ -103,7 +114,7 @@ const comboMul = (c) => (c >= 3 ? 2 : c === 2 ? 1.5 : 1);
 const sentencePts = (n, mul, combo, gold) => Math.max(2, Math.round(BASE_PTS(n) * mul * comboMul(combo) * (gold ? 2 : 1)));
 const bars = (n, on) => `<span class="bars">${[0, 1, 2, 3, 4, 5].map((i) => `<i style="height:${5 + i * 2.4}px;opacity:${i < n ? 1 : on ? 0.4 : 0.3}"></i>`).join("")}</span>`;
 
-const PREF = Object.assign({ md: "b", level: "normal", len: "medium", wl: "m", pu: true, tm: 0, dens: "n", gold: true }, LS.get("ss-settings", {}));
+const PREF = Object.assign({ md: "b", level: "normal", len: "medium", wl: "m", pu: true, tm: 0, dens: "n", gold: true, sk: true }, LS.get("ss-settings", {}));
 if (!TIMES.some((t) => t.k === PREF.tm)) PREF.tm = 0;
 if (!DENS.some((t) => t.k === PREF.dens)) PREF.dens = "n";
 PREF.gold = PREF.gold !== false;
@@ -141,7 +152,7 @@ const CAN_SPEAK = "speechSynthesis" in window && typeof SpeechSynthesisUtterance
 function speak(text) {
   if (!CAN_SPEAK || !text || MUTE || !VOICE) return;
   try { speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(text); u.lang = "en-US"; u.rate = 0.85;
-    const vs = speechSynthesis.getVoices(), v = vs.find((x) => /^en[-_]US/i.test(x.lang)) || vs.find((x) => /^en/i.test(x.lang)); if (v) u.voice = v; speechSynthesis.speak(u); } catch (e) {}
+    const vs = speechSynthesis.getVoices(), v = vs.find((x) => /^en[-_]US/i.test(x.lang)) || vs.find((x) => /^en/i.test(x.lang)); if (v) u.voice = v; speechSynthesis.speak(u); muDuck(1800); } catch (e) {}
 }
 
 /* ---------- layout: menus on a fixed stage scaled to fit; the race is full screen ---------- */
@@ -215,10 +226,10 @@ const logo = (size, st = 9, sh = 7, stack) => `<div class="logo" translate="no" 
 const backHub = (short) => `<a class="pill" id="bHub" href="${HUB}" title="חזרה לאנגלישיה">${ico(BACK, 20, 2.8)}<span>${MOBILE || short ? "אנגלישיה" : "חזרה לאנגלישיה"}</span></a>`;
 const soundBtn = () => `<button class="pill iconbtn" id="bSound" aria-label="צליל" title="צליל" style="padding:0;justify-content:center">${ico(MUTE ? "volume-x" : "volume-on", 22, 2.6)}</button>`;
 const gfxBtn = () => `<button class="pill iconbtn" id="bGfx" aria-pressed="${LOW}" aria-label="${LOW ? "גרפיקה: חסכונית" : "גרפיקה: רגילה"}" title="${LOW ? "גרפיקה: חסכונית" : "גרפיקה: רגילה"}" style="padding:0;justify-content:center">${ico(LOW ? "gauge" : "image", 22, 2.6, LOW ? "#ff7a00" : "#1d2350")}</button>`;
-function topLeft() { return `<div class="grp">${soundBtn()}${gfxBtn()}${fullBtn()}<span id="langSlot"></span>${MOBILE ? "" : '<span class="brand" id="engSlot"><i></i>Englishia</span>'}</div>`; }
+function topLeft() { return `<div class="grp">${soundBtn()}${VIEW.name === "home" || VIEW.name === "join" || VIEW.name === "char" ? "" : musicBtnHTML("pill iconbtn")}${gfxBtn()}${fullBtn()}<span id="langSlot"></span>${MOBILE ? "" : '<span class="brand" id="engSlot"><i></i>Englishia</span>'}</div>`; }
 function wireTop() {
   const s = $("#bSound"), g = $("#bGfx");
-  if (s) s.onclick = () => { MUTE = !MUTE; LS.set("ss-mute", MUTE); s.innerHTML = ico(MUTE ? "volume-x" : "volume-on", 22, 2.6); if (!MUTE) SFX.tap(); else try { speechSynthesis.cancel(); } catch (e) {} };
+  if (s) s.onclick = () => { MUTE = !MUTE; LS.set("ss-mute", MUTE); s.innerHTML = ico(MUTE ? "volume-x" : "volume-on", 22, 2.6); if (!MUTE) SFX.tap(); else try { speechSynthesis.cancel(); } catch (e) {} musicBtnRefresh(); musicSync(); };
   if (g) g.onclick = () => { LOW = !LOW; LS.set("ss-gfx", LOW ? "low" : "normal"); fit(); VIEW.render && VIEW.render(); };
   try { if (window.EnglishiaLang && $("#langSlot")) EnglishiaLang.mount("#langSlot"); } catch (e) {}
   try { if (window.EnglishiaAuth && $("#engSlot") && VIEW.name === "home") { $("#engSlot").innerHTML = ""; EnglishiaAuth.mountMenu("#engSlot"); } } catch (e) {}
@@ -355,7 +366,7 @@ const newCode = () => String(100000 + Math.floor(Math.random() * 900000));
 function createRoom(mode) {
   leaveAll();
   H = { code: newCode(), mode, set: Object.assign({}, PREF), ph: "lobby", players: new Map(), net: null, status: "", race: 0, seed: 0,
-    startAt: 0, endAt: 0, firstFin: 0, finCount: 0, feed: [], lastN: 0, lastSnN: 0, L: null, qid: 0 };
+    startAt: 0, endAt: 0, firstFin: 0, finCount: 0, feed: [], lastN: 0, lastSnN: 0, L: null, qid: 0, banned: new Set() };
   hostConnect();
   H.timer = setInterval(hostTick, 250);
   H.beat = setInterval(() => hostBroadcast(true), 2500);
@@ -375,7 +386,7 @@ const joinURL = () => location.origin + location.pathname + "?code=" + (H ? H.co
 function addPlayer(cid, name, ch, local) {
   let p = H.players.get(cid);
   if (p) { p.on = true; p.last = now(); if (H.ph === "lobby") { p.name = name; p.ch = ch; } return p; }
-  if (H.ph !== "lobby") return "late";
+  if (H.ph === "end") return "late";   // 1.2: joining mid-race is fine (you start at the start line); only the results screen is closed
   if (H.players.size >= MAX_PLAYERS) return "full";
   const pid = H.players.size ? Math.max(...[...H.players.values()].map((x) => x.pid)) + 1 : 1;
   p = { cid, pid, name, ch, on: true, last: now(), local: !!local };
@@ -388,10 +399,13 @@ function hostRecv(m, cid) {
   if (!H || !m || typeof m !== "object" || typeof cid !== "string" || cid.length > 40) return;
   const p = H.players.get(cid);
   if (m.t === "hello") {
+    if (H.banned.has(cid)) { H.net.send(cid, { t: "kick" }); return; }   // removed by the teacher: this device cannot come back into this room
     const name = cleanName(m.name) || "Player", ch = CH[m.ch] ? m.ch : "zik";
+    const isNew = !H.players.has(cid);
     const r = addPlayer(cid, name, ch, false);
     if (r === "late" || r === "full") { H.net.send(cid, { t: r }); H.net.forget(cid); return; }
     H.net.send(cid, { t: "you", pid: r.pid, x: Math.round(r.x), y: Math.round(r.y), race: H.race, held: r.held });
+    if (H.ph === "race" && isNew && (H.set.md || "b") !== "b" && QZ && H.rnd) hostNextQ(r, H.L.start + 420);   // late joiner in a quiz mode: first question
     if (H.ph === "race" && r.q && !r.q.done) setTimeout(() => { if (H && r.q && !r.q.done) H.net.send(cid, pubQ(r.q)); }, 400);
     hostBroadcast(); hostView();
   } else if (m.t === "p") hostPos(p, m);
@@ -400,6 +414,8 @@ function hostRecv(m, cid) {
   else if (m.t === "ans") hostAnswer(p, m);
   else if (m.t === "mq") hostMoveQ(p, m);
   else if (m.t === "qq") hostResendQ(p, m);
+  else if (m.t === "skq") hostSkipQ(p, m);
+  else if (m.t === "leave") { if (p) hostDrop(cid); H.net.forget(cid); }   // the player pressed the exit button: gone for good (no ban)
   else if (m.t === "ping") { if (p) { const was = p.on; p.on = true; p.last = now(); if (!was) { hostBroadcast(); hostView(); } } }
   else if (m.t === "bye" || m.t === "_drop") {
     if (!p) return;
@@ -511,6 +527,36 @@ function hostResendQ(p, m) {
   if (!p.q.done) return toPlayer(p, pubQ(p.q));
   if (p.q.id === id && now() - p.lastAns > 900) hostNextQ(p, p.x + 360);
 }
+/* 1.2: skip a question (no points, no penalty, the combo stays). A player asks for it; the teacher can skip it for everybody. */
+function hostSkipQ(p, m) {
+  if (!p || H.ph !== "race" || H.set.sk === false || (H.set.md || "b") === "b" || !p.q || p.q.done || p.fin || now() < H.startAt || (m && (m.q | 0) !== p.q.id)) return;
+  if (now() - (p.lastSk || 0) < 700) return; p.lastSk = now(); p.sk = (p.sk || 0) + 1;
+  const mx = Number(m && m.x), ax = isFinite(mx) && mx ? Math.min(p.x + 900, Math.max(p.x - 150, mx)) + 360 : p.x + 360;
+  p.q.done = 1; hostNextQ(p, ax);
+}
+function hostSkipAll() {
+  if (!H || H.ph !== "race" || H.set.sk === false || (H.set.md || "b") === "b" || now() < H.startAt) return;
+  for (const p of H.players.values()) if (p.q && !p.q.done && !p.fin) { p.q.done = 1; p.sk = (p.sk || 0) + 1; hostNextQ(p, p.x + 360); }
+}
+/* 1.2: the teacher removes a player (lobby or mid-race). Only this device's identity is blocked from coming back. */
+function hostKick(cid) {
+  if (!H) return false;
+  const p = H.players.get(cid); if (!p || p.local) return false;
+  H.banned.add(cid);
+  try { H.net.send(cid, { t: "kick" }); } catch (e) {}
+  const net = H.net; setTimeout(() => { try { net.forget(cid); } catch (e) {} }, 1500);
+  return hostDrop(cid);
+}
+/* remove a player from the room (kicked, or left): the track, the board and the end-of-race check follow */
+function hostDrop(cid) {
+  if (!H) return false;
+  const p = H.players.get(cid); if (!p || p.local) return false;
+  if (H.ph === "end") { p.on = false; hostBroadcast(); hostView(); return true; }   // results are final
+  H.players.delete(cid);
+  if (PROJ) { try { PROJ.remote.delete(p.pid); PROJ.qbs.delete(p.pid); if (PROJ.watch === p.pid) { PROJ.watch = 0; } } catch (e) {} }
+  hostBroadcast(); hostView();
+  return true;
+}
 function hostMoveQ(p, m) {
   if (!p || H.ph !== "race" || !p.q || p.q.done || (m.q | 0) !== p.q.id) return;
   const x = Number(m.x); if (!isFinite(x)) return;
@@ -545,7 +591,9 @@ function broadcastFx(m) {
 }
 const rankOf = () => {
   const arr = [...H.players.values()];
-  arr.sort((a, b) => b.pts - a.pts || (a.fin || 99) - (b.fin || 99) || b.x - a.x || a.pid - b.pid);
+  /* 1.2: placing = race position (finishers in finish order, then by distance along the track); points only break an exact tie.
+     Balloons / power-ups never enter this: they change points or speed, never the order by themselves. */
+  arr.sort((a, b) => (a.fin ? 0 : 1) - (b.fin ? 0 : 1) || (a.fin && b.fin ? a.fin - b.fin : 0) || Math.round(b.x) - Math.round(a.x) || b.pts - a.pts || a.pid - b.pid);
   return new Map(arr.map((p, i) => [p.cid, i + 1]));
 };
 function stateMsg() {
@@ -567,7 +615,8 @@ function hostBroadcast(beat) {
 function hostSnap() {
   if (!H || H.ph !== "race") return;
   const t = now();
-  const ps = [...H.players.values()].filter((p) => p.posT || p.local).map((p) => [p.pid, Math.round(p.x), Math.round(p.y), p.f | (p.shieldUntil > t ? F.shield : 0) | (p.fin ? F.fin : 0)]);
+  const rk = rankOf();
+  const ps = [...H.players.values()].filter((p) => p.posT || p.local).map((p) => [p.pid, Math.round(p.x), Math.round(p.y), p.f | (p.shieldUntil > t ? F.shield : 0) | (p.fin ? F.fin : 0), rk.get(p.cid)]);
   const m = { t: "sn", p: ps };
   const viaN = t - H.lastSnN > 3000; if (viaN) H.lastSnN = t;
   if (H.net && H.players.size) H.net.broadcast(m, viaN);
@@ -585,7 +634,7 @@ function hostTick() {
     if (t >= H.endAt) hostEnd();
   }
 }
-const setMsg = () => ({ md: H.set.md || "b", l: H.set.level, len: H.set.len, wl: H.set.wl, pu: H.set.pu ? 1 : 0, tm: H.set.tm | 0, dn: H.set.dens === "f" ? "f" : "n", gd: H.set.gold ? 1 : 0 });
+const setMsg = () => ({ md: H.set.md || "b", l: H.set.level, len: H.set.len, wl: H.set.wl, pu: H.set.pu ? 1 : 0, tm: H.set.tm | 0, dn: H.set.dens === "f" ? "f" : "n", gd: H.set.gold ? 1 : 0, sk: H.set.sk === false ? 0 : 1 });
 const levelSet = (s) => ({ md: s.md || "b", level: s.l, len: s.len, wl: s.wl, dens: s.dn || "n", gold: s.gd !== 0 });
 function hostStart() {
   if (!H || H.ph !== "lobby") return;
@@ -639,7 +688,7 @@ function settingsHTML(d, compact) {
     ${qm ? "" : `<div class="set-lbl">מילים במשפט</div><div class="chips">${wl}</div>`}
     <div class="set-lbl">זמן המירוץ</div><div class="chips c4">${tm}</div>
     <div class="set-lbl">${qm ? "בלונים לכל שאלה" : "מילים על המסלול"}</div><div class="chips c2">${qm ? dn.replace(">מעט מילים<", ">3<").replace(">רגיל<", ">3–4<") : dn}</div>
-    <div class="set-tg">${tog("tPu", s.pu, "zap", "yellow", "כוחות-על")}${tog("tGd", s.gd !== 0, "star", "orange", qm ? "בלונים זהובים" : "מילים זהובות")}</div>`;
+    <div class="set-tg">${tog("tPu", s.pu, "zap", "yellow", "כוחות-על")}${tog("tGd", s.gd !== 0, "star", "orange", qm ? "בלונים זהובים" : "מילים זהובות")}${qm ? tog("tSk", s.sk !== 0, "skip-forward", "blue", "דילוג על שאלה") : ""}</div>`;
 }
 function wireSettings() {
   if (!H) return;
@@ -655,6 +704,7 @@ function wireExtra(root, upd) {
   $$("[data-tm]", root).forEach((b) => (b.onclick = () => { H.set.tm = +b.dataset.tm; SFX.tap(); upd(); }));
   $$("[data-dn]", root).forEach((b) => (b.onclick = () => { H.set.dens = b.dataset.dn; SFX.tap(); upd(); }));
   const g = $("#tGd", root); if (g) g.onclick = () => { H.set.gold = !H.set.gold; SFX.tap(); upd(); };
+  const sk = $("#tSk", root); if (sk) sk.onclick = () => { H.set.sk = H.set.sk === false; SFX.tap(); upd(); };
 }
 /* the chosen settings, shown to everyone in the lobby */
 function setSummary(s) {
@@ -663,7 +713,7 @@ function setSummary(s) {
   return `<span class="chip on ${md.col}">${ico(md.ico, 15, 2.6)}<span>${md.he}</span></span><span class="chip on blue">${bars(LEVELS.indexOf(lvl) + 1, true)}<span>רמה: ${lvl.he}</span></span><span class="chip">${ico("flag-fin", 15, 2.4)}<span>מסלול: ${tr.he}</span></span>
     ${qm ? "" : `<span class="chip">${ico("puzzle", 15, 2.6)}<span>מילים במשפט:</span> <span class="en">${wl.he}</span></span>`}<span class="chip">${ico("clock", 15, 2.6)}<span>זמן: ${tm.he}</span></span>
     <span class="chip">${ico("layers", 15, 2.6)}<span>${qm ? ((s.dn || "n") === "f" ? "3 בלונים לשאלה" : "3–4 בלונים לשאלה") : (s.dn || "n") === "f" ? "מעט מילים" : "מילים: רגיל"}</span></span>
-    <span class="chip">${ico("zap", 15, 2.6)}<span>${s.pu ? "כוחות-על" : "בלי כוחות-על"}</span></span><span class="chip ${s.gd !== 0 ? "gold" : ""}">${ico("star", 15, 2.6)}<span>${s.gd !== 0 ? (qm ? "בלונים זהובים" : "מילים זהובות") : (qm ? "בלי בלונים זהובים" : "בלי מילים זהובות")}</span></span>`;
+    <span class="chip">${ico("zap", 15, 2.6)}<span>${s.pu ? "כוחות-על" : "בלי כוחות-על"}</span></span><span class="chip ${s.gd !== 0 ? "gold" : ""}">${ico("star", 15, 2.6)}<span>${s.gd !== 0 ? (qm ? "בלונים זהובים" : "מילים זהובות") : (qm ? "בלי בלונים זהובים" : "בלי מילים זהובות")}</span></span>${qm && s.sk === 0 ? `<span class="chip">${ico("skip-forward", 15, 2.6)}<span>בלי דילוג על שאלות</span></span>` : ""}`;
 }
 /* 1.1.1: an obvious way out of every room screen. The host closes the room (players see "the room closed"). */
 const closeRoomBtn = (mob) => `<button class="pill closeroom${mob ? " mob" : ""}" id="bCloseRoom">${ico("door", mob ? 16 : 20, 2.6)}<span>${H ? "סגירת חדר וחזרה לתפריט" : "יציאה לתפריט"}</span></button>`;
@@ -671,6 +721,8 @@ function leaveToMenu() {
   if (H) { const n = [...H.players.values()].filter((p) => !p.local).length; if (n && !confirm(T_("יש שחקנים בחדר. לסגור את החדר ולחזור לתפריט?"))) return; }
   LS.set("ss-join", null); homeScreen();
 }
+const qrAttr = () => (H ? ` role="button" tabindex="0" aria-label="${T_("הגדלת קוד ה-QR")}" title="${T_("הגדלת קוד ה-QR")}"` : "");
+const qrZoom = () => (H ? `<span class="qr-zoom">${ico("zoom-in", MOBILE ? 14 : 20, 2.8, "#fff")}</span>` : "");
 function lobbyScreen() {
   show("lobby", () => {
     const d = lobbyData(), code = d.code, url = H ? joinURL() : location.origin + location.pathname + "?code=" + code;
@@ -682,12 +734,12 @@ function lobbyScreen() {
     if (MOBILE) {
       const top = 66, short = MH < 780;   // short Safari screens: drop the title so the players list keeps its room
       stage.innerHTML = `<section class="scr ${short ? "short" : ""}" id="s-lobby">${bgDiv()}
-        <div class="topbar"><div class="grp"><span id="langSlot"></span></div><div class="grp">${backHub()}</div></div>
+        <div class="topbar"><div class="grp">${musicBtnHTML("pill iconbtn")}<span id="langSlot"></span></div><div class="grp">${backHub()}</div></div>
         ${short ? "" : `<div class="ttl" style="position:absolute;top:${top}px;left:0;right:0;text-align:center;font-size:30px">חדר המשחק</div>`}
         <div class="card mcard" id="joinCard" style="top:${short ? 70 : top + 58}px">
           <div class="coderow"><span>קוד החדר</span>${closeRoomBtn(true)}</div>
           <div class="code en" translate="no" id="roomCode" style="margin:4px 0 10px">${digits}</div>
-          <div class="qrrow"><div class="qrt" style="flex:1">הזמינו חברים<small>שיסרקו את הקוד או ייכנסו ל־</small><div class="en" style="font:700 13px var(--fred);color:var(--b2);margin-top:3px;word-break:break-all" translate="no">${esc(shown)}</div></div><div class="qrbox">${qr}</div></div>
+          <div class="qrrow"><div class="qrt" style="flex:1">הזמינו חברים<small>שיסרקו את הקוד או ייכנסו ל־</small><div class="en" style="font:700 13px var(--fred);color:var(--b2);margin-top:3px;word-break:break-all" translate="no">${esc(shown)}</div></div><div class="qrbox" id="qr"${qrAttr()}>${qr}${qrZoom()}</div></div>
           ${d.host ? `<button class="btn purple setbtn" id="bSet">${ico("sliders", 22, 2.6)}<span>הגדרות המירוץ</span></button>` : ""}
           <div class="chips sum" style="justify-content:center;margin-top:8px">${setSummary(d.set)}</div>
         </div>
@@ -711,7 +763,7 @@ function lobbyScreen() {
           <div class="lob-url en" translate="no" style="font-size:${Math.round(Math.min(29, 640 / Math.max(10, shown.length)))}px">${esc(shown)}</div>
           <div class="lob-step"><b>2</b><span>הקלידו את קוד החדר</span></div>
           <div class="code en" translate="no" id="roomCode">${digits}</div>
-          <div class="qrrow"><div class="qrt" style="flex:1">או סרקו את הקוד<small>עם המצלמה של הטלפון</small></div><div class="qrbox" id="qr">${qr}</div></div>
+          <div class="qrrow"><div class="qrt" style="flex:1">או סרקו את הקוד<small>עם המצלמה של הטלפון</small></div><div class="qrbox" id="qr"${qrAttr()}>${qr}${qrZoom()}</div></div>
         </div>
         <div class="card lob-col pl-c" id="plCard"><h3><span class="hi green">${ico("users", 20, 2.6, "#fff")}</span><span>מי כבר בחדר?</span><span class="cnt" id="plCnt"></span></h3><div class="pl-grid" id="ptg"></div></div>
         <div class="card lob-col set-c" id="setCard"><h3><span class="hi purple">${ico("sliders", 20, 2.6, "#fff")}</span><span>הגדרות המירוץ</span>${d.host ? "" : '<small class="ro">נבחרו ע״י המורה</small>'}</h3><div class="set-scroll">${settingsHTML(d)}</div></div>
@@ -755,7 +807,7 @@ function renderLobbyPlayers() {
   g.classList.toggle("many", many); g.classList.toggle("xl", xl);
   const size = MOBILE ? 54 : xl ? 38 : many ? 44 : 66;
   const meP = PS.pid;
-  let html = ps.map((p) => `<div class="pcell ${p[4] ? "" : "off"}">${av(p[2], size, p[0] === meP ? "me" : "")}<div class="n" translate="no">${esc(p[1])}${p[0] === meP ? ` <span style="color:var(--navy2)">(${T_("אני")})</span>` : ""}</div></div>`).join("");
+  let html = ps.map((p) => `<div class="pcell ${p[4] ? "" : "off"}"${H ? ` data-pid="${p[0]}" role="button" tabindex="0" aria-label="${esc(p[1])}"` : ""}>${av(p[2], size, p[0] === meP ? "me" : "")}<div class="n" translate="no">${esc(p[1])}${p[0] === meP ? ` <span style="color:var(--navy2)">(${T_("אני")})</span>` : ""}</div></div>`).join("");
   const minCells = MOBILE ? 8 : many ? 10 : 9;
   for (let i = ps.length; i < minCells; i++) html += `<div class="pcell wait"><span class="av empty" style="width:${size}px;height:${size}px;margin:0 auto 4px">${ico("user", size * 0.45, 2.4)}</span><div class="n">מחכים…</div></div>`;
   g.innerHTML = html;
@@ -809,6 +861,8 @@ function playerOnMsg(m, local) {
   if (!m || !m.t) return;
   PS.lastMsg = now();
   if (m.t === "you") { PS.pid = m.pid; clearInterval(PS.helloT); clearBanner(); if (m.race && m.x > 300) PS.resume = { race: m.race, x: m.x, y: m.y, held: m.held }; if (PS.st) playerOnMsg(PS.st, false); return; }
+  if (m.t === "kick") { if (!local) noticeScreen("kicked"); return; }
+  if (m.t === "closed" && !local && PS.pid) { noticeScreen("closed"); return; }
   if (m.t === "late" || m.t === "full" || m.t === "closed") {
     if (local) return;
     const msg = { late: "המירוץ כבר התחיל. חכו למירוץ הבא", full: "החדר מלא (30 שחקנים)", closed: "החדר נסגר" }[m.t];
@@ -919,32 +973,34 @@ function gameLayout() {
   GAME.G.resize();
   if (GAME.built) { renderBar(); fitRou(); }
 }
+const skipOK = (st) => !(st && st.set && st.set.sk === 0);
 function buildHud() {
-  const hud = $("#hud", GAME.el), proj = GAME.projector;
+  const hud = $("#hud", GAME.el), proj = GAME.projector, st = GAME.st;
   if (proj) {
     hud.innerHTML = `<div class="hud tl"><div class="row"><span class="hp" id="hTime">${ico("clock", 20, 2.6)}<b class="en">0:00</b></span><span class="hp"><span>חדר</span> <b class="en" translate="no">${H.code.slice(0, 3)} ${H.code.slice(3)}</b></span></div></div>
       <div class="hud tc"><div class="prog" id="prog" style="width:620px"><span class="fl s">${ico("flag", 22, 2.6)}</span><div class="tr"><div class="fill" id="pfill"></div><div id="heads"></div></div><span class="fl e">${ico("flag-fin", 22, 2.4)}</span></div></div>
-      <div class="hud tr"><div class="row"><button class="gbtn" id="bEnd">${ico("flag-fin", 18, 2.4)}<span>סיים מירוץ</span></button><a class="gbtn" id="gHub" href="${HUB}">${ico(BACK, 18, 2.8)}<span>אנגלישיה</span></a></div></div>
+      <div class="hud tr pj"><div class="row r1">${musicBtnHTML("gbtn ic")}${exitBtn("gbtn")}</div><div class="row r2">${GAME.qm && skipOK(st) ? `<button class="gbtn" id="bSkipAll" title="${T_("דילוג על השאלה לכולם")}">${ico("skip-forward", 18, 2.8)}<span>${T_("דילוג")}</span></button>` : ""}<button class="gbtn" id="bEnd">${ico("flag-fin", 18, 2.4)}<span>סיים מירוץ</span></button></div></div>
+      <div class="hud jd proj">${dockHTML()}</div>
       <div class="hud lbw" style="left:calc(14px*var(--k));top:calc(70px*var(--k));transform-origin:0 0"><div class="card lb" id="lb"></div></div>
       <div class="hud bc"><div class="feed" id="feed"></div></div>
       <div class="ov" id="ov"></div>`;
     $("#bEnd").onclick = () => { if (confirm(T_("לסיים את המירוץ עכשיו?"))) hostEnd(); };
-    $("#gHub").onclick = (e) => { if (!confirm(T_("לסגור את החדר?"))) e.preventDefault(); };
-    $("#gHub").insertAdjacentHTML("beforebegin", fullBtn("gbtn ic"));
+    $("#bExit").insertAdjacentHTML("beforebegin", fullBtn("gbtn ic"));
   } else {
     hud.innerHTML = `<div class="hud tl"><div class="row"><span class="hp" id="hPts"><span>ניקוד</span> <b class="en o">0</b></span><span class="hp" id="hPlace"><span>מקום</span> <b class="en">1/1</b></span></div><span class="hp" id="hTime">${ico("clock", 18, 2.6)}<b class="en">0:00</b></span></div>
       <div class="hud tc"><div class="prog" id="prog"><span class="fl s">${ico("flag", 20, 2.6)}</span><div class="tr"><div class="fill" id="pfill"></div><div id="heads"></div></div><span class="fl e">${ico("flag-fin", 20, 2.4)}</span></div></div>
-      <div class="hud tr"><div class="row"><a class="gbtn" id="gHub" href="${HUB}">${ico(BACK, 18, 2.8)}<span>אנגלישיה</span></a>${fullBtn("gbtn ic")}<button class="gbtn ic" id="bHelp" aria-label="איך משחקים" title="איך משחקים">${ico("help", 22, 2.6)}</button><button class="gbtn ic" id="bMenu" aria-label="תפריט" title="תפריט">${ico("pause", 22, 2.6, "currentColor", "currentColor")}</button></div></div>
+      <div class="hud tr"><div class="row">${exitBtn("gbtn")}${fullBtn("gbtn ic")}${musicBtnHTML("gbtn ic")}<button class="gbtn ic" id="bHelp" aria-label="איך משחקים" title="איך משחקים">${ico("help", 22, 2.6)}</button><button class="gbtn ic" id="bMenu" aria-label="תפריט" title="תפריט">${ico("pause", 22, 2.6, "currentColor", "currentColor")}</button></div></div>
       <div class="hud bl"><button class="pwr empty" id="bPwr" aria-label="הפעל כוח-על"><img id="pwrImg" src="${IMG_BASE}pu-boost-speed.png" alt=""><span class="e"><span>הפעל</span><kbd>E</kbd></span></button>
         <div class="pads" dir="ltr"><button class="btn orange pad" id="bLeft" aria-label="שמאלה">${ico("arrow-left", 58, 3.6)}</button><button class="btn orange pad" id="bRight" aria-label="ימינה">${ico("arrow-right", 58, 3.6)}</button></div></div>
       <div class="hud bc">${GAME.qm ? `<div class="sbar qbar" id="sbar"><div class="lab"><div class="a" id="qLead">${ico(modeOf(GAME.qm).ico, 14, 2.6)}<span></span></div><div class="b" id="sHint"></div></div>
-        <div class="qtx" id="qTx"></div><span class="hp combo" id="hCombo" style="display:none" title="קומבו"><span>קומבו</span><b class="en">x1</b></span><span class="spts" id="spts"></span></div>`
+        <div class="qtx" id="qTx"></div><span class="hp combo" id="hCombo" style="display:none" title="קומבו"><span>קומבו</span><b class="en">x1</b></span><span class="spts" id="spts"></span>${skipOK(st) ? `<button class="qskip" id="bSkipQ" aria-label="${T_("דילוג על השאלה")}" title="${T_("דילוג על השאלה")}">${ico("skip-forward", 20, 2.8)}<span>${T_("דילוג")}</span></button>` : ""}</div>`
         : `<div class="sbar" id="sbar"><div class="lab"><div class="a">${ico("puzzle", 14, 2.6)}<span>בנו משפט באנגלית</span></div><div class="b" id="sHint"></div></div>
         <div class="slots" id="slots"></div><span class="scount" id="scount"></span><span class="hp combo" id="hCombo" style="display:none" title="קומבו"><span>קומבו</span><b class="en">x1</b></span><span class="spts" id="spts"></span>
         <div class="sact"><button class="btn red del" id="bUndo" aria-label="מחק מילה" title="מחק מילה (Backspace)">${ico("backspace", 26, 2.6)}<span>מחק</span></button><button class="btn green go" id="bSend" title="Enter">${ico("check", 24, 3.2)}<span>שלח</span></button></div></div>`}</div>
       <div class="hud br"><div class="keys"><span class="gbtn">${ico("arrow-right", 15, 3)}<span>ריצה</span><kbd>← → / A D</kbd></span><span class="gbtn">${ico("arrow-up", 15, 3)}<span>קפיצה</span><kbd>SPACE</kbd></span><span class="gbtn">${ico("arrow-up", 15, 3)}<span>קפיצה כפולה</span><kbd>×2</kbd></span><span class="gbtn">${ico("arrow-down", 15, 3)}<span>ירידה קומה</span><kbd>↓ / S</kbd></span>${GAME.qm ? `<span class="gbtn">${ico("balloon", 15, 2.6)}<span>קופצים לבלון הנכון</span></span>` : `<span class="gbtn">${ico("check", 15, 3)}<span>שלח</span><kbd>ENTER</kbd></span><span class="gbtn">${ico("backspace", 15, 2.6)}<span>מחק מילה</span><kbd>⌫</kbd></span>`}</div>
         <div class="jcol"><button class="btn blue down" id="bDown" aria-label="ירידה קומה">${ico("arrow-down", 34, 3.4)}<span>ירידה</span></button>
         <button class="btn green jump" id="bJump" aria-label="קפיצה">${ico("arrow-up", 54, 3.4)}<span>קפיצה</span></button></div></div>
+      ${H ? `<div class="hud jd host">${dockHTML()}</div>` : ""}
       <div class="rot">${ico("phone-rot", 16, 2.6, "#fff")}<span>לרוחב נוח יותר</span></div>
       <div class="ov" id="ov"></div>`;
     $("#bJump").addEventListener("pointerdown", (e) => { e.preventDefault(); PS.G && PS.G.jump(); });
@@ -960,7 +1016,6 @@ function buildHud() {
     if ($("#bUndo")) $("#bUndo").onclick = () => undoWord();
     if ($("#bSend")) $("#bSend").onclick = () => submitSentence();
     $("#bMenu").onclick = () => gameMenu();
-    $("#gHub").onclick = (e) => { if (!confirm(T_("לצאת מהמירוץ?"))) e.preventDefault(); };
     renderBar(); renderPower();
   }
   GAME.built = true;
@@ -1166,7 +1221,7 @@ function feedBurst(m) {
 }
 function onSnap(m, G) {
   const t = performance.now();
-  for (const [pid, x, y, f] of m.p) G.sample(pid, x, y, f, t);
+  for (const [pid, x, y, f, rk] of m.p) { G.sample(pid, x, y, f, t); const pp = G.players.get(pid); if (pp && rk && pp.rank !== rk) { pp.rank = rk; G.rkAt = t; } }
 }
 function fitRou() {
   const box = $("#ov .ovk"); if (!box || !box.querySelector(".rou") || !GAME) return;
@@ -1252,12 +1307,12 @@ function gameMenu() {
   GAME.el.appendChild(dlg); fitDlg(dlg);
   const close = () => dlg.remove();
   $("#mClose", dlg).onclick = close;
-  $("#mSound", dlg).onclick = () => { MUTE = !MUTE; LS.set("ss-mute", MUTE); close(); };
+  $("#mSound", dlg).onclick = () => { MUTE = !MUTE; LS.set("ss-mute", MUTE); musicBtnRefresh(); musicSync(); close(); };
   $("#mVoice", dlg).onclick = () => { VOICE = !VOICE; LS.set("ss-voice", VOICE); if (!VOICE) try { speechSynthesis.cancel(); } catch (e) {} close(); };
   $("#mHelp", dlg).onclick = () => { close(); helpDlg(); };
   $("#mGfx", dlg).onclick = () => { LOW = !LOW; LS.set("ss-gfx", LOW ? "low" : "normal"); document.body.classList.toggle("low", LOW); if (GAME) { GAME.G.low = LOW; GAME.G.resize(); } close(); };
   if ($("#mEnd", dlg)) $("#mEnd", dlg).onclick = () => { close(); hostEnd(); };
-  $("#mLeave", dlg).onclick = () => { if (confirm(T_("לצאת מהמירוץ?"))) { LS.set("ss-join", null); homeScreen(); } };
+  $("#mLeave", dlg).onclick = () => { close(); openExit(); };
 }
 /* in-game help: controls, points by length, golden words, combo, power-ups */
 function helpDlg() {
@@ -1303,10 +1358,19 @@ function gameState(st) {
   if (GAME.projector) renderBoard(st);
 }
 function renderBoard(st) {
-  const lb = $("#lb"); if (!lb) return;
-  const order = st.pl.slice().sort((a, b) => a[9] - b[9]).slice(0, 8);
-  lb.innerHTML = `<h4>${ico("trophy", 22, 2.6, "#ff7a00")}<span>טבלת הניקוד</span></h4>` + order.map((p) => `<div class="rr"><span class="rk">${p[9]}</span>${av(p[2], 32)}<span class="n" translate="no">${esc(p[1])}</span><span class="s">${p[3]}</span></div>`).join("");
-  const fd = $("#feed"); if (fd) fd.innerHTML = (st.feed || []).slice(-3).map((f) => `<div class="fi">${av(f.ch, 34)}<span translate="no">${esc(f.n)}</span><span class="en" translate="no">${esc(f.s)}</span><b>+${f.pts}</b>${f.gd ? `<span class="fg">${ico("star", 18, 2.4, "currentColor", "currentColor")}x2</span>` : ""}${f.c > 1 ? `<span class="fc en">x${comboMul(f.c)}</span>` : ""}</div>`).join("");
+  st = st || (GAME && GAME.st); const lb = $("#lb"); if (!lb || !st || !GAME) return;
+  const G = GAME.G;
+  /* 1.2: the order and the badges are the race position (progress along the track); points are the small number on the right */
+  const rk = (p) => { const q = G.players.get(p[0]); return (q && q.rank) || p[9]; };
+  const all = st.pl.slice().sort((a, b) => rk(a) - rk(b) || a[0] - b[0]);
+  const order = all.slice(0, 8), wp = G.watch && all.find((p) => p[0] === G.watch);
+  if (wp && !order.includes(wp)) order.push(wp);   // the watched player is always listed
+  const sig = order.map((p) => p[0] + ":" + rk(p) + ":" + p[3] + ":" + p[1]).join(",") + "|" + G.watch + "|" + (G.watch ? 0 : G.leadPid);
+  if (GAME.bsig !== sig) {
+    GAME.bsig = sig;
+    lb.innerHTML = `<h4>${ico("trophy", 22, 2.6, "#ff7a00")}<span>טבלת הניקוד</span></h4>` + order.map((p) => `<div class="rr${G.watch === p[0] ? " watch" : ""}" data-pid="${p[0]}" role="button" tabindex="0" aria-label="${esc(p[1])}"><span class="rk">${rk(p)}</span>${av(p[2], 32)}<span class="n" translate="no">${esc(p[1])}</span>${G.watch === p[0] ? `<span class="wi">${ico("eye", 16, 2.8, "#fff")}</span>` : ""}<span class="s">${p[3]}</span></div>`).join("") + (PROJ && H ? watchBarHTML() : "");
+  }
+  const fd = $("#feed"); if (fd && st === GAME.st && GAME.fsig !== JSON.stringify(st.feed || [])) { GAME.fsig = JSON.stringify(st.feed || []); fd.innerHTML = (st.feed || []).slice(-3).map((f) => `<div class="fi">${av(f.ch, 34)}<span translate="no">${esc(f.n)}</span><span class="en" translate="no">${esc(f.s)}</span><b>+${f.pts}</b>${f.gd ? `<span class="fg">${ico("star", 18, 2.4, "currentColor", "currentColor")}x2</span>` : ""}${f.c > 1 ? `<span class="fc en">x${comboMul(f.c)}</span>` : ""}</div>`).join(""); }
 }
 function fmt(ms) { const s = Math.max(0, Math.ceil(ms / 1000)); return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0"); }
 function hudTick() {
@@ -1342,9 +1406,344 @@ function hudTick() {
     let lead = 0; for (const p of pos) lead = Math.max(lead, G.progress(p.x));
     const myProg = G.me ? G.progress(G.me.x) : lead;
     $("#pfill").style.width = (100 * (GAME.projector ? lead : myProg)).toFixed(1) + "%";
+    GAME.leadProg = lead;
+    if (GAME.projector) renderBoard();
     const shown = pos.slice(0, 30).reverse();
-    heads.innerHTML = shown.map((p) => { const c = CHAR_COLORS[p.ch] || CHAR_COLORS.zik; const me = p.pid === PS.pid && !GAME.projector; return `<span class="av hd ${me ? "me" : ""}" style="left:${(100 * G.progress(p.x)).toFixed(1)}%;--c1:${c[0]};--c2:${c[1]}"><img src="${IMG_BASE}head-${p.ch}.png" alt=""></span>`; }).join("");
+    heads.innerHTML = shown.map((p) => { const c = CHAR_COLORS[p.ch] || CHAR_COLORS.zik; const me = p.pid === PS.pid && !GAME.projector; return `<span class="av hd ${me ? "me" : ""}${GAME.projector && G.watch === p.pid ? " watch" : ""}"${H ? ` data-pid="${p.pid}"` : ""} style="left:${(100 * G.progress(p.x)).toFixed(1)}%;--c1:${c[0]};--c2:${c[1]}"><img src="${IMG_BASE}head-${p.ch}.png" alt=""></span>`; }).join("");
   }
+}
+
+/* ================= 1.2: host tools — bigger QR, player details / watch / kick, join dock, exit, music ================= */
+const stageRoot = () => document.body;
+const shortAddr = () => (H ? joinURL() : location.href).replace(/^https?:\/\//, "").replace(/\?.*$/, "").replace(/\/(index\.html)?$/, "");
+function qrSvgOf(url) { try { const q = qrcode(0, "M"); q.addData(url); q.make(); return q.createSvgTag({ cellSize: 4, margin: 0, scalable: true }); } catch (e) { return ""; } }
+
+/* ---- the enlarged QR (in-page lightbox: tap anywhere, X or Esc closes) ---- */
+function openQR() {
+  if (!H) return;
+  closeQR(); closePop();
+  const c = H.code, el = document.createElement("div");
+  el.dir = DIR; el.id = "qrlb"; el.className = "qrlb"; el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true"); el.setAttribute("aria-label", T_("קוד QR להצטרפות"));
+  el.innerHTML = `<div class="qrlb-card"><button class="qrlb-x" id="qrlbX" aria-label="${T_("סגירה")}" title="${T_("סגירה")}">${ico("x", 32, 3.6)}</button>
+    <div class="qrlb-qr">${qrSvgOf(joinURL())}</div><div class="qrlb-l">${T_("קוד החדר")}</div>
+    <div class="qrlb-code fred en" translate="no" dir="ltr">${c.slice(0, 3)} ${c.slice(3)}</div>
+    <div class="qrlb-url en" translate="no" dir="ltr">${esc(shortAddr())}</div>
+    <div class="qrlb-hint">${T_("לחצו בכל מקום כדי לסגור")}</div></div>`;
+  el.onclick = closeQR;
+  document.body.appendChild(el);
+  try { $("#qrlbX").focus({ preventScroll: true }); } catch (e) {}
+}
+function closeQR() { const el = $("#qrlb"); if (el) el.remove(); }
+
+/* ---- who is this player (tap / hover): details, watch, remove ---- */
+let POP = null;
+const progOf = (p) => (H && H.L ? Math.max(0, Math.min(1, (p.x - H.L.start) / (H.L.finish - H.L.start))) : 0);
+function playerInfo(pid) {
+  if (!H) return null;
+  for (const p of H.players.values()) if (p.pid === pid) {
+    const racing = H.ph === "race";
+    return { pid, name: p.name, ch: p.ch, local: !!p.local, cid: p.cid, pts: p.pts, rk: racing || H.ph === "end" ? rankOf().get(p.cid) : 0, pr: racing || H.ph === "end" ? progOf(p) : 0, fin: p.fin,
+      canWatch: racing && H.mode === "present" && !!PROJ, watching: !!(PROJ && PROJ.watch === pid), on: p.on || p.local };
+  }
+  return null;
+}
+function popHTML(info, confirmStep, sticky) {
+  const c = CHAR_COLORS[info.ch] || CHAR_COLORS.zik, kick = sticky && !info.local;
+  let act = "";
+  if (sticky) {
+    if (confirmStep) act = `<div class="pp-q">${T_("להוציא מהמשחק?")}</div><div class="pp-b"><button class="btn sm red" data-pp="yes">${ico("user-x", 18, 2.8, "#fff")}<span>${T_("כן, להוציא")}</span></button><button class="btn sm wbtn" data-pp="no"><span>${T_("ביטול")}</span></button></div>`;
+    else act = `<div class="pp-b">${info.canWatch ? `<button class="btn sm ${info.watching ? "orange" : "blue"}" data-pp="watch">${ico(info.watching ? "eye-off" : "eye", 18, 2.8, "#fff")}<span>${T_(info.watching ? "להפסיק לצפות" : "צפייה בשחקן")}</span></button>` : ""}${kick ? `<button class="btn sm red pp-kick" data-pp="kick">${ico("user-x", 18, 2.8, "#fff")}<span>${T_("הוצאה מהמשחק")}</span></button>` : ""}</div>`;
+  }
+  const stats = (info.rk ? `<span class="pp-st"><span>${T_("מקום")}</span> <b class="fred">${info.rk}</b></span><span class="pp-st"><span>${T_("מהמסלול")}</span> <b class="fred">${Math.round(info.pr * 100)}%</b></span>` : "") + (H && H.ph !== "lobby" ? `<span class="pp-st"><span>${T_("ניקוד")}</span> <b class="fred">${info.pts}</b></span>` : "") + (!info.on ? `<span class="pp-st off">${T_("לא מחובר")}</span>` : "");
+  return `<div class="pp-h">${av(info.ch, 44)}<span class="pp-n" style="--c:${c[0]}" translate="no">${esc(info.name)}</span>${info.local ? `<em class="pp-me">${T_("אני")}</em>` : ""}${sticky ? `<button class="pp-x" data-pp="close" aria-label="${T_("סגירה")}" title="${T_("סגירה")}">${ico("x", 18, 3.2)}</button>` : ""}</div>${stats ? `<div class="pp-s">${stats}</div>` : ""}${act}`;
+}
+/* anchor: a DOM element, or a point {x, y} (a runner on the canvas) */
+function openPop(pid, anchor, o) {
+  o = o || {}; const info = playerInfo(pid); if (!info || !anchor) return;
+  const sticky = !!o.sticky;
+  if (POP && POP.pid === pid && POP.sticky === sticky && POP.anchor === anchor && !o.confirm) return;
+  closePop();
+  const el = document.createElement("div");
+  el.dir = DIR; el.className = "ppop " + (sticky ? "st" : "tip"); el.setAttribute("role", sticky ? "dialog" : "tooltip"); el.setAttribute("aria-label", info.name);
+  el.innerHTML = popHTML(info, !!o.confirm, sticky);
+  document.body.appendChild(el);
+  const isEl = anchor.nodeType === 1, first = isEl ? (anchor.className.split(" ")[0] || "") : "";
+  POP = { pid, el, anchor, isEl, sticky, confirm: !!o.confirm, sel: isEl ? "." + first + '[data-pid="' + pid + '"]' : "", sig: "", t: 0, iv: setInterval(popRefresh, 250) };
+  POP.sig = popSig(info);
+  if (isEl) anchor.classList.add("pop-hl");
+  if (sticky) POP.t = setTimeout(() => { if (POP && !POP.confirm) closePop(); }, 25000);
+  popPlace();
+}
+const popSig = (i) => [i.name, i.rk, i.pts, Math.round(i.pr * 20), i.watching, i.on, i.canWatch].join("|");
+function popPlace() {
+  if (!POP) return;
+  const { el, anchor } = POP, vv = window.visualViewport, W = vv ? Math.min(innerWidth, vv.width) : innerWidth, Hh = vv ? Math.min(innerHeight, vv.height) : innerHeight;
+  const r = POP.isEl ? anchor.getBoundingClientRect() : { left: anchor.x - 4, right: anchor.x + 4, top: anchor.y - 4, bottom: anchor.y + 4, width: 8, height: 8 };
+  const w = el.offsetWidth, h = el.offsetHeight, cx = r.left + r.width / 2;
+  let y = r.top - h - 12; if (y < 8) y = r.bottom + 12;
+  el.style.left = Math.round(Math.max(8, Math.min(W - w - 8, cx - w / 2))) + "px"; el.style.top = Math.round(Math.max(8, Math.min(Hh - h - 8, y))) + "px";
+}
+function closePop() {
+  if (!POP) return;
+  clearInterval(POP.iv); clearTimeout(POP.t); try { POP.el.remove(); if (POP.isEl) POP.anchor.classList.remove("pop-hl"); } catch (e) {}
+  POP = null;
+}
+function popRefresh() {
+  if (!POP) return;
+  const info = playerInfo(POP.pid);
+  if (!info) { closePop(); return; }
+  if (POP.isEl && !POP.anchor.isConnected) { const a = document.querySelector(POP.sel); if (!a) { closePop(); return; } POP.anchor = a; a.classList.add("pop-hl"); }
+  const sig = popSig(info);
+  if (sig !== POP.sig && !POP.confirm) { POP.sig = sig; POP.el.innerHTML = popHTML(info, false, POP.sticky); }
+  popPlace();
+}
+function popAction(a) {
+  if (!POP) return;
+  const pid = POP.pid;
+  if (a === "close" || a === "no") { closePop(); return; }
+  if (a === "kick") { openPop(pid, POP.anchor, { sticky: true, confirm: true }); return; }
+  if (a === "watch") { const was = PROJ && PROJ.watch === pid; closePop(); setWatch(was ? 0 : pid); return; }
+  if (a === "yes") { const info = playerInfo(pid); closePop(); if (info && info.cid && hostKick(info.cid)) toast(T_("השחקן הוצא מהמשחק"), "", 2200); }
+}
+
+/* ---- the projector camera: auto (leader) or one player ---- */
+function setWatch(pid) { if (!PROJ) return; PROJ.watch = pid | 0; SFX.tap(); renderBoard(); }
+function watchOrder() {
+  if (!H || !PROJ) return [];
+  const rk = rankOf();
+  return [...H.players.values()].filter((p) => PROJ.remote.has(p.pid)).sort((a, b) => rk.get(a.cid) - rk.get(b.cid)).map((p) => p.pid);
+}
+function watchStep(dir) {
+  const ord = watchOrder(); if (!ord.length || !PROJ) return;
+  const cur = PROJ.focusPid || PROJ.leadPid, i = ord.indexOf(cur);
+  setWatch(ord[(i < 0 ? 0 : i + dir + ord.length) % ord.length]);
+}
+function watchBarHTML() {
+  if (!PROJ || !H) return "";
+  const f = PROJ.watch ? PROJ.watch : PROJ.leadPid, pl = f && [...H.players.values()].find((p) => p.pid === f), nm = pl ? esc(pl.name) : "";
+  const lab = PROJ.watch ? `<span class="wl on">${ico("eye", 18, 2.8, "#fff")}<span>${T_("צופים ב:")}</span> <b translate="no">${nm}</b></span>` : `<span class="wl">${ico("crown", 18, 2.6, "#ff9a1f")}<span>${T_("אוטומטי: עוקבים אחרי המוביל")}</span>${nm ? ` <b translate="no">${nm}</b>` : ""}</span>`;
+  return `<div class="wbar" role="group" aria-label="${T_("מצלמה")}">${lab}<span class="wb"><button class="wbn ${PROJ.watch ? "" : "on"}" data-w="auto" aria-pressed="${!PROJ.watch}"><span>${T_("אוטו")}</span></button><button class="wbn ic" data-w="prev" aria-label="${T_("הקודם")}" title="${T_("הקודם")}">${ico(FWD, 18, 3)}</button><button class="wbn ic" data-w="next" aria-label="${T_("הבא")}" title="${T_("הבא")}">${ico(BACK, 18, 3)}</button></span></div>`;
+}
+
+/* ---- toast on the body (for host actions) ---- */
+/* ---- exit during the race: a player leaves alone; the host closes the room for everyone ---- */
+function openExit() {
+  if ($("#xcf")) return;
+  closePop(); closeQR();
+  const host = !!H, el = document.createElement("div");
+  el.dir = DIR; el.id = "xcf"; el.className = "xcf"; el.setAttribute("role", "alertdialog"); el.setAttribute("aria-modal", "true");
+  el.innerHTML = `<div class="xcf-card"><div class="xcf-ic">${ico("log-out", 34, 2.8, "#fff")}</div>
+    <div class="xcf-t">${T_(host ? "לסגור את החדר לכולם?" : "לצאת מהמירוץ?")}</div>${host ? `<div class="xcf-s">${T_("כל השחקנים יחזרו לתפריט.")}</div>` : ""}
+    <div class="xcf-b"><button class="btn red" data-xc="yes">${T_(host ? "כן, לסגור את החדר" : "כן, לצאת")}</button><button class="btn wbtn" data-xc="no">${T_(host ? "המשך במירוץ" : "ביטול")}</button></div></div>`;
+  document.body.appendChild(el);
+  try { $('[data-xc="no"]', el).focus({ preventScroll: true }); } catch (e) {}
+}
+function closeExit() { const el = $("#xcf"); if (el) el.remove(); }
+function exitRace() {
+  closeExit();
+  if (!H) { try { if (PS.net && !PS.local) PS.net.send({ t: "leave" }); } catch (e) {} }
+  LS.set("ss-join", null); homeScreen();   // host: closes the room (players are told); player: just leaves
+}
+const exitBtn = (cls) => `<button class="${cls || "gbtn"}" id="bExit" aria-label="${T_(H ? "סגירת חדר" : "יציאה")}" title="${T_(H ? "סגירת חדר" : "יציאה")}">${ico("log-out", 18, 2.8)}<span>${T_(H ? "סגירת חדר" : "יציאה")}</span></button>`;
+
+/* ---- what a removed player sees (kicked) / when the host closes the room ---- */
+function noticeScreen(kind) {
+  const kicked = kind === "kicked";
+  leaveAll(); LS.set("ss-join", null);
+  try { history.replaceState(null, "", location.pathname + (TEST ? "?test=1" : "")); } catch (e) {}
+  show("notice", () => {
+    stage.innerHTML = `<section class="scr" id="s-notice">${bgDiv()}
+      <div class="topbar"><div class="grp"><span id="langSlot"></span></div><div class="grp">${backHub()}</div></div>
+      <div class="card kickc" role="alert"><div class="kick-ic">${ico(kicked ? "user-x" : "log-out", 60, 2.6, "#fff")}</div>
+        <div class="kick-t">${T_(kicked ? "הוצאתם מהמשחק על ידי המורה" : "המורה סגר/ה את החדר")}</div><div class="kick-s">${T_("אפשר לחזור לתפריט.")}</div>
+        <button class="btn orange kick-b" id="bKMenu">${ico("home", 26, 3)}<span>${T_("חזרה לתפריט")}</span></button></div></section>`;
+    wireTop(); $("#bKMenu").onclick = () => homeScreen();
+  });
+}
+
+/* ---- the join dock: link, code and a small QR in a corner of the host / projector screen (hide it any time) ---- */
+let JD = LS.get("ss-joindock", null);                 // null: default (shown on a computer / projector, folded on a phone)
+const jdOn = () => (JD == null ? Math.min(window.innerWidth, window.innerHeight) >= 560 : !!JD);
+function dockHTML() {
+  if (!H) return "";
+  if (!jdOn()) return `<button class="gbtn ic jd-show" id="bJoinDock" aria-pressed="false" aria-label="${T_("הצגת קוד ההצטרפות")}" title="${T_("הצגת קוד ההצטרפות")}">${ico("hash", 22, 2.8)}</button>`;
+  const c = H.code;
+  return `<div class="jdock" id="jdock"><button class="gbtn ic jd-hide" id="bJoinDock" aria-pressed="true" aria-label="${T_("הסתרת קוד ההצטרפות")}" title="${T_("הסתרת קוד ההצטרפות")}">${ico("eye-off", 18, 2.8)}</button>
+    <div class="jdqr" id="qr" role="button" tabindex="0" aria-label="${T_("הגדלת קוד ה-QR")}" title="${T_("הגדלת קוד ה-QR")}">${qrSvgOf(joinURL())}<span class="qr-zoom">${ico("zoom-in", 14, 2.8, "#fff")}</span></div>
+    <div class="jdmeta"><div class="jdk">${ico("hash", 16, 2.8, "#22b573")}<span class="jdcode fred en" translate="no" dir="ltr">${c.slice(0, 3)} ${c.slice(3)}</span></div>
+      <div class="jdurl en" translate="no" dir="ltr">${ico("link", 14, 2.8, "#2f7bff")}<span>${esc(shortAddr())}</span></div></div></div>`;
+}
+function joinDockToggle() {
+  JD = !jdOn(); LS.set("ss-joindock", JD);
+  const old = $("#jdock") || $("#bJoinDock"); if (!old || !GAME) return;
+  old.outerHTML = dockHTML();
+}
+
+/* ---- music: original loops generated live (WebAudio, no audio files) — the same engine and tunes as Word Race.
+   Lobby: relaxed bouncy loop · race: faster driving loop (speeds up in the last third) · results: short victory jingle.
+   Every device (projector, host, phones) plays its own, each with its own toggle (remembered); off while the game sound is muted. ---- */
+let MUSIC_ON = LS.get("ss-music", true) !== false;
+const MU = { cur: "", key: "", base: 0.5, d: null, step: 0, next: 0, tempo: 1, g: null, an: null, iv: 0, gest: false, noise: null };
+const mtof = (n) => 440 * Math.pow(2, (n - 69) / 12);
+const musicActive = () => MUSIC_ON && !MUTE;
+function muDuck(ms) {   // lower the music under a spoken word so they never fight
+  if (!MU.d || !AC || !MU.cur) return;
+  try { const t = AC.currentTime, g = MU.d.gain; g.cancelScheduledValues(t); g.setValueAtTime(g.value, t); g.linearRampToValueAtTime(0.4, t + 0.04); g.setValueAtTime(0.4, t + ms / 1000); g.linearRampToValueAtTime(1, t + ms / 1000 + 0.3); } catch (e) {}
+}
+const musicBtnHTML = (cls) => `<button class="${cls} musicbtn ${musicActive() ? "" : "off"}" id="bMusic" aria-pressed="${musicActive()}" aria-label="${T_("מוזיקת רקע")}" title="${T_("מוזיקת רקע")}">${ico(musicActive() ? "music" : "music-off", 22, 2.6)}</button>`;
+function musicBtnRefresh() { $$("#bMusic").forEach((b) => { b.classList.toggle("off", !musicActive()); b.setAttribute("aria-pressed", String(musicActive())); b.innerHTML = ico(musicActive() ? "music" : "music-off", 22, 2.6); }); }
+function musicToggle() {
+  if (MUTE) { MUTE = false; MUSIC_ON = true; LS.set("ss-mute", false); const s = $("#bSound"); if (s) s.innerHTML = ico("volume-on", 22, 2.6); } else MUSIC_ON = !MUSIC_ON;
+  LS.set("ss-music", MUSIC_ON); musicBtnRefresh(); musicSync(); if (musicActive()) SFX.tap();
+}
+function muCtx() { try { AC = AC || new (window.AudioContext || window.webkitAudioContext)(); if (AC.state === "suspended") AC.resume().catch(() => {}); return AC; } catch (e) { return null; } }
+function muNoise() {
+  if (MU.noise) return MU.noise;
+  const b = AC.createBuffer(1, AC.sampleRate, AC.sampleRate), d = b.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  return (MU.noise = b);
+}
+function muTone(f, t, dur, type, vol, dest, atk) {
+  const o = AC.createOscillator(), g = AC.createGain(); o.type = type; o.frequency.value = f;
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + (atk || 0.01)); g.gain.exponentialRampToValueAtTime(0.0001, t + Math.max(0.05, dur));
+  o.connect(g); g.connect(dest); o.start(t); o.stop(t + dur + 0.05);
+}
+function muKick(t, vol, dest) {
+  const o = AC.createOscillator(), g = AC.createGain(); o.type = "sine"; o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(45, t + 0.12);
+  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.18); o.connect(g); g.connect(dest); o.start(t); o.stop(t + 0.2);
+}
+function muHat(t, vol, dest, hp, len) {
+  const s = AC.createBufferSource(), f = AC.createBiquadFilter(), g = AC.createGain(); s.buffer = muNoise(); f.type = "highpass"; f.frequency.value = hp || 7000;
+  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + (len || 0.05)); s.connect(f); f.connect(g); g.connect(dest); s.start(t, Math.random() * 0.5); s.stop(t + (len || 0.05) + 0.02);
+}
+/* chord roots (bass), chord tones (arp) and a lead hook per bar; steps are 16ths, 16 per bar, 4 bars per loop */
+const MUS = {
+  lobby: {
+    bpm: 108, roots: [48, 45, 41, 43], arp: [[60, 64, 67], [57, 60, 64], [65, 69, 72], [67, 71, 74]], bass: [[0, 0], [3, 0], [6, 7], [8, 0], [11, 0], [14, 7]],
+    lead: [[[0, 76, 2], [3, 79, 1], [4, 76, 2], [8, 72, 2], [10, 74, 2], [12, 76, 4]], [[0, 72, 2], [3, 76, 1], [4, 81, 2], [8, 79, 2], [10, 76, 2], [12, 74, 4]],
+      [[0, 77, 2], [3, 81, 1], [4, 77, 2], [8, 74, 2], [10, 76, 2], [12, 77, 4]], [[0, 79, 2], [3, 74, 1], [4, 79, 2], [6, 83, 2], [8, 81, 2], [10, 79, 2], [12, 76, 2], [14, 74, 2]]]
+  },
+  race: {
+    bpm: 142, roots: [45, 41, 48, 43], arp: [[57, 60, 64], [53, 57, 60], [60, 64, 67], [55, 59, 62]], bass: [[0, 0], [2, 0], [4, 12], [6, 0], [8, 0], [10, 0], [12, 12], [14, 7]],
+    lead: [[[0, 81, 1], [2, 81, 1], [3, 84, 1], [4, 81, 2], [8, 79, 1], [10, 76, 2], [12, 79, 2]], [[0, 77, 1], [2, 77, 1], [3, 81, 1], [4, 77, 2], [8, 76, 1], [10, 72, 2], [12, 76, 2]],
+      [[0, 79, 1], [2, 79, 1], [3, 84, 1], [4, 79, 2], [8, 76, 1], [10, 79, 2], [12, 84, 2]], [[0, 83, 1], [2, 83, 1], [3, 79, 1], [4, 74, 2], [8, 76, 1], [10, 79, 1], [12, 83, 3]]]
+  }
+};
+function muStep(kind, s, t, sd) {
+  const P = MUS[kind], bar = Math.floor(s / 16) % 4, k = s % 16, race = kind === "race", d = MU.g, root = P.roots[bar];
+  if (race) { if (k % 4 === 0) muKick(t, 0.5, d); if (k === 4 || k === 12) muHat(t, 0.16, d, 2500, 0.09); if (k % 2 === 0) muHat(t, k % 4 === 2 ? 0.1 : 0.05, d, 8000, 0.04); }
+  else { if (k === 0 || k === 8) muKick(t, 0.32, d); if (k === 4 || k === 12) muHat(t, 0.06, d, 6500, 0.07); }
+  for (const [bs, off] of P.bass) if (bs === k) muTone(mtof(root + off), t, sd * (race ? 1.8 : 2.6), "triangle", race ? 0.2 : 0.17, d, 0.008);
+  if (race ? true : k % 2 === 0) { const a = P.arp[bar], i = race ? [0, 1, 2, 1][k % 4] : [0, 1, 2, 1][(k >> 1) % 4]; muTone(mtof(a[i] + (race ? 12 : 0)), t, sd * (race ? 1.2 : 1.6), "square", race ? 0.022 : 0.026, d, 0.005); }
+  for (const [ls, n, len] of P.lead[bar]) if (ls === k) muTone(mtof(n), t, sd * len * 0.92, race ? "sawtooth" : "triangle", race ? 0.05 : 0.09, d, 0.012);
+}
+function muSched() {
+  if (!MU.cur || !AC || MU.cur === "win") return;
+  const P = MUS[MU.cur], sd = 60 / P.bpm / 4 / MU.tempo;
+  if (MU.next < AC.currentTime) MU.next = AC.currentTime + 0.05;
+  while (MU.next < AC.currentTime + 0.3) { muStep(MU.cur, MU.step++, MU.next, sd); MU.next += sd; }
+}
+function muJingle(t0) {
+  const d = MU.g, q = 0.15;
+  [[72, 0], [76, 1], [79, 2], [84, 3], [79, 4], [84, 5]].forEach(([n, i]) => muTone(mtof(n), t0 + i * q, q * 1.6, "triangle", 0.12, d, 0.01));
+  [72, 76, 79, 84].forEach((n) => muTone(mtof(n), t0 + 6 * q, 1.6, "triangle", 0.09, d, 0.02));
+  [60, 64, 67].forEach((n) => muTone(mtof(n), t0 + 6 * q, 1.6, "square", 0.02, d, 0.02));
+  muKick(t0, 0.35, d); muKick(t0 + 6 * q, 0.4, d); muHat(t0 + 3 * q, 0.1, d, 5000, 0.12);
+  [[88, 7], [91, 8], [96, 9]].forEach(([n, i]) => muTone(mtof(n), t0 + 6 * q + (i - 7) * 0.09, 0.9, "sine", 0.05, d, 0.005));
+}
+function muStop(fade) {
+  clearInterval(MU.iv); MU.iv = 0; MU.cur = ""; MU.key = "";
+  const g = MU.g; MU.g = null;
+  if (g && AC) { try { const t = AC.currentTime; g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(g.gain.value, t); g.gain.linearRampToValueAtTime(0.0001, t + (fade || 0.25)); } catch (e) {} setTimeout(() => { try { g.disconnect(); } catch (e) {} }, (fade || 0.25) * 1000 + 300); }
+}
+function muStart(kind, key) {
+  if (!muCtx()) return;
+  muStop(0.2);
+  const g = AC.createGain(), t = AC.currentTime;
+  g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(MU.base || 0.5, t + 0.4);
+  if (!MU.d) { MU.d = AC.createGain(); MU.d.connect(AC.destination); MU.an = AC.createAnalyser(); MU.an.fftSize = 512; MU.d.connect(MU.an); }
+  g.connect(MU.d);
+  MU.g = g; MU.cur = kind; MU.key = key; MU.step = 0; MU.next = t + 0.08;
+  if (kind === "win") { g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(MU.base || 0.5, t); muJingle(t + 0.05); return; }
+  muSched(); MU.iv = setInterval(muSched, 90);
+}
+/* what this device should be hearing: the room state it is looking at */
+function musicState() {
+  if (!musicActive() || document.visibilityState === "hidden") return null;
+  const v = VIEW.name; let ph = "", race = 0;
+  if (H) { if (H.mode === "online" && ![...H.players.values()].some((p) => p.local)) return null; ph = H.ph; race = H.race; }
+  else if (PS.code && PS.pid && PS.st) { ph = PS.st.ph; race = PS.st.race; }
+  if (!ph) return null;
+  if (ph === "lobby") return v === "lobby" ? { k: "lobby", key: "lobby" } : null;
+  if (ph === "race") return v === "game" && GAME && GAME.startPerf - performance.now() < 400 ? { k: "race", key: "race" } : null;   // silent during the countdown
+  if (ph === "end") return v === "results" ? { k: "win", key: "win" + race } : null;
+  return null;
+}
+function musicSync() {
+  const st = musicState();
+  if (!st) { if (MU.cur || MU.key) muStop(0.3); return; }
+  MU.tempo = st.k === "race" ? (GAME && GAME.leadProg >= 0.9 ? 1.25 : GAME && GAME.leadProg >= 0.7 ? 1.12 : 1) : 1;
+  if (!MU.gest || st.key === MU.key) return;
+  MU.base = H && H.mode === "present" ? 0.5 : 0.36;   // phones / creator devices a little softer than the projector
+  muStart(st.k, st.key);
+}
+["pointerdown", "keydown", "touchend", "click"].forEach((ev) => document.addEventListener(ev, () => {
+  if (!MU.gest) { MU.gest = true; muCtx(); musicSync(); } else if (AC && AC.state === "suspended") AC.resume().catch(() => {});
+}, true));
+document.addEventListener("visibilitychange", () => musicSync());
+setInterval(musicSync, 600);
+window.__SSMusic = { get cur() { return MU.cur; }, get tempo() { return MU.tempo; }, get on() { return musicActive(); }, get state() { return AC ? AC.state : "none"; },
+  level() { if (!MU.an) return 0; const a = new Float32Array(MU.an.fftSize); MU.an.getFloatTimeDomainData(a); let s = 0; for (const v of a) s += v * v; return Math.sqrt(s / a.length); } };
+
+/* ---- one set of listeners for all of the above ---- */
+(function () {
+  document.addEventListener("click", (e) => {
+    const tg = e.target; if (!tg || !tg.closest) return;
+    if (tg.closest("#qrlb")) return;
+    if (tg.closest("#xcf")) {
+      const xc = tg.closest("[data-xc]");
+      if (xc) { if (xc.dataset.xc === "yes") exitRace(); else closeExit(); } else if (tg.classList.contains("xcf")) closeExit();
+      return;
+    }
+    if (tg.closest("#bExit")) { openExit(); return; }
+    if (tg.closest("#bMusic")) { musicToggle(); return; }
+    if (tg.closest("#bJoinDock")) { joinDockToggle(); return; }
+    if (tg.closest("#bSkipAll")) { hostSkipAll(); return; }
+    if (tg.closest("#bSkipQ")) { skipMyQ(); return; }
+    if (tg.closest("#qr, .qrzoom") && H) { openQR(); return; }
+    const w = tg.closest("[data-w]"); if (w) { const k = w.dataset.w; if (k === "auto") setWatch(0); else watchStep(k === "next" ? 1 : -1); return; }
+    const pa = tg.closest("[data-pp]"); if (pa) { popAction(pa.dataset.pp); return; }
+    if (tg.closest(".ppop")) return;
+    if (H && tg.id === "cv" && GAME && GAME.projector && PROJ) {
+      const r = tg.getBoundingClientRect(), pid = PROJ.pickAt(e.clientX - r.left, e.clientY - r.top);
+      if (pid && playerInfo(pid)) { openPop(pid, { x: e.clientX, y: e.clientY }, { sticky: true }); return; }
+      closePop(); return;
+    }
+    const t = H && tg.closest("[data-pid]");
+    if (t && playerInfo(+t.dataset.pid)) { openPop(+t.dataset.pid, t, { sticky: true }); return; }
+    closePop();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") { if ($("#xcf")) closeExit(); else if ($("#qrlb")) closeQR(); else closePop(); return; }
+    if ((e.key === "Enter" || e.key === " ") && e.target && e.target.matches && e.target.matches("[data-pid],#qr") && H) { e.preventDefault(); e.target.click(); }
+  });
+  document.addEventListener("pointerover", (e) => {
+    if (e.pointerType !== "mouse" || !H || (POP && POP.sticky) || !e.target.closest) return;
+    const t = e.target.closest("[data-pid]"); if (t && playerInfo(+t.dataset.pid)) openPop(+t.dataset.pid, t, { sticky: false });
+  });
+  document.addEventListener("pointerout", (e) => {
+    if (e.pointerType !== "mouse" || !POP || POP.sticky || !e.target.closest) return;
+    const t = e.target.closest("[data-pid]"), to = e.relatedTarget && e.relatedTarget.closest ? e.relatedTarget.closest("[data-pid]") : null;
+    if (t && t !== to) closePop();
+  });
+  /* the runner's own skip button (Balloons / Translation) */
+})();
+let lastSkq = 0;
+function skipMyQ() {
+  if (!PS.q || !GAME || GAME.projector || !GAME.qm || PS.finPlace || now() - lastSkq < 800) return;
+  if (GAME.st && GAME.st.set && GAME.st.set.sk === 0) return;
+  lastSkq = now(); SFX.tap();
+  toHost({ t: "skq", q: PS.q.q, x: PS.G && PS.G.me ? Math.round(PS.G.me.x) : 0 });
 }
 
 /* ---------- results to the Englishia account (logged-in players only, from their own device) ---------- */
@@ -1407,7 +1806,7 @@ function resultsScreen(st, projector) {
     const btns = `<div class="res-btns"><button class="btn orange" id="bAgain">${ico("rotate", 22, 2.8, "#fff")}<span>מירוץ חוזר</span></button><button class="btn wbtn" id="bMenu2">${ico("home", 22, 2.6)}<span>לתפריט</span></button></div>`;
     if (MOBILE) {
       stage.innerHTML = `<section class="scr" id="s-res">${bgDiv()}
-        <div class="topbar"><div class="grp"><span id="langSlot"></span></div><div class="grp">${backHub()}</div></div>
+        <div class="topbar"><div class="grp">${musicBtnHTML("pill iconbtn")}<span id="langSlot"></span></div><div class="grp">${backHub()}</div></div>
         <div class="ttl res-title" style="top:62px;font-size:40px">סוף המירוץ!</div>
         ${podium}
         <div class="card mcard" id="resCard" style="top:${Math.max(118, Math.min(170, MH - 690)) + ih + 150}px;bottom:96px;display:flex;flex-direction:column;gap:7px;padding:12px">${myPl}<div class="rlist">${list}</div>${stats.replace('class="stats"', 'class="stats" style="grid-template-columns:repeat(3,1fr)"')}</div>
@@ -1453,6 +1852,9 @@ window.__SS = {
   recv(m, cid) { if (TEST && H) hostRecv(m, cid); },
   answer(i) { if (!TEST || !PS.G || !PS.G.qb || PS.G.qb.wait) return false; const q = PS.G.qb; q.wait = performance.now(); toHost({ t: "ans", q: q.id, i, x: Math.round(PS.G.me.x) }); return true; },
   hostQ(pid) { if (!TEST || !H) return null; const p = [...H.players.values()].find((x) => x.pid === pid); return p && p.q ? { id: p.q.id, a: p.q.a, o: p.q.o, k: p.q.k, x: p.q.x, done: !!p.q.done } : null; },
+  get PROJ() { return PROJ; }, ranks() { return H ? [...rankOf()].map(([cid, r]) => [H.players.get(cid).pid, r]).sort((a, b) => a[1] - b[1]) : null; },
+  setP(pid, o) { if (!TEST || !H) return false; const p = [...H.players.values()].find((x) => x.pid === pid); if (!p) return false; Object.assign(p, o); return true; },
+  tick() { hostSnap(); hostBroadcast(); }, openQR: () => openQR(), kick: (pid) => { const p = [...H.players.values()].find((x) => x.pid === pid); return p ? hostKick(p.cid) : false; },
   dropQ(n) { if (TEST) PS.dropQ = n; }, quiz: () => QZ, renderQ: () => TEST && renderQ(),
   missing() { try { return EnglishiaLang.missing(); } catch (e) { return []; } }
 };
