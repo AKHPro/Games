@@ -41,7 +41,7 @@ function host(code, onMsg, onStatus) {
     var L = H.links[cid]; if (!L) return;
     if (L.conn && L.conn.open) { try { L.conn.send(m); return; } catch (e) {} }
     if (L.via === "s" && L.sig && sigSend(H.peer, L.sig, m)) return;
-    if (L.via === "n") ntfyPub(NS + code + "-s", m);
+    if (L.via === "n") ntfyPub(NS + code + "-s", Object.assign({ to: cid }, m));
   };
   H.broadcast = function (m, viaNtfy) {
     var n = false;
@@ -65,7 +65,7 @@ function join(code, cid, onMsg, onStatus) {
     else if (N.via === "s") { if (N.peer && N.peer.disconnected) try { N.peer.reconnect(); } catch (e) {} sigSend(N.peer, NS + code, m); }
     else if (N.via === "n") ntfyPub(NS + code + "-h", m);
   };
-  var recv = function (m) { m = parse(m); if (!m || N.closed) return; N.gotHost = true; onMsg(m); };
+  var recv = function (m) { m = parse(m); if (!m || N.closed) return; N.gotHost = true; if (m.to && m.to !== cid) return; onMsg(m); };
   var useNtfy = function () { if (N.via || N.closed) return; N.via = "n"; try { N.peer && N.peer.destroy(); } catch (e) {} N.ntfy = ntfySub(NS + code + "-s", recv); st("ntfy"); setTimeout(function () { st("ready"); }, 900); };
   var useSig = function () { if (N.via || N.closed) return; N.via = "s"; try { N.conn && N.conn.close(); } catch (e) {} st("sig"); st("ready"); };
   if (FORCE === "ntfy" || typeof Peer === "undefined") { useNtfy(); return N; }

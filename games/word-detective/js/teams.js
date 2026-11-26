@@ -13,7 +13,8 @@ var RULE = "<b>איך זוכים בנקודות?</b><br>• בכל שאלה, <b>
 $$(".tRule").forEach(function (e) { e.innerHTML = RULE; });
 function rid(n) { var s = "", c = "abcdefghjkmnpqrstuvwxyz23456789"; for (var i = 0; i < n; i++) s += c[Math.floor(Math.random() * c.length)]; return s; }
 function cid() { var c = LS.get("wd-cid", null); if (!c) { c = rid(10); LS.set("wd-cid", c); } return c; }
-function joinLink(room) { return location.origin + location.pathname + "?room=" + room; }
+function shortPath() { var h = location.hostname; if (h !== "englishia.app" && h !== "www.englishia.app") return location.pathname; return (/\/demo\//.test(location.pathname) ? "/demo/" : "/") + "word-detective/"; }
+function joinLink(room) { return location.origin + shortPath() + "?room=" + room; }
 function ntfyPub(topic, m) { try { fetch(NTFY + topic, { method: "POST", body: JSON.stringify(m) }).catch(function () {}); } catch (e) {} }
 function ntfySub(topic, cb) { var es; try { es = new EventSource(NTFY + topic + "/sse"); es.onmessage = function (e) { try { var d = JSON.parse(e.data); if (d.event === "message" && d.message) cb(JSON.parse(d.message)); } catch (_) {} }; } catch (e) {} return es; }
 var RELAY_ID = "wdrelay";
@@ -175,7 +176,7 @@ function stuSave() { if (S) LS.set("wd-tjoin", { room: S.room, name: S.name, tea
 function stuStart(room, name, team) {
   if (S && S.net) S.net.close();
   S = { room: room, name: name, id: cid(), team: team, st: null, qi: -1, answered: false, correct: 0, start: Date.now() }; stuSave();
-  try { history.replaceState(null, "", location.pathname + "?room=" + room); } catch (e) {}
+  try { history.replaceState(null, "", shortPath() + "?room=" + room); } catch (e) {}
   $("#tjGo").disabled = true; $("#tjStatus").textContent = "מתחברים לחדר…";
   var n = { via: null, peer: null, conn: null, ntfy: null, close: function () { try { this.conn && this.conn.close(); } catch (e) {} try { this.peer && this.peer.destroy(); } catch (e) {} try { this.ntfy && this.ntfy.close(); } catch (e) {} } };
   S.net = n;

@@ -3,7 +3,7 @@
    © 2026 Amir · Englishia · All rights reserved */
 import { LEVELS, levelOf, AGES, QTYPES, buildRace, publicQ, localize } from "./questions.js";
 
-const VERSION = "1.0.2", GAME_ID = "word-race", MAX_PLAYERS = 30;
+const VERSION = "1.0.3", GAME_ID = "word-race", MAX_PLAYERS = 30;
 const DEMO = /\/demo\//.test(location.pathname);
 const HUB = DEMO ? "../" : "../../";
 const URLP = new URLSearchParams(location.search);
@@ -52,7 +52,11 @@ const P = {
   play: '<path d="M6 3l14 9-14 9V3z"/>',
   maximize: '<path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/>',
   medal: '<path d="M7.21 15 2.66 7.14a2 2 0 0 1 .13-2.2L4.4 2.8A2 2 0 0 1 6 2h12a2 2 0 0 1 1.6.8l1.6 2.14a2 2 0 0 1 .14 2.2L16.79 15"/><path d="M11 12 5.12 2.2"/><path d="m13 12 5.88-9.8"/><path d="M8 7h8"/><circle cx="12" cy="17" r="5"/>',
-  image: '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.09-3.09a2 2 0 0 0-2.82 0L6 21"/>'
+  "user-x": '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="m17 8 5 5"/><path d="m22 8-5 5"/>',
+  music: '<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>',
+  "music-off": '<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/><path d="m3 3 18 18"/>',
+  "zoom-in": '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/><path d="M11 8v6"/><path d="M8 11h6"/>',
+  image: '<rect x="3" y="3" width="18" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.09-3.09a2 2 0 0 0-2.82 0L6 21"/>'
 };
 const ico = (n, s = 24, sw = 2.4, c = "currentColor", f = "none") =>
   `<svg class="ico" width="${s}" height="${s}" viewBox="0 0 24 24" fill="${f}" stroke="${c}" stroke-width="${sw}" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${P[n] || ""}</svg>`;
@@ -209,7 +213,7 @@ function fit() {
   return changed;
 }
 let VIEW = { name: "", render: null };
-function show(name, render) { VIEW = { name, render }; render(); stage.scrollTop = 0; stage.scrollLeft = 0; }
+function show(name, render) { closePop(); closeQR(); VIEW = { name, render }; render(); stage.scrollTop = 0; stage.scrollLeft = 0; }
 let rsz = 0;
 window.addEventListener("resize", () => { clearTimeout(rsz); rsz = setTimeout(() => { const ch = fit(); if (VIEW.name === "race") fitAnswers(); if (ch && VIEW.render) { if (VIEW.name === "race" && PS.st) raceScreen(PS.st, RACE && RACE.projector); else VIEW.render(); } }, 120); });
 const T_ = (s) => { try { return window.EnglishiaLang ? EnglishiaLang.t(s) : s; } catch (e) { return s; } };
@@ -222,7 +226,7 @@ function topIcons() {
 }
 function wireTop() {
   const s = $("#bSound"), fl = $("#bFull"), g = $("#bGfx");
-  if (s) s.onclick = () => { MUTE = !MUTE; LS.set("wr-mute", MUTE); s.innerHTML = ico(MUTE ? "volume-x" : "volume-on", 28, 2.6); if (!MUTE) SFX.tap(); else try { speechSynthesis.cancel(); } catch (e) {} };
+  if (s) s.onclick = () => { MUTE = !MUTE; LS.set("wr-mute", MUTE); s.innerHTML = ico(MUTE ? "volume-x" : "volume-on", 28, 2.6); if (!MUTE) SFX.tap(); else try { speechSynthesis.cancel(); } catch (e) {} musicBtnRefresh(); musicSync(); };
   if (fl) fl.onclick = () => { try { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen(); } catch (e) {} };
   if (g) g.onclick = () => { LOW = !LOW; LS.set("wr-gfx", LOW ? "low" : "normal"); fit(); VIEW.render && VIEW.render(); };
 }
@@ -273,8 +277,9 @@ function homeScreen() {
 }
 
 /* ---------- 02 room settings (teacher / room creator) ---------- */
-function settingsScreen(mode) {
-  const S = PREF;
+function settingsScreen(mode, edit) {
+  const S = edit && H ? Object.assign({}, H.set, { types: H.set.types.slice() }) : PREF;
+  if (edit && H) H.editing = true;
   show("settings", () => {
     const lv = LEVELS.map((l, i) => { const on = S.level === l.k; return `<button class="chip lvl ${on ? "on" : ""} ${on && i === 2 ? "dark-text" : ""}" style="--c:${l.color}" data-lv="${l.k}" aria-pressed="${on}">${bars(i + 1, on ? (i === 2 ? "#2b2140" : "#fff") : l.color)}${l.he}</button>`; }).join("");
     const ages = AGES.map((a) => `<button class="chip age ${S.age === a.k ? "on" : ""}" style="--c:#2f5fbf" data-age="${a.k}" aria-pressed="${S.age === a.k}">${a.he}</button>`).join("");
@@ -283,7 +288,7 @@ function settingsScreen(mode) {
     const L = levelOf(S.level);
     const desc = `${L.opts} תשובות לבחירה · ניקוד x${L.mul}${L.say ? " · הקראה בקול" : ""}`;
     stage.innerHTML = `<section class="scr on" id="s-settings">${LOW ? "" : clouds([[1050, 96, 150, 0.7], [60, 700, 180, 0.5]])}
-      <div class="topbar"><div class="tb-r"><button class="iconbtn" id="bBack" aria-label="חזרה">${ico(BACK, 30, 3)}</button><div class="title">הגדרות חדר</div>
+      <div class="topbar"><div class="tb-r"><button class="iconbtn" id="bBack" aria-label="חזרה">${ico(BACK, 30, 3)}</button><div class="title">${edit ? "שינוי הגדרות" : "הגדרות חדר"}</div>
         ${MOBILE ? "" : `<span class="hud" style="font-size:19px">${mode === "present" ? ico("projector", 22, 2.6, "#ff4f8b") + "<span>מצב הצגה</span>" : ico("globe", 22, 2.6, "#2f7bff") + "<span>חדר אונליין</span>"}</span>`}</div>${MOBILE ? "" : logo(40, 6, 4)}</div>
       <div class="set-grid"><div class="set-col">
         <div class="card pane"><h3><span class="hi" style="background:#ff9a1f">${ico("gauge", 24, 2.8, "#fff")}</span>רמת קושי</h3><div class="chips lv">${lv}</div><div class="lvdesc">${desc}</div></div>
@@ -295,15 +300,19 @@ function settingsScreen(mode) {
         <div class="set-col"><div class="card pane" style="height:100%"><h3><span class="hi" style="background:#8b5cf6">${ico("sliders", 22, 2.8, "#fff")}</span>סוגי שאלות<small>אפשר לבחור כמה</small></h3><div class="chips qts">${qt}</div></div></div>
       </div>
       <div class="set-bottom"><div class="sum">${ico("users", 26, 2.6)}<span>עד 30 שחקנים בחדר</span></div>
-        <button class="btn orange" id="bCreate" style="font-size:32px;padding:14px 44px">צור חדר${ico(FWD, 32, 3.2)}</button></div>
+        <button class="btn orange" id="bCreate" style="font-size:32px;padding:14px 44px">${edit ? ico("check", 32, 3.4) + "שמירה" : "צור חדר" + ico(FWD, 32, 3.2)}</button></div>
     </section>`;
-    $("#bBack").onclick = () => homeScreen();
+    $("#bBack").onclick = () => { if (edit && H) { H.editing = false; lobbyScreen(); } else homeScreen(); };
     $$("[data-lv]").forEach((b) => (b.onclick = () => { S.level = b.dataset.lv; SFX.tap(); VIEW.render(); }));
     $$("[data-age]").forEach((b) => (b.onclick = () => { S.age = b.dataset.age; SFX.tap(); VIEW.render(); }));
     $$("[data-n]").forEach((b) => (b.onclick = () => { S.n = +b.dataset.n; SFX.tap(); VIEW.render(); }));
     $$("[data-tm]").forEach((b) => (b.onclick = () => { S.time = +b.dataset.tm; SFX.tap(); VIEW.render(); }));
     $$("[data-qt]").forEach((b) => (b.onclick = () => { const k = b.dataset.qt; if (S.types.includes(k)) { if (S.types.length > 1) S.types = S.types.filter((x) => x !== k); } else S.types = S.types.concat(k); SFX.tap(); VIEW.render(); }));
-    $("#bCreate").onclick = () => { SFX.tap(); LS.set("wr-settings", S); createRoom(mode, Object.assign({}, S, { types: S.types.slice() })); };
+    $("#bCreate").onclick = () => {
+      SFX.tap(); LS.set("wr-settings", S);
+      if (edit) { hostApplySettings(S); return; }
+      createRoom(mode, Object.assign({}, S, { types: S.types.slice() }));
+    };
   });
 }
 
@@ -312,7 +321,7 @@ let H = null;
 const newCode = () => String(100000 + Math.floor(Math.random() * 900000));
 function createRoom(mode, set) {
   leaveAll();
-  H = { code: newCode(), mode, set, ph: "lobby", qs: [], qi: -1, t0: 0, dur: 0, phEnd: 0, players: new Map(), net: null, status: "", race: 0, lastN: 0 };
+  H = { code: newCode(), mode, set, ph: "lobby", qs: [], qi: -1, t0: 0, dur: 0, phEnd: 0, players: new Map(), banned: new Set(), net: null, status: "", race: 0, lastN: 0 };
   hostConnect();
   H.timer = setInterval(hostTick, 250);
   H.beat = setInterval(() => hostBroadcast(true), 2500);
@@ -331,7 +340,10 @@ function netBadge() {
   const txt = k === "peer" ? "מחובר" : k === "ntfy" ? "מחובר (גיבוי)" : "מתחבר…";
   return `<span class="netst ${k === "peer" ? "ok" : k ? "fb" : ""}" id="netst"><i></i>${txt}</span>`;
 }
-const joinURL = () => location.origin + location.pathname + "?code=" + (H ? H.code : "");
+/* the address people type: englishia.app/word-race (the QR keeps the real game URL, so scanning always lands on this build) */
+const shortAddr = () => (location.hostname === "englishia.app" ? "englishia.app/word-race" : (location.host + location.pathname).replace(/\/(index\.html)?$/, ""));
+/* official build on englishia.app: the QR carries the short address (the root redirect keeps ?code=); demo/local builds keep their own URL so a scan lands on the same build */
+const joinURL = () => ((!DEMO && location.hostname === "englishia.app") ? "https://englishia.app/word-race/" : location.origin + location.pathname) + "?code=" + (H ? H.code : "");
 const cleanName = (s) => String(s || "").replace(/[<>&"'`\\\u0000-\u001f\u200b-\u200f\u202a-\u202e]/g, "").replace(/\s+/g, " ").trim().slice(0, 12);
 function freeLane() { const used = new Set([...H.players.values()].map((p) => p.lane)); let i = 0; while (used.has(i)) i++; return i; }
 function addPlayer(cid, name, ch, local) {
@@ -347,6 +359,7 @@ function addPlayer(cid, name, ch, local) {
 function hostRecv(m, cid) {
   if (!H || !m || typeof m !== "object" || typeof cid !== "string" || cid.length > 40) return;
   const p = H.players.get(cid);
+  if (m.t === "hello" && H.banned.has(cid)) { H.net.send(cid, { t: "kick" }); return; }   // kicked: same identity cannot rejoin this room
   if (m.t === "hello") {
     const name = cleanName(m.name) || "Player", ch = CH[m.ch] ? m.ch : CHARS[0].id;
     const r = addPlayer(cid, name, ch, false);
@@ -396,6 +409,7 @@ function hostBroadcast(beat) {
   const viaN = !beat || now() - H.lastN > 4000; if (viaN) H.lastN = now();
   if (H.net) H.net.broadcast(pub, viaN);
   H.lastState = m;
+  musicSync();
   const me = [...H.players.values()].find((p) => p.local);
   if (me) playerOnMsg(open ? Object.assign({}, pub, { pl: pub.pl.map((x, i) => (x[0] === me.pid ? m.pl[i] : x)) }) : m, true);
 }
@@ -425,15 +439,27 @@ function hostStart() {
 }
 function hostRematch() {
   if (!H) return;
-  H.ph = "lobby"; H.qi = -1; H.qs = [];
+  H.ph = "lobby"; H.qi = -1; H.qs = []; H.editing = false;
   for (const p of [...H.players.values()]) { p.ok = 0; p.pts = 0; p.tsum = 0; p.ans = {}; if (!p.on && !p.local) H.players.delete(p.cid); }
   hostBroadcast();
   if (VIEW.name !== "lobby") lobbyScreen();
 }
 /* what the projector shows (in an online room the creator plays: playerOnMsg renders) */
+/* the host changes the room settings while the room is open (lobby only): same code, players stay connected */
+function hostApplySettings(S) {
+  if (!H) return;
+  H.editing = false;
+  if (H.ph === "lobby") {
+    H.set = { level: S.level, age: S.age, n: S.n, time: S.time, types: S.types.slice() };
+    Object.assign(PREF, H.set, { types: S.types.slice() }); LS.set("wr-settings", PREF);
+    hostBroadcast();
+  }
+  lobbyScreen();
+  toast(T_("ההגדרות נשמרו"));
+}
 function hostView() {
   if (!H || H.mode === "online") { if (H && H.ph === "lobby" && VIEW.name === "lobby") renderLobbyPlayers(); return; }
-  if (H.ph === "lobby") { if (VIEW.name === "lobby") renderLobbyPlayers(); else lobbyScreen(); return; }
+  if (H.ph === "lobby") { if (VIEW.name === "lobby") renderLobbyPlayers(); else if (!H.editing) lobbyScreen(); return; }
   if (H.ph === "end") { if (VIEW.name !== "podium") podiumScreen(H.lastState, null); return; }
   if (VIEW.name !== "race") raceScreen(H.lastState, true); else raceUpdate(H.lastState, true);
 }
@@ -442,22 +468,23 @@ function hostView() {
 function lobbyScreen() {
   show("lobby", () => {
     const code = H.code, url = joinURL();
-    const shown = url.replace(/^https?:\/\//, "").replace(/\?.*$/, "").replace(/\/(index\.html)?$/, "");
+    const shown = shortAddr();
     let qr = "";
     try { const q = qrcode(0, "M"); q.addData(url); q.make(); qr = q.createSvgTag({ cellSize: 4, margin: 0, scalable: true }); } catch (e) {}
+    QRSVG = qr;
     const digits = code.split("").map((c, i) => (i === 3 ? "<i></i>" : "") + `<span>${c}</span>`).join("");
     const present = H.mode === "present";
     stage.innerHTML = `<section class="scr on" id="s-lobby">${LOW ? "" : clouds([[560, 40, 160, 0.7], [1120, 620, 150, 0.5]])}
       <div class="topbar"><div class="tb-r"><button class="iconbtn" id="bBack" aria-label="חזרה">${ico(BACK, 30, 3)}</button>${MOBILE ? "" : logo(46, 7, 5)}
-        <span class="hud" style="font-size:${MOBILE ? 16 : 20}px">${present ? ico("projector", 22, 2.6, "#ff4f8b") + "<span>מצב הצגה</span>" : ico("globe", 22, 2.6, "#2f7bff") + "<span>חדר אונליין</span>"}</span>${netBadge()}</div>
-        ${MOBILE ? "" : `<div class="hud" style="font-size:20px">${ico("gauge", 22, 2.6, "#ff9a1f")}<span>${setSummary(H.set)}</span></div>`}</div>
+        <span class="hud" style="font-size:${MOBILE ? 16 : 20}px">${present ? ico("projector", 22, 2.6, "#ff4f8b") + "<span>מצב הצגה</span>" : ico("globe", 22, 2.6, "#2f7bff") + "<span>חדר אונליין</span>"}</span>${netBadge()}${present ? musicBtn() : ""}${MOBILE ? `<button class="iconbtn" id="bEditSet" aria-label="שינוי הגדרות" title="שינוי הגדרות">${ico("sliders", 24, 2.6)}</button>` : ""}</div>
+        ${MOBILE ? "" : `<button class="hud hudedit" id="bEditSet" style="font-size:20px" aria-label="שינוי הגדרות" title="שינוי הגדרות">${ico("gauge", 22, 2.6, "#ff9a1f")}<span>${setSummary(H.set)}</span><span class="hudedit-i">${ico("pen", 18, 2.8, "#fff")}</span></button>`}</div>
       <div class="card joincard">
         <div class="jt">הצטרפו למירוץ!</div>
         <div class="step"><b>1</b>היכנסו לכתובת</div>
         <div class="url en" translate="no" style="font-size:${Math.round(Math.min(MOBILE ? 18 : 34, (MOBILE ? 560 : 820) / Math.max(10, shown.length)))}px">${ico("link", MOBILE ? 22 : 30, 3, "#2f7bff")}<span>${esc(shown)}</span></div>
         <div class="step"><b>2</b>הקלידו את קוד החדר</div>
         <div class="code en" translate="no" id="roomCode">${digits}</div>
-        <div class="qr"><div class="qrbox" id="qr">${qr}</div><div class="qrt">${ico("zap", 24, 2.6, "#ff9a1f")}<span>או סרקו את הקוד<br>עם המצלמה</span></div></div>
+        <div class="qr"><div class="qrbox" id="qr" role="button" tabindex="0" aria-label="הגדלת קוד ה-QR" title="הגדלת קוד ה-QR">${qr}<span class="qr-zoom">${ico("zoom-in", MOBILE ? 18 : 26, 2.8, "#fff")}</span></div><div class="qrt">${ico("zap", 24, 2.6, "#ff9a1f")}<span>או סרקו את הקוד<br>עם המצלמה<small class="qrz">לחצו על הקוד להגדלה</small></span></div></div>
       </div>
       <div class="card plcard"><div class="plh"><div class="jt" style="font-size:34px">מי כבר על המסלול?</div><div class="cnt" id="plCnt"></div></div><div class="ptg" id="ptg"></div></div>
       <button class="btn green startbtn" id="bStart">${ico("play", 34, 2.6, "#fff", "#fff")}התחל מירוץ</button>
@@ -465,7 +492,9 @@ function lobbyScreen() {
     if (MOBILE) $(".plcard").style.top = ($(".joincard").offsetHeight + 96) + "px";
     $("#bBack").onclick = () => { if (!H.players.size || confirm(T_("לסגור את החדר?"))) homeScreen(); };
     $("#bStart").onclick = () => { SFX.go(); hostStart(); };
+    { const eb = $("#bEditSet"); if (eb) eb.onclick = () => { SFX.tap(); settingsScreen(H.mode, true); }; }
     renderLobbyPlayers();
+    musicSync();
   });
 }
 function renderLobbyPlayers() {
@@ -473,13 +502,13 @@ function renderLobbyPlayers() {
   const ps = [...H.players.values()].sort((a, b) => a.lane - b.lane), many = ps.length > 8 && !MOBILE;
   g.classList.toggle("many", many);
   const w = MOBILE ? 52 : many ? 62 : 78;
-  let html = ps.map((p) => `<div class="pt ${p.on || p.local ? "" : "offl"}"><div class="pt-av">${front(p.ch, p.lane + 1, w)}</div><div class="pt-n" style="background:${shirt(p.ch)}" translate="no">${esc(p.name)}</div>${p.local ? "" : `<button class="pt-x" data-kick="${esc(p.cid)}" aria-label="הסר" title="הסר">${ico("x", 16, 3)}</button>`}</div>`).join("");
+  let html = ps.map((p) => `<div class="pt ${p.on || p.local ? "" : "offl"}" data-pid="${p.pid}" role="button" tabindex="0" aria-label="${esc(p.name)}"><div class="pt-av">${front(p.ch, p.lane + 1, w)}</div><div class="pt-n" style="background:${shirt(p.ch)}" translate="no">${esc(p.name)}</div>${p.local ? "" : `<button class="pt-x" data-kickpid="${p.pid}" aria-label="הוצאה מהמשחק" title="הוצאה מהמשחק">${ico("x", 16, 3)}</button>`}</div>`).join("");
   const empties = Math.max(0, (MOBILE ? 4 : 8) - ps.length);
   for (let i = 0; i < empties; i++) html += `<div class="pt empty"><div class="pt-av">${ico("user", MOBILE ? 28 : 40, 2.4, "#b9aed0")}</div><div class="pt-n">ממתין…</div></div>`;
-  g.innerHTML = html;
+  if (g._h !== html) { g.innerHTML = html; g._h = html; }
   $("#plCnt").innerHTML = `<b class="fred">${ps.length}</b> ${W_PL()}`;
   const b = $("#bStart"); if (b) b.disabled = !ps.length;
-  $$("[data-kick]", g).forEach((x) => (x.onclick = () => { const cid = x.dataset.kick; if (H.ph !== "lobby") return; H.net.send(cid, { t: "kick" }); H.players.delete(cid); H.net.forget(cid); hostBroadcast(); renderLobbyPlayers(); }));
+  popRefresh();
 }
 
 /* ================= PLAYER ================= */
@@ -491,6 +520,7 @@ function leaveAll() {
   if (H) { const n = H.net; try { n && n.broadcast({ t: "closed" }); } catch (e) {} clearInterval(H.timer); clearInterval(H.beat); setTimeout(() => { try { n && n.close(); } catch (e) {} }, 400); H = null; }
   clearInterval(TIMER_IV); RACE = null;
   try { speechSynthesis.cancel(); } catch (e) {}
+  musicSync();
 }
 
 /* ---------- m02 join with a room code ---------- */
@@ -508,7 +538,7 @@ function joinScreen(code, err) {
         <div class="err" id="joinErr" style="text-align:center;margin-top:8px">${err ? esc(err) : ""}</div>
         <button class="btn green mbtn" id="bJoin" style="margin-top:10px">הצטרף${ico(FWD, 28, 3.2, "#fff")}</button>
       </div>
-      ${MOBILE && MH < 800 ? "" : `<div class="joinurl"><span class="hud" style="font-size:18px">${ico("link", 20, 2.8, "#2f7bff")}<span class="en fred" translate="no" style="font-weight:600">${esc((location.host + location.pathname).replace(/\/(index\.html)?$/, ""))}</span></span></div>`}
+      ${MOBILE && MH < 800 ? "" : `<div class="joinurl"><span class="hud" style="font-size:18px">${ico("link", 20, 2.8, "#2f7bff")}<span class="en fred" translate="no" style="font-weight:600">${esc(shortAddr())}</span></span></div>`}
       ${MOBILE ? `<svg class="home-ground" width="390" height="170" viewBox="0 0 390 170"><path d="M0 26 Q195 0 390 26 V170 H0Z" fill="#5cc43f" stroke="#2b2140" stroke-width="3"/><path d="M0 52 Q195 24 390 52 V170 H0Z" fill="#fff"/><path d="M0 58 Q195 30 390 58 V170 H0Z" fill="#f0623f"/>${[0, 1, 2].map((i) => `<path d="M0 ${80 + i * 26} Q195 ${52 + i * 27} 390 ${80 + i * 26}" fill="none" stroke="#fff" stroke-width="3"/>`).join("")}</svg>
         <div class="home-run" style="left:40px">${front("fox", 7, 96)}</div><div class="home-run" style="right:40px">${front("bear", 8, 96, true)}</div>` : ""}
       ${credit()}
@@ -597,9 +627,10 @@ function playerOnMsg(m, local) {
   if (!m || !m.t) return;
   PS.lastMsg = now();
   if (m.t === "you") { PS.pid = m.pid; clearInterval(PS.helloT); clearBanner(); if (PS.st) playerOnMsg(PS.st, false); return; }
-  if (m.t === "late" || m.t === "full" || m.t === "kick" || m.t === "closed") {
+  if (m.t === "kick") { if (!local) kickedScreen(); return; }
+  if (m.t === "late" || m.t === "full" || m.t === "closed") {
     if (local) return;
-    const msg = { late: "המירוץ כבר התחיל. חכו למירוץ הבא", full: "החדר מלא (30 שחקנים)", kick: "המורה הוציא אתכם מהחדר", closed: "החדר נסגר" }[m.t];
+    const msg = { late: "המירוץ כבר התחיל. חכו למירוץ הבא", full: "החדר מלא (30 שחקנים)", closed: "החדר נסגר" }[m.t];
     const code = PS.code; LS.set("wr-join", null); joinScreen(code, T_(msg)); return;
   }
   if (m.t !== "st") return;
@@ -609,7 +640,7 @@ function playerOnMsg(m, local) {
   clearBanner();
   if (m.race !== PS.race) { PS.race = m.race; PS.recorded = {}; PS.sessionStart = now(); }
   if (m.ph === "lobby") {
-    if (PS.local) { if (VIEW.name !== "lobby") lobbyScreen(); else renderLobbyPlayers(); }
+    if (PS.local) { if (VIEW.name !== "lobby") { if (!(H && H.editing)) lobbyScreen(); } else renderLobbyPlayers(); }
     else if (VIEW.name !== "wait") waitScreen(m); else waitUpdate(m);
     return;
   }
@@ -641,7 +672,7 @@ function waitUpdate(m) {
   if (!$("#waitCnt")) return;
   const t = $("#waitT"); if (t && PS.pid) t.textContent = T_("ממתינים למורה");
   $("#waitCnt").innerHTML = `<span class="fred" style="font-size:24px">${m.pl.length}</span> שחקנים בחדר`;
-  $("#avrow").innerHTML = m.pl.filter((p) => p[0] !== PS.pid).slice(0, MOBILE ? 10 : 20).map((p) => `<span class="av" style="background:${shirt(p[2])}">${front(p[2], p[3] + 1, 44)}</span>`).join("");
+  $("#avrow").innerHTML = m.pl.filter((p) => p[0] !== PS.pid).slice(0, MOBILE ? 10 : 20).map((p) => `<span class="av" data-pid="${p[0]}" role="button" tabindex="0" aria-label="${esc(p[1])}" style="background:${shirt(p[2])}">${front(p[2], p[3] + 1, 44)}</span>`).join("");
   $("#sumbar").innerHTML = `${ico("gauge", 20, 2.6, "#ff9a1f")}<span>${setSummary({ level: m.set.l, age: m.set.a, n: m.set.n, time: m.set.tm })}</span>`;
 }
 
@@ -688,7 +719,7 @@ function fitAnswers() {
 if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => fitAnswers());
 function raceScreen(m, projector) {
   show("race", () => {
-    const sp = trackSpec(projector), L = Math.max(4, m.pl.length);
+    const sp = trackSpec(projector), L = Math.max(4, m.pl.length, ...m.pl.map((p) => p[3] + 1));
     const T = new Track(sp.W, sp.H, sp.y0, sp.y1, sp.bw, sp.tw, L, sp.cx);
     RACE = { T, sp, projector, L, t0: Math.max(0, T.tAt(sp.feet)), runners: new Map(), n: m.n, qkey: "", picked: -1, fbk: "", end: 0, dur: 0 };
     const trackH = MOBILE ? Math.round(MH * 0.47) : sp.H, k = trackH / sp.H;
@@ -700,6 +731,7 @@ function raceScreen(m, projector) {
           <div style="flex:1;min-width:0"><div class="en qlead" style="font-size:22px" id="qLead"></div><div class="en qtext" id="qText" style="font-size:40px"></div></div><span id="qMeta"></span></div>
           <div class="answers" id="answers" style="margin-top:12px"></div></div>
         <div class="card ansd" id="ansd"><div style="font:800 20px var(--ui)" id="ansN"></div><div class="dotsp" id="dotsp"></div></div>
+        ${musicBtn("position:absolute;right:24px;bottom:84px;z-index:1500")}
         <div class="hud" style="position:absolute;right:24px;bottom:24px;font-size:20px;z-index:1500">${ico("projector", 22, 2.6, "#ff4f8b")}<span>מצב הצגה · עונים בטלפון</span></div>`;
     } else {
       const qhead = MOBILE ? `<div class="qhead">${timerHTML(46, 6, 20)}<span class="qmeta" id="qMeta"></span></div>` : `<div class="qmeta" id="qMeta"></div>`;
@@ -734,7 +766,7 @@ function placeRunners(m) {
     const showName = me || (!MOBILE && (L <= 10 || rk <= 3));
     let r = RACE.runners.get(pid);
     if (!r) {
-      r = document.createElement("div"); r.className = "runner"; r.dataset.pid = pid; box.appendChild(r);
+      r = document.createElement("div"); r.className = "runner"; r.dataset.pid = pid; r.setAttribute("role", "button"); box.appendChild(r);
       r.innerHTML = `<div class="rv"></div><div class="tag"></div>`; RACE.runners.set(pid, r); r._ok = ok;
       r.style.transition = "none"; requestAnimationFrame(() => requestAnimationFrame(() => (r.style.transition = "")));
     }
@@ -778,7 +810,7 @@ function raceUpdate(m, projector) {
     const order = m.pl.slice().sort((a, b) => a[8] - b[8]);
     let rows = order.slice(0, 6);
     if (meP && !rows.includes(meP)) rows = order.slice(0, 5).concat([meP]);
-    $("#lbRows").innerHTML = rows.map((p) => `<div class="lb-r ${p === meP ? "me" : ""} ${p[6] ? "" : "off"}"><b class="rkb rk${p[8]}">${p[8]}</b><span class="lb-n" translate="no">${esc(p[1])}</span><span class="lb-bar"><i style="width:${Math.round(Math.min(1, p[4] / m.n) * 100)}%;background:${shirt(p[2])}"></i></span></div>`).join("");
+    $("#lbRows").innerHTML = rows.map((p) => `<div class="lb-r ${p === meP ? "me" : ""} ${p[6] ? "" : "off"}" data-pid="${p[0]}" role="button" tabindex="0"><b class="rkb rk${p[8]}">${p[8]}</b><span class="lb-n" translate="no">${esc(p[1])}</span><span class="lb-bar"><i style="width:${Math.round(Math.min(1, p[4] / m.n) * 100)}%;background:${shirt(p[2])}"></i></span></div>`).join("");
   }
   const cd = $("#countdown");
   if (m.ph === "count") {
@@ -826,9 +858,10 @@ function raceUpdate(m, projector) {
     $("#ansN").innerHTML = m.ph === "rev"
       ? `${ico("check", 22, 3, "#22b573")}<span>ענו נכון</span> <b class="fred" style="font-size:26px">${m.pl.filter((p) => p[7] === 2).length}</b> <span>מתוך</span> ${m.pl.length}`
       : `${ico("check", 22, 3, "#22b573")}<span>ענו</span> <b class="fred" style="font-size:26px">${done}</b> <span>מתוך</span> ${on.length}`;
-    $("#dotsp").innerHTML = m.pl.slice(0, 16).map((p) => `<span class="dotp ${p[7] > 0 ? "done" : ""}" style="background:${shirt(p[2])}">${front(p[2], p[3] + 1, 30)}</span>`).join("") + (m.pl.length > 16 ? `<span class="fred" style="align-self:center;font-size:22px">+${m.pl.length - 16}</span>` : "");
+    const dh = m.pl.map((p) => `<span class="dotp ${p[7] > 0 ? "done" : ""}" data-pid="${p[0]}" role="button" tabindex="0" aria-label="${esc(p[1])}" style="background:${shirt(p[2])}">${front(p[2], p[3] + 1, 34)}</span>`).join(""), dp = $("#dotsp");
+    if (dp._h !== dh) { dp.innerHTML = dh; dp._h = dh; }
   }
-  updateTimer();
+  updateTimer(); popRefresh();
 }
 function pickAnswer(i) {
   if (!RACE || RACE.picked >= 0 || !PS.st || PS.st.ph !== "q") return;
@@ -900,6 +933,7 @@ function confetti(n, W, top, H2) {
 }
 function wireEnd() {
   $("#bMenu").onclick = () => { LS.set("wr-join", null); homeScreen(); };
+  { const be = $("#bEditEnd"); if (be) be.onclick = () => { SFX.tap(); if (H) { hostRematch(); settingsScreen(H.mode, true); } }; }
   $("#bAgain").onclick = () => {
     SFX.tap();
     if (H) hostRematch();
@@ -917,7 +951,7 @@ function podiumScreen(m, myPid) {
     const row = (p, cls) => `<div class="rr ${cls}"><b class="rkb">${p[8]}</b><span class="rr-av" style="background:${shirt(p[2])}">${front(p[2], p[3] + 1, 44)}</span><span class="rr-n" translate="no">${esc(p[1])}</span><span class="rr-s"><span class="fred">${p[4]}</span> ${W_OK()}</span></div>`;
     const rest = order.slice(3).map((p) => row(p, p[0] === myPid ? "me" : "")).join("");
     const me = myPid ? order.find((p) => p[0] === myPid) : null;
-    stage.innerHTML = `<section class="scr on" id="s-podium">${LOW ? "" : clouds([[90, 120, 140, 0.6], [980, 90, 170, 0.7]])}${confetti(46, 1260, 80, 480)}
+    stage.innerHTML = `<section class="scr on" id="s-podium">${LOW ? "" : clouds([[90, 120, 140, 0.6], [980, 90, 170, 0.7]])}${confetti(46, 1260, 80, 480)}${H && H.mode === "present" ? musicBtn("position:absolute;left:24px;top:18px;z-index:60") : ""}
       <div class="topbar" style="justify-content:center;top:10px"><div class="title" style="font-size:58px;-webkit-text-stroke:10px var(--ink);text-shadow:0 7px 0 var(--ink)">${me ? `סיימת במקום ${me[8]}!` : "המירוץ הסתיים!"}</div></div>
       <div class="stage-p">${pods}</div>
       <div class="card restc">
@@ -925,7 +959,8 @@ function podiumScreen(m, myPid) {
         ${me ? `<div class="muted" style="font:800 22px var(--ui);color:var(--ink)">${ico("trophy", 22, 2.6, "#ff9a1f")}<span>הניקוד שלי:</span> <b class="fred">${me[5]}</b></div>` : ""}
         <div class="muted">${ico("flag", 18, 2.6)}<span>${setSummary({ level: m.set.l, age: m.set.a, n: m.n })}</span></div>
         <button class="btn orange" id="bAgain" style="width:100%;margin-top:16px;font-size:30px">${ico("rotate", 30, 3)}משחק חדש</button>
-        <button class="btn" id="bMenu" style="width:100%;margin-top:16px;font-size:26px">${ico("home", 28, 2.8)}חזרה לתפריט</button>
+        ${H ? `<button class="btn blue" id="bEditEnd" style="width:100%;margin-top:12px;font-size:24px">${ico("sliders", 26, 2.8, "#fff")}שינוי הגדרות</button>` : ""}
+        <button class="btn" id="bMenu" style="width:100%;margin-top:14px;font-size:26px">${ico("home", 28, 2.8)}חזרה לתפריט</button>
       </div>
     </section>`;
     wireEnd();
@@ -946,12 +981,285 @@ function resultScreen(m) {
       <div class="mres" style="top:${small ? 64 : 112}px"><div style="position:relative">${front(me[2], me[3] + 1, small ? 104 : 132, true)}<div style="position:absolute;right:-10px;top:${small ? 60 : 84}px;width:50px;height:50px;border-radius:50%;background:${col};border:3px solid var(--ink);display:grid;place-items:center">${ico("medal", 30, 2.6, "#2b2140")}</div></div>
         <div class="mblock" style="background:${col}"><b class="fred">${place}</b><span><span class="fred">${me[4]}</span> נכונות מתוך ${m.n}</span></div></div>
       <div class="card restc" style="top:${listTop}px">${rows}</div>
-      <div class="mbtns"><button class="btn orange mbtn" id="bAgain">${ico("rotate", 26, 3)}משחק חדש</button><button class="btn mbtn" id="bMenu" style="height:62px;font-size:22px">${ico("home", 24, 2.8)}חזרה לתפריט</button></div>
+      <div class="mbtns"><button class="btn orange mbtn" id="bAgain">${ico("rotate", 26, 3)}משחק חדש</button>${H ? `<button class="btn blue mbtn" id="bEditEnd" style="height:54px;font-size:20px">${ico("sliders", 22, 2.8, "#fff")}שינוי הגדרות</button>` : ""}<button class="btn mbtn" id="bMenu" style="height:62px;font-size:22px">${ico("home", 24, 2.8)}חזרה לתפריט</button></div>
     </section>`;
     wireEnd();
   });
   SFX.win();
 }
+
+/* ================= 1.0.3: who is this player (tap / hover), kick, bigger QR ================= */
+let POP = null, QRSVG = "";
+const stX = () => (MOBILE ? 390 : 1280), stY = () => (MOBILE ? MH : 800);
+/* one place that answers "who is player #pid": the host reads its own table, a player reads the last state */
+function playerInfo(pid) {
+  if (H) {
+    for (const p of H.players.values()) if (p.pid === pid) {
+      const rk = H.ph !== "lobby" && H.ph !== "count" ? ranked().findIndex((x) => x === p) + 1 : 0;
+      return { pid, name: p.name, ch: p.ch, lane: p.lane, rk, local: !!p.local, cid: p.cid, host: true };
+    }
+    return null;
+  }
+  const st = PS.st, p = st && st.pl.find((x) => x[0] === pid);
+  return p ? { pid, name: p[1], ch: p[2], lane: p[3], rk: st.ph === "lobby" || st.ph === "count" ? 0 : p[8], local: pid === PS.pid, host: false } : null;
+}
+function popHTML(info, confirmStep, sticky) {
+  const col = shirt(info.ch), canKick = sticky && info.host && !info.local;
+  let act = "";
+  if (canKick) act = confirmStep
+    ? `<div class="pp-q">להוציא מהמשחק?</div><div class="pp-b"><button class="btn sm red" data-pp="yes">${ico("user-x", 22, 2.8, "#fff")}כן, להוציא</button><button class="btn sm" data-pp="no">ביטול</button></div>`
+    : `<button class="btn sm red pp-kick" data-pp="kick">${ico("user-x", 22, 2.8, "#fff")}הוצאה מהמשחק</button>`;
+  return `<div class="pp-h"><span class="pp-av" style="background:${col}">${front(info.ch, info.lane + 1, MOBILE ? 40 : 52)}</span><span class="pp-n" style="--c:${col}" translate="no">${esc(info.name)}</span>` +
+    (info.local ? `<em class="pp-me">אני</em>` : "") + (info.rk ? `<span class="pp-rk"><span>מקום</span> <b class="fred">${info.rk}</b></span>` : "") +
+    (sticky ? `<button class="pp-x" data-pp="close" aria-label="סגירה" title="סגירה">${ico("x", 22, 3.2)}</button>` : "") + `</div>${act}`;
+}
+function openPop(pid, anchor, o) {
+  o = o || {}; const info = playerInfo(pid); if (!info || !anchor) return;
+  const sticky = !!o.sticky;
+  if (POP && POP.pid === pid && POP.sticky === sticky && POP.anchor === anchor && !o.confirm) return;
+  closePop();
+  const el = document.createElement("div");
+  el.className = "ppop " + (sticky ? "st" : "tip"); el.setAttribute("role", sticky ? "dialog" : "tooltip"); el.setAttribute("aria-label", info.name);
+  el.innerHTML = popHTML(info, !!o.confirm, sticky);
+  stage.appendChild(el);
+  const first = (anchor.className.split(" ")[0] || "");
+  POP = { pid, el, anchor, sticky, confirm: !!o.confirm, sel: "." + first + '[data-pid="' + pid + '"]', sig: "", t: 0, iv: setInterval(popRefresh, 250) };
+  POP.sig = info.name + "|" + info.rk;
+  anchor.classList.add("pop-hl");
+  if (sticky) POP.t = setTimeout(() => { if (POP && !POP.confirm) closePop(); }, 25000);
+  popPlace();
+  if (sticky) { const b = $("[data-pp]", el); if (b && !MOBILE) try { b.focus({ preventScroll: true }); } catch (e) {} }
+}
+function popPlace() {
+  if (!POP) return;
+  const { el, anchor } = POP, sr = stage.getBoundingClientRect(), ar = anchor.getBoundingClientRect(), S = SCALE || 1;
+  let top = ar.top;
+  if (anchor.classList.contains("runner")) { const tg = $(".tag", anchor); if (tg) top = Math.min(top, tg.getBoundingClientRect().top); }
+  const w = el.offsetWidth, h = el.offsetHeight, cx = (ar.left + ar.width / 2 - sr.left) / S;
+  let y = (top - sr.top) / S - h - 12;
+  if (y < 8) y = Math.min((ar.bottom - sr.top) / S + 12, stY() - h - 8);
+  el.style.left = Math.round(Math.max(8, Math.min(stX() - w - 8, cx - w / 2))) + "px"; el.style.top = Math.round(Math.max(8, y)) + "px";
+}
+function closePop() {
+  if (!POP) return;
+  clearInterval(POP.iv); clearTimeout(POP.t); try { POP.el.remove(); POP.anchor.classList.remove("pop-hl"); } catch (e) {}
+  POP = null;
+}
+function popRefresh() {
+  if (!POP) return;
+  const info = playerInfo(POP.pid);
+  if (!info) { closePop(); return; }
+  if (!POP.anchor.isConnected) { const a = stage.querySelector(POP.sel); if (!a) { closePop(); return; } POP.anchor = a; a.classList.add("pop-hl"); }
+  const sig = info.name + "|" + info.rk;
+  if (sig !== POP.sig && !POP.confirm) { POP.sig = sig; POP.el.innerHTML = popHTML(info, false, POP.sticky); }
+  popPlace();
+}
+function popAction(a) {
+  if (!POP) return;
+  if (a === "close" || a === "no") { closePop(); return; }
+  if (a === "kick") { openPop(POP.pid, POP.anchor, { sticky: true, confirm: true }); return; }
+  if (a === "yes") { const pid = POP.pid, info = playerInfo(pid); closePop(); if (info && info.cid) { hostKick(info.cid); toast(T_("השחקן הוצא מהמשחק")); } }
+}
+function toast(txt) {
+  const o = $("#wrtoast"); if (o) o.remove();
+  const d = document.createElement("div"); d.id = "wrtoast"; d.className = "toast"; d.textContent = txt; stage.appendChild(d);
+  setTimeout(() => d.remove(), 2400);
+}
+/* host removes a player (lobby or mid-race). The identity (client id) is banned for this room. */
+function hostKick(cid) {
+  if (!H) return false;
+  const p = H.players.get(cid); if (!p || p.local) return false;
+  H.banned.add(cid);
+  try { H.net.send(cid, { t: "kick" }); } catch (e) {}
+  const net = H.net; setTimeout(() => { try { net.forget(cid); } catch (e) {} }, 1500);
+  H.players.delete(cid);
+  if (H.ph !== "lobby" && H.ph !== "end") {
+    if (!H.players.size) { hostRematch(); return true; }
+    if (H.ph === "q" && [...H.players.values()].some((x) => x.on || x.local) && [...H.players.values()].filter((x) => x.on || x.local).every((x) => x.ans[H.qi])) H.phEnd = Math.min(H.phEnd, now() + 800);
+  }
+  hostBroadcast(); hostView(); popRefresh();
+  return true;
+}
+/* what a removed player sees */
+function kickedScreen() {
+  leaveAll(); LS.set("wr-join", null);
+  show("kicked", () => {
+    stage.innerHTML = `<section class="scr on" id="s-kicked">${LOW ? "" : clouds([[80, 120, 150, 0.6], [900, 90, 140, 0.6]])}
+      <div class="topbar"><div class="tb-r"><a class="pillbtn" id="bHub" href="${HUB}" title="חזרה לאינגלישיה">${ico("home", 24, 2.6)}<span class="fred" translate="no">Englishia</span></a></div>${MOBILE ? "" : logo(40, 5, 3)}</div>
+      <div class="card kickc" role="alert"><div class="kick-ic">${ico("user-x", MOBILE ? 48 : 72, 2.6, "#fff")}</div>
+        <div class="kick-t">הוצאת מהמשחק על ידי המורה</div><div class="kick-s">אפשר לחזור לתפריט.</div>
+        <button class="btn orange kick-b" id="bKMenu">${ico("home", 28, 3)}חזרה לתפריט</button></div>
+      ${credit()}
+    </section>`;
+    $("#bKMenu").onclick = () => homeScreen();
+  });
+}
+/* QR lightbox: same window, closes on click / Esc / X */
+function openQR() {
+  if (!H) return;
+  closeQR();
+  let svg = QRSVG;
+  try { const q = qrcode(0, "M"); q.addData(joinURL()); q.make(); svg = q.createSvgTag({ cellSize: 4, margin: 0, scalable: true }); } catch (e) {}
+  const c = H.code, el = document.createElement("div");
+  el.id = "qrlb"; el.className = "qrlb"; el.setAttribute("role", "dialog"); el.setAttribute("aria-modal", "true"); el.setAttribute("aria-label", "קוד QR להצטרפות");
+  el.innerHTML = `<div class="qrlb-card"><button class="qrlb-x" id="qrlbX" aria-label="סגירה" title="סגירה">${ico("x", MOBILE ? 26 : 38, 3.6)}</button>
+    <div class="qrlb-qr">${svg}</div><div class="qrlb-l">קוד החדר</div>
+    <div class="qrlb-code fred" translate="no" dir="ltr">${c.slice(0, 3)} ${c.slice(3)}</div>
+    <div class="qrlb-url en" translate="no" dir="ltr">${esc(shortAddr())}</div>
+    <div class="qrlb-hint">לחצו בכל מקום כדי לסגור</div></div>`;
+  el.onclick = closeQR;
+  stage.appendChild(el);
+  try { $("#qrlbX").focus({ preventScroll: true }); } catch (e) {}
+}
+function closeQR() { const el = $("#qrlb"); if (el) { el.remove(); const q = $("#qr"); if (q && VIEW.name === "lobby") try { q.focus({ preventScroll: true }); } catch (e) {} } }
+(function bindHostUI() {
+  const pidOf = (t) => +t.dataset.pid;
+  stage.addEventListener("click", (e) => {
+    const tg = e.target;
+    if (!tg.closest) return;
+    if (tg.closest("#qrlb")) return;
+    if (tg.closest("#bMusic")) { musicToggle(); return; }
+    const qb = tg.closest("#qr"); if (qb) { openQR(); return; }
+    const pa = tg.closest("[data-pp]"); if (pa) { popAction(pa.dataset.pp); return; }
+    if (tg.closest(".ppop")) return;
+    const kx = tg.closest("[data-kickpid]");
+    if (kx) { e.stopPropagation(); const a = kx.closest("[data-pid]") || kx; openPop(+kx.dataset.kickpid, a, { sticky: true, confirm: true }); return; }
+    const t = tg.closest("[data-pid]");
+    if (t && playerInfo(pidOf(t))) { openPop(pidOf(t), t, { sticky: true }); return; }
+    closePop();
+  });
+  stage.addEventListener("keydown", (e) => {
+    if ((e.key === "Enter" || e.key === " ") && e.target.closest && e.target.matches && e.target.matches("[data-pid],#qr")) { e.preventDefault(); e.target.click(); }
+  });
+  stage.addEventListener("pointerover", (e) => {
+    if (e.pointerType !== "mouse" || (POP && POP.sticky) || !e.target.closest) return;
+    const t = e.target.closest("[data-pid]"); if (t && playerInfo(pidOf(t))) openPop(pidOf(t), t, { sticky: false });
+  });
+  stage.addEventListener("pointerout", (e) => {
+    if (e.pointerType !== "mouse" || !POP || POP.sticky || !e.target.closest) return;
+    const t = e.target.closest("[data-pid]"), to = e.relatedTarget && e.relatedTarget.closest ? e.relatedTarget.closest("[data-pid]") : null;
+    if (t && t !== to) closePop();
+  });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") { if ($("#qrlb")) closeQR(); else closePop(); } });
+})();
+
+/* ================= 1.0.3: host-screen music (original loops, generated live with WebAudio — no audio files) =================
+   Plays only on the projector (present-mode host screen), never on players' phones. Starts after the first tap/key.
+   Lobby: relaxed bouncy loop · race: faster driving loop (speeds up in the last third) · results: short victory jingle.
+   Off when the game's sound is muted or the music button is off (remembered in localStorage). Kept well below the SFX. */
+let MUSIC_ON = LS.get("wr-music", true) !== false;
+const MU = { cur: "", key: "", step: 0, next: 0, tempo: 1, g: null, an: null, iv: 0, gest: false, noise: null };
+const mtof = (n) => 440 * Math.pow(2, (n - 69) / 12);
+const musicActive = () => MUSIC_ON && !MUTE;
+const musicBtn = (style) => `<button class="iconbtn musicbtn ${musicActive() ? "" : "off"}" id="bMusic" style="${style || ""}" aria-pressed="${musicActive()}" aria-label="מוזיקת רקע" title="מוזיקת רקע">${ico(musicActive() ? "music" : "music-off", 28, 2.6)}</button>`;
+function musicBtnRefresh() { const b = $("#bMusic"); if (!b) return; b.classList.toggle("off", !musicActive()); b.setAttribute("aria-pressed", String(musicActive())); b.innerHTML = ico(musicActive() ? "music" : "music-off", 28, 2.6); }
+function musicToggle() {
+  if (MUTE) { MUTE = false; MUSIC_ON = true; LS.set("wr-mute", false); } else MUSIC_ON = !MUSIC_ON;
+  LS.set("wr-music", MUSIC_ON); musicBtnRefresh(); musicSync(); if (musicActive()) SFX.tap();
+}
+function muCtx() {
+  try { AC = AC || new (window.AudioContext || window.webkitAudioContext)(); if (AC.state === "suspended") AC.resume().catch(() => {}); return AC; } catch (e) { return null; }
+}
+function muNoise() {
+  if (MU.noise) return MU.noise;
+  const b = AC.createBuffer(1, AC.sampleRate, AC.sampleRate), d = b.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  return (MU.noise = b);
+}
+function muTone(f, t, dur, type, vol, dest, atk) {
+  const o = AC.createOscillator(), g = AC.createGain(); o.type = type; o.frequency.value = f;
+  g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + (atk || 0.01)); g.gain.exponentialRampToValueAtTime(0.0001, t + Math.max(0.05, dur));
+  o.connect(g); g.connect(dest); o.start(t); o.stop(t + dur + 0.05);
+}
+function muKick(t, vol, dest) {
+  const o = AC.createOscillator(), g = AC.createGain(); o.type = "sine"; o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(45, t + 0.12);
+  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.18); o.connect(g); g.connect(dest); o.start(t); o.stop(t + 0.2);
+}
+function muHat(t, vol, dest, hp, len) {
+  const s = AC.createBufferSource(), f = AC.createBiquadFilter(), g = AC.createGain(); s.buffer = muNoise(); f.type = "highpass"; f.frequency.value = hp || 7000;
+  g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(0.0001, t + (len || 0.05)); s.connect(f); f.connect(g); g.connect(dest); s.start(t, Math.random() * 0.5); s.stop(t + (len || 0.05) + 0.02);
+}
+/* original material: chord roots (bass), chord tones (arp) and a lead hook per bar; steps are 16ths, 16 per bar, 4 bars per loop */
+const MUS = {
+  lobby: {
+    bpm: 108, roots: [48, 45, 41, 43], arp: [[60, 64, 67], [57, 60, 64], [65, 69, 72], [67, 71, 74]], bass: [[0, 0], [3, 0], [6, 7], [8, 0], [11, 0], [14, 7]],
+    lead: [[[0, 76, 2], [3, 79, 1], [4, 76, 2], [8, 72, 2], [10, 74, 2], [12, 76, 4]], [[0, 72, 2], [3, 76, 1], [4, 81, 2], [8, 79, 2], [10, 76, 2], [12, 74, 4]],
+      [[0, 77, 2], [3, 81, 1], [4, 77, 2], [8, 74, 2], [10, 76, 2], [12, 77, 4]], [[0, 79, 2], [3, 74, 1], [4, 79, 2], [6, 83, 2], [8, 81, 2], [10, 79, 2], [12, 76, 2], [14, 74, 2]]]
+  },
+  race: {
+    bpm: 142, roots: [45, 41, 48, 43], arp: [[57, 60, 64], [53, 57, 60], [60, 64, 67], [55, 59, 62]], bass: [[0, 0], [2, 0], [4, 12], [6, 0], [8, 0], [10, 0], [12, 12], [14, 7]],
+    lead: [[[0, 81, 1], [2, 81, 1], [3, 84, 1], [4, 81, 2], [8, 79, 1], [10, 76, 2], [12, 79, 2]], [[0, 77, 1], [2, 77, 1], [3, 81, 1], [4, 77, 2], [8, 76, 1], [10, 72, 2], [12, 76, 2]],
+      [[0, 79, 1], [2, 79, 1], [3, 84, 1], [4, 79, 2], [8, 76, 1], [10, 79, 2], [12, 84, 2]], [[0, 83, 1], [2, 83, 1], [3, 79, 1], [4, 74, 2], [8, 76, 1], [10, 79, 1], [12, 83, 3]]]
+  }
+};
+function muStep(kind, s, t, sd) {
+  const P = MUS[kind], bar = Math.floor(s / 16) % 4, k = s % 16, race = kind === "race", d = MU.g;
+  const root = P.roots[bar];
+  // drums
+  if (race) {
+    if (k % 4 === 0) muKick(t, 0.5, d);
+    if (k === 4 || k === 12) muHat(t, 0.16, d, 2500, 0.09);
+    if (k % 2 === 0) muHat(t, k % 4 === 2 ? 0.1 : 0.05, d, 8000, 0.04);
+  } else {
+    if (k === 0 || k === 8) muKick(t, 0.32, d);
+    if (k === 4 || k === 12) muHat(t, 0.06, d, 6500, 0.07);
+  }
+  // bass
+  for (const [bs, off] of P.bass) if (bs === k) muTone(mtof(root + off), t, sd * (race ? 1.8 : 2.6), "triangle", race ? 0.2 : 0.17, d, 0.008);
+  // arpeggio
+  if (race ? true : k % 2 === 0) { const a = P.arp[bar], i = race ? [0, 1, 2, 1][(k >> 0) % 4] : [0, 1, 2, 1][(k >> 1) % 4]; muTone(mtof(a[i] + (race ? 12 : 0)), t, sd * (race ? 1.2 : 1.6), "square", race ? 0.022 : 0.026, d, 0.005); }
+  // lead hook
+  for (const [ls, n, len] of P.lead[bar]) if (ls === k) muTone(mtof(n), t, sd * len * 0.92, race ? "sawtooth" : "triangle", race ? 0.05 : 0.09, d, 0.012);
+}
+function muSched() {
+  if (!MU.cur || !AC || MU.cur === "win") return;
+  const P = MUS[MU.cur], sd = 60 / P.bpm / 4 / MU.tempo;
+  if (MU.next < AC.currentTime) MU.next = AC.currentTime + 0.05;
+  while (MU.next < AC.currentTime + 0.3) { muStep(MU.cur, MU.step++, MU.next, sd); MU.next += sd; }
+}
+function muJingle(t0) {
+  const d = MU.g, q = 0.15;
+  [[72, 0], [76, 1], [79, 2], [84, 3], [79, 4], [84, 5]].forEach(([n, i]) => muTone(mtof(n), t0 + i * q, q * 1.6, "triangle", 0.12, d, 0.01));
+  [72, 76, 79, 84].forEach((n) => muTone(mtof(n), t0 + 6 * q, 1.6, "triangle", 0.09, d, 0.02));
+  [60, 64, 67].forEach((n) => muTone(mtof(n), t0 + 6 * q, 1.6, "square", 0.02, d, 0.02));
+  muKick(t0, 0.35, d); muKick(t0 + 6 * q, 0.4, d); muHat(t0 + 3 * q, 0.1, d, 5000, 0.12);
+  [[88, 7], [91, 8], [96, 9]].forEach(([n, i]) => muTone(mtof(n), t0 + 6 * q + (i - 7) * 0.09, 0.9, "sine", 0.05, d, 0.005));
+}
+function muStop(fade) {
+  clearInterval(MU.iv); MU.iv = 0; MU.cur = ""; MU.key = "";
+  const g = MU.g; MU.g = null;
+  if (g && AC) { try { const t = AC.currentTime; g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(g.gain.value, t); g.gain.linearRampToValueAtTime(0.0001, t + (fade || 0.25)); } catch (e) {} setTimeout(() => { try { g.disconnect(); } catch (e) {} }, (fade || 0.25) * 1000 + 300); }
+}
+function muStart(kind, key) {
+  if (!muCtx()) return;
+  muStop(0.2);
+  const g = AC.createGain(), t = AC.currentTime;
+  g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.5, t + 0.4);   // overall music level: moderate, under the SFX
+  g.connect(AC.destination);
+  if (!MU.an) { MU.an = AC.createAnalyser(); MU.an.fftSize = 512; }
+  g.connect(MU.an);
+  MU.g = g; MU.cur = kind; MU.key = key; MU.step = 0; MU.next = t + 0.08;
+  if (kind === "win") { g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(0.5, t); muJingle(t + 0.05); return; }
+  muSched(); MU.iv = setInterval(muSched, 90);
+}
+/* decide what the host screen should be playing right now (called on every room state change) */
+function musicSync() {
+  let kind = "", key = "";
+  if (H && H.mode === "present" && musicActive() && document.visibilityState !== "hidden") {
+    if (H.ph === "lobby") kind = "lobby"; else if (H.ph === "q" || H.ph === "rev") kind = "race"; else if (H.ph === "end") kind = "win";
+    key = kind === "win" ? "win" + H.race : kind;
+  }
+  if (!kind) { if (MU.cur || MU.key) muStop(0.3); return; }
+  if (kind === "race") { const f = (H.qi + 1) / Math.max(1, H.set.n); MU.tempo = H.qi + 1 >= H.set.n ? 1.25 : f >= 0.7 ? 1.12 : 1; } else MU.tempo = 1;
+  if (!MU.gest || key === MU.key) return;
+  muStart(kind, key);
+}
+["pointerdown", "keydown", "touchend", "click"].forEach((ev) => document.addEventListener(ev, () => {
+  if (!MU.gest) { MU.gest = true; muCtx(); musicSync(); } else if (AC && AC.state === "suspended") AC.resume().catch(() => {});
+}, true));
+document.addEventListener("visibilitychange", () => musicSync());
+window.__WRMusic = { get cur() { return MU.cur; }, get tempo() { return MU.tempo; }, get on() { return musicActive(); }, get state() { return AC ? AC.state : "none"; },
+  level() { if (!MU.an) return 0; const a = new Float32Array(MU.an.fftSize); MU.an.getFloatTimeDomainData(a); let s = 0; for (const v of a) s += v * v; return Math.sqrt(s / a.length); } };
 
 /* ================= boot ================= */
 fit();

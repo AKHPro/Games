@@ -75,7 +75,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:4px solid var(-
 /* track + runners */
 .trackwrap{position:absolute;overflow:hidden;left:0;top:0}
 .track-svg{position:absolute;left:0;top:0}
-.runner{position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform;transition:transform .9s cubic-bezier(.3,.7,.3,1)}
+.runner{cursor:pointer;position:absolute;left:0;top:0;transform-origin:0 0;will-change:transform;transition:transform .9s cubic-bezier(.3,.7,.3,1)}
 .low .runner{transition:transform .4s linear}
 .runner .char{position:absolute;left:0;top:0;width:100%;height:auto}
 .runner .ph-b{display:none}
@@ -196,7 +196,8 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:4px solid var(-
 .pt.offl{opacity:.5}
 .pt-n{font:800 22px var(--ui);color:#fff;border:2.5px solid var(--ink);border-radius:999px;padding:0 14px;box-shadow:0 3px 0 var(--ink);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ptg.many .pt-n{font-size:15px;padding:0 8px}
-.pt-x{position:absolute;top:4px;left:4px;width:28px;height:28px;border-radius:50%;background:#fff;border:2px solid var(--ink);display:grid;place-items:center;opacity:.7}
+.pt-x{position:absolute;top:4px;left:4px;width:32px;height:32px;border-radius:50%;background:#fff;border:2px solid var(--ink);display:grid;place-items:center;opacity:.85}
+.pt-x:hover{background:var(--red);color:#fff;opacity:1}
 .startbtn{position:absolute;left:32px;bottom:30px;width:630px;height:104px;font-size:42px;border-radius:26px}
 .netst{display:inline-flex;align-items:center;gap:6px;font:700 16px var(--ui);color:var(--ink2)}
 .netst i{width:10px;height:10px;border-radius:50%;background:#bbb;display:inline-block}
@@ -269,7 +270,7 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:4px solid var(-
 .ansd{position:absolute;left:24px;bottom:24px;padding:12px 16px;z-index:1500;border-radius:20px;max-width:760px}
 .ansd .ico{display:inline-block;vertical-align:-4px;margin-left:6px}
 .dotsp{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
-.dotp{width:42px;height:42px;border-radius:50%;border:2.5px solid var(--ink);display:grid;place-items:center;overflow:hidden;align-items:start;padding-top:2px;opacity:.3;transition:opacity .2s}
+.dotp{cursor:pointer;width:46px;height:46px;border-radius:50%;border:2.5px solid var(--ink);display:grid;place-items:center;overflow:hidden;align-items:start;padding-top:2px;opacity:.3;transition:opacity .2s}
 .dotp.done{opacity:1}
 .countdown{position:absolute;inset:0;z-index:4000;display:grid;place-items:center;background:rgba(43,33,64,.35)}
 .countdown b{font:700 220px var(--fred);color:#fff;-webkit-text-stroke:16px var(--ink);paint-order:stroke fill;text-shadow:0 14px 0 var(--ink);animation:pop .9s ease-out}
@@ -434,3 +435,60 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:4px solid var(-
 .m .panel .ans.right{box-shadow:0 0 0 6px var(--green),0 5px 0 6px var(--ink);outline-width:4px}
 .m .panel .ans.chosen{outline-width:4px;outline-offset:2px}
 .fbk.onedge{z-index:3500;font-size:22px;padding:4px 18px}
+
+/* ===== 1.0.3: player name tooltip / kick popover, kicked screen, QR lightbox ===== */
+[data-pid]{cursor:pointer}
+.pop-hl{outline:4px solid var(--orange);outline-offset:2px}
+.runner.pop-hl{outline:none;filter:drop-shadow(0 0 7px #fff) drop-shadow(0 0 3px var(--orange))}
+.btn.red{background:var(--red);color:#fff}
+.ppop{position:absolute;z-index:4500;background:#fff;border:4px solid var(--ink);border-radius:22px;box-shadow:0 7px 0 var(--ink);padding:12px 16px;min-width:220px;max-width:480px;display:flex;flex-direction:column;gap:12px;align-items:stretch}
+.ppop.tip{pointer-events:none;padding:8px 14px}
+.pp-h{display:flex;align-items:center;gap:12px;white-space:nowrap}
+.pp-av{width:56px;height:56px;border-radius:50%;border:3px solid var(--ink);overflow:hidden;display:flex;justify-content:center;align-items:flex-start;padding-top:2px;flex:none}
+.ppop.tip .pp-av{width:46px;height:46px}
+.pp-n{font:900 34px/1.15 var(--ui);color:#fff;background:var(--c,#ff9a1f);border:3px solid var(--ink);border-radius:999px;padding:0 18px 2px;max-width:260px;overflow:hidden;text-overflow:ellipsis}
+.pp-me{font-style:normal;font:800 20px var(--ui);background:var(--ink);color:#fff;border-radius:999px;padding:0 12px}
+.pp-rk{font:800 20px var(--ui);color:var(--ink2);display:inline-flex;gap:6px;align-items:baseline} .pp-rk b{font-size:30px;color:var(--ink)}
+.pp-x{width:44px;height:44px;border-radius:14px;background:#fff;border:3px solid var(--ink);display:grid;place-items:center;margin-inline-start:auto;flex:none}
+.pp-q{font:800 24px var(--ui);text-align:center}
+.pp-b{display:flex;gap:10px;justify-content:center}
+.ppop .btn.sm{font-size:22px;padding:10px 20px;justify-content:center}
+.toast{position:absolute;left:50%;top:14%;transform:translateX(-50%);z-index:4600;font:800 28px var(--ui);background:var(--ink);color:#fff;border:3px solid #fff;border-radius:999px;padding:8px 26px;white-space:nowrap;pointer-events:none;box-shadow:0 5px 0 rgba(0,0,0,.3)}
+.m .ppop{border-width:3px;padding:10px 12px;min-width:200px;max-width:370px;border-radius:18px;box-shadow:0 5px 0 var(--ink)}
+.m .pp-av{width:44px;height:44px} .m .ppop.tip .pp-av{width:38px;height:38px}
+.m .pp-n{font-size:22px;padding:0 12px 2px;max-width:200px} .m .pp-rk{font-size:15px} .m .pp-rk b{font-size:22px} .m .pp-me{font-size:15px}
+.m .pp-q{font-size:19px} .m .ppop .btn.sm{font-size:18px;padding:8px 14px}
+.m .toast{font-size:19px;padding:6px 18px;top:10%}
+/* kicked screen */
+.kickc{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:760px;padding:40px 44px 44px;display:flex;flex-direction:column;align-items:center;gap:18px;text-align:center}
+.kick-ic{width:128px;height:128px;border-radius:50%;background:var(--red);border:5px solid var(--ink);display:grid;place-items:center;box-shadow:0 6px 0 var(--ink)}
+.kick-t{font:900 54px/1.15 var(--ui)} .kick-s{font:700 30px var(--ui);color:var(--ink2)}
+.kick-b{margin-top:10px;font-size:34px;padding:14px 40px}
+.m .kickc{width:auto;left:20px;right:20px;transform:translateY(-50%);padding:26px 20px 28px;gap:12px}
+.m .kick-ic{width:84px;height:84px;border-width:4px} .m .kick-t{font-size:30px} .m .kick-s{font-size:20px} .m .kick-b{font-size:24px;padding:12px 26px}
+/* QR */
+.qrbox{position:relative;cursor:zoom-in}
+.qr-zoom{position:absolute;right:-12px;bottom:-12px;width:46px;height:46px;border-radius:50%;background:var(--blue);border:3.5px solid var(--ink);display:grid;place-items:center;box-shadow:0 3px 0 var(--ink)}
+.m .qr-zoom{width:32px;height:32px;right:-8px;bottom:-8px;border-width:3px}
+.qrz{display:block;font:700 18px var(--ui);color:var(--blue);margin-top:6px}
+.m .qrz{font-size:13px;margin-top:3px}
+.qrlb{position:absolute;inset:0;z-index:5000;background:rgba(32,22,56,.84);display:grid;place-items:center;cursor:zoom-out}
+.qrlb-card{position:relative;background:#fff;border:5px solid var(--ink);border-radius:34px;box-shadow:0 10px 0 var(--ink);padding:26px 40px 22px;display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center}
+.qrlb-qr{width:440px;height:440px;padding:14px;background:#fff;border:4px solid var(--ink);border-radius:22px}
+.qrlb-qr svg{width:100%;height:100%;display:block}
+.qrlb-l{font:800 26px var(--ui);color:var(--ink2);margin-top:8px}
+.qrlb-code{font-size:96px;font-weight:700;line-height:1;letter-spacing:6px;direction:ltr}
+.qrlb-url{font-size:30px;font-weight:600;color:var(--blue)}
+.qrlb-hint{font:700 20px var(--ui);color:#8a7fa6;margin-top:4px}
+.qrlb-x{position:absolute;top:-22px;right:-22px;width:64px;height:64px;border-radius:50%;background:var(--red);color:#fff;border:4px solid var(--ink);display:grid;place-items:center;box-shadow:0 5px 0 var(--ink)}
+.m .qrlb-card{padding:18px 20px 14px;border-radius:26px;border-width:4px;box-shadow:0 7px 0 var(--ink)}
+.m .qrlb-qr{width:300px;height:300px;padding:10px}
+.m .qrlb-l{font-size:18px} .m .qrlb-code{font-size:56px;letter-spacing:4px} .m .qrlb-url{font-size:19px} .m .qrlb-hint{font-size:15px}
+.m .qrlb-x{width:48px;height:48px;top:-16px;right:-12px}
+.musicbtn.off{opacity:.7}
+.m .musicbtn{width:40px;height:40px}
+
+/* editable settings pill */
+.hudedit{cursor:pointer;font-family:inherit;color:var(--ink)}
+.hudedit:hover{background:#fff6e0}
+.hudedit-i{width:32px;height:32px;border-radius:50%;background:var(--blue);display:grid;place-items:center;margin-inline-start:2px;flex:none}
