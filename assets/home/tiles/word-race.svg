@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Word Race">
+<defs><linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6ec6ff"/><stop offset="1" stop-color="#bfe8ff"/></linearGradient>
+<pattern id="chk" width="24" height="24" patternUnits="userSpaceOnUse"><rect width="12" height="12" fill="#1c1914"/><rect x="12" y="12" width="12" height="12" fill="#1c1914"/><rect x="12" width="12" height="12" fill="#fff"/><rect y="12" width="12" height="12" fill="#fff"/></pattern></defs>
+<rect width="512" height="512" fill="url(#sky)"/>
+<ellipse cx="110" cy="80" rx="60" ry="22" fill="#fff" opacity=".9"/><ellipse cx="150" cy="70" rx="38" ry="22" fill="#fff" opacity=".9"/><ellipse cx="400" cy="130" rx="50" ry="18" fill="#fff" opacity=".85"/>
+<rect y="190" width="512" height="40" fill="#51b85a"/>
+<rect y="230" width="512" height="282" fill="#e8663a"/>
+<g stroke="#fff" stroke-width="6" opacity=".85"><path d="M0 322H512M0 414H512"/></g>
+<rect x="416" y="230" width="36" height="282" fill="url(#chk)"/>
+<g font-family="Segoe UI,Arial,sans-serif" font-weight="800" text-anchor="middle">
+<g transform="translate(300 276)"><circle r="34" fill="#ffd8a8" stroke="#1c1914" stroke-width="6"/><path d="M-30-6a30 30 0 0 1 60 0c-14-12-46-12-60 0z" fill="#7b4a20"/><circle cx="-11" cy="2" r="4" fill="#1c1914"/><circle cx="11" cy="2" r="4" fill="#1c1914"/><path d="M-10 16q10 8 20 0" stroke="#1c1914" stroke-width="4" fill="none" stroke-linecap="round"/><rect x="-22" y="34" width="44" height="26" rx="8" fill="#ff4d8d"/><text y="55" font-size="22" fill="#fff">1</text></g>
+<g transform="translate(210 368)"><circle r="34" fill="#ffd8a8" stroke="#1c1914" stroke-width="6"/><path d="M-30-6a30 30 0 0 1 60 0c-14-12-46-12-60 0z" fill="#1c1914"/><circle cx="-11" cy="2" r="4" fill="#1c1914"/><circle cx="11" cy="2" r="4" fill="#1c1914"/><path d="M-10 16q10 8 20 0" stroke="#1c1914" stroke-width="4" fill="none" stroke-linecap="round"/><rect x="-22" y="34" width="44" height="26" rx="8" fill="#3b82f6"/><text y="55" font-size="22" fill="#fff">2</text></g>
+<g transform="translate(120 460)"><circle r="34" fill="#ffd8a8" stroke="#1c1914" stroke-width="6"/><path d="M-30-6a30 30 0 0 1 60 0c-14-12-46-12-60 0z" fill="#d9480f"/><circle cx="-11" cy="2" r="4" fill="#1c1914"/><circle cx="11" cy="2" r="4" fill="#1c1914"/><path d="M-10 16q10 8 20 0" stroke="#1c1914" stroke-width="4" fill="none" stroke-linecap="round"/><rect x="-22" y="34" width="44" height="26" rx="8" fill="#22b573"/><text y="55" font-size="22" fill="#fff">3</text></g>
+</g>
+<path d="M460 230V120" stroke="#1c1914" stroke-width="8" stroke-linecap="round"/><path d="M460 122h50l-14 20 14 20h-50z" fill="#ef8f1e"/>
+</svg>
