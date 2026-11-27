@@ -40,7 +40,7 @@
   var ACTIVITY_DAYS = 7;
   var CHANGE_DAYS = 365;
   var LONG_TYPES = ["name_change", "password_change", "username_change", "admin_edit", "admin_reset_progress", "admin_password_reset", "admin_points", "admin_rank", "admin_perms", "admin_delete", "admin_restore", "admin_rankdefs"];
-  var GAME_TITLES = { "mila-quest": "מילה קווסט", "grammar-maze": "מבוך הדקדוק", "word-detective": "בלש המילים" };
+  var GAME_TITLES = { "mila-quest": "מילה קווסט", "grammar-maze": "מבוך הדקדוק", "word-detective": "בלש המילים", "word-race": "מירוץ המילים", "word-blast": "פיצוץ מילים" };
 
   var script = document.currentScript;
   var ROOT = (function () {

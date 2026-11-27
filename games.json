@@ -63,6 +63,22 @@
       "level": "בחירת גיל בהגדרות",
       "path": "games/word-race/",
       "thumbnail": "assets/thumbs/word-race.jpg"
+    },
+    {
+      "id": "word-blast",
+      "title": "Word Blast",
+      "subtitleHe": "פיצוץ מילים",
+      "description": "A calm bubble shooter for English practice. A sentence with a gap, a question or a word to translate appears under the board, and a few bubbles carry possible answers: aim the cannon and hit the right word. Correct hits pop it with its same-colour neighbours and loose bubbles fall into bonus baskets. Six levels, gap sentences, verb questions, translation, and the teacher's own word list with a student link and QR.",
+      "category": "Vocabulary",
+      "tags": [
+        "Words",
+        "Grammar",
+        "Teacher list",
+        "Projector"
+      ],
+      "level": "בחירת גיל בהגדרות",
+      "path": "games/word-blast/",
+      "thumbnail": "assets/thumbs/word-blast.jpg"
     }
   ]
 }
