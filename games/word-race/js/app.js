@@ -3,9 +3,10 @@
    © 2026 Amir · Englishia · All rights reserved */
 import { LEVELS, levelOf, AGES, QTYPES, buildRace, publicQ, localize } from "./questions.js";
 
-const VERSION = "1.0.3", GAME_ID = "word-race", MAX_PLAYERS = 30;
+const VERSION = "1.0.5", GAME_ID = "word-race", MAX_PLAYERS = 30;
 const DEMO = /\/demo\//.test(location.pathname);
-const HUB = DEMO ? "../" : "../../";
+/* absolute (from this script's own URL) so the address bar can show /word-race/ without moving the Englishia link */
+const HUB = new URL(DEMO ? "../../" : "../../../", import.meta.url).href;
 const URLP = new URLSearchParams(location.search);
 const LANG = (window.EnglishiaLang && EnglishiaLang.lang) || "he";
 const CHARS = window.WR_CHARS || [];
@@ -55,7 +56,10 @@ const P = {
   "user-x": '<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="m17 8 5 5"/><path d="m22 8-5 5"/>',
   music: '<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/>',
   "music-off": '<path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/><path d="m3 3 18 18"/>',
+  "log-out": '<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/>',
   "zoom-in": '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/><path d="M11 8v6"/><path d="M8 11h6"/>',
+  "eye-off": '<path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/>',
+  "skip-forward": '<polygon points="5 4 15 12 5 20 5 4"/><line x1="19" x2="19" y1="5" y2="19"/>',
   image: '<rect x="3" y="3" width="18" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.09-3.09a2 2 0 0 0-2.82 0L6 21"/>'
 };
 const ico = (n, s = 24, sw = 2.4, c = "currentColor", f = "none") =>
@@ -150,7 +154,8 @@ class Track {
 }
 
 /* ---------- settings / prefs ---------- */
-const PREF = Object.assign({ level: "normal", age: "vz", types: QTYPES.filter((t) => t.on).map((t) => t.k), n: 15, time: 20 }, LS.get("wr-settings", {}));
+const PREF = Object.assign({ level: "normal", age: "vz", types: QTYPES.filter((t) => t.on).map((t) => t.k), n: 15, time: 20, skip: true }, LS.get("wr-settings", {}));
+if (typeof PREF.skip !== "boolean") PREF.skip = true;
 if (!LEVELS.some((l) => l.k === PREF.level)) PREF.level = "normal";
 if (!Array.isArray(PREF.types) || !PREF.types.length) PREF.types = QTYPES.filter((t) => t.on).map((t) => t.k);
 const gfxPref = LS.get("wr-gfx", null);
@@ -165,6 +170,7 @@ if (!/^[a-z0-9]{12}$/.test(CID)) { CID = (Math.random().toString(36).slice(2) + 
 let AC = null;
 function beep(fr, d = 0.12, type = "sine", v = 0.12, delay = 0) {
   if (MUTE) return;
+  muDuck((d + delay) * 1000 + 150);
   try {
     AC = AC || new (window.AudioContext || window.webkitAudioContext)();
     if (AC.state === "suspended") AC.resume().catch(() => {});
@@ -176,11 +182,12 @@ function beep(fr, d = 0.12, type = "sine", v = 0.12, delay = 0) {
 const SFX = {
   tap: () => beep(520, 0.06, "triangle", 0.08), ok: () => { beep(660, 0.1, "triangle"); beep(990, 0.16, "triangle", 0.12, 0.09); },
   no: () => beep(200, 0.25, "sawtooth", 0.06), tick: () => beep(880, 0.05, "square", 0.04), go: () => beep(1180, 0.3, "triangle", 0.14),
-  win: () => [523, 659, 784, 1047].forEach((fr, i) => beep(fr, 0.18, "triangle", 0.12, i * 0.12))
+  win: () => { if (typeof MU !== "undefined" && MU.cur === "win") return; [523, 659, 784, 1047].forEach((fr, i) => beep(fr, 0.18, "triangle", 0.12, i * 0.12)); }
 };
 const CAN_SPEAK = "speechSynthesis" in window && typeof SpeechSynthesisUtterance !== "undefined";
 function speak(text) {
   if (!CAN_SPEAK || !text || MUTE) return;
+  muDuck(2800);
   try {
     speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text); u.lang = "en-US"; u.rate = 0.85;
@@ -213,7 +220,7 @@ function fit() {
   return changed;
 }
 let VIEW = { name: "", render: null };
-function show(name, render) { closePop(); closeQR(); VIEW = { name, render }; render(); stage.scrollTop = 0; stage.scrollLeft = 0; }
+function show(name, render) { closePop(); closeQR(); VIEW = { name, render }; render(); stage.scrollTop = 0; stage.scrollLeft = 0; musicSync(); }
 let rsz = 0;
 window.addEventListener("resize", () => { clearTimeout(rsz); rsz = setTimeout(() => { const ch = fit(); if (VIEW.name === "race") fitAnswers(); if (ch && VIEW.render) { if (VIEW.name === "race" && PS.st) raceScreen(PS.st, RACE && RACE.projector); else VIEW.render(); } }, 120); });
 const T_ = (s) => { try { return window.EnglishiaLang ? EnglishiaLang.t(s) : s; } catch (e) { return s; } };
@@ -296,6 +303,9 @@ function settingsScreen(mode, edit) {
         <div class="card pane" style="display:flex;gap:26px;flex-wrap:wrap">
           <div><h3><span class="hi" style="background:#22b573">${ico("flag", 22, 2.8, "#fff")}</span>אורך המירוץ</h3><div class="segs">${seg([10, 15, 20], S.n, "שאלות", "n")}</div></div>
           <div><h3><span class="hi" style="background:#ff4f8b">${ico("timer", 24, 2.8, "#fff")}</span>זמן לשאלה</h3><div class="segs">${seg([10, 15, 20, 30], S.time, "שניות", "tm")}</div></div>
+          <div><h3><span class="hi" style="background:#2f7bff">${ico("skip-forward", 22, 2.6, "#fff")}</span>דילוג על שאלה</h3>
+            <div class="segs"><button class="seg ${S.skip !== false ? "on" : ""}" data-sk="1" aria-pressed="${S.skip !== false}"><b>מותר</b></button>
+              <button class="seg ${S.skip === false ? "on" : ""}" data-sk="0" aria-pressed="${S.skip === false}"><b>לא מותר</b></button></div></div>
         </div></div>
         <div class="set-col"><div class="card pane" style="height:100%"><h3><span class="hi" style="background:#8b5cf6">${ico("sliders", 22, 2.8, "#fff")}</span>סוגי שאלות<small>אפשר לבחור כמה</small></h3><div class="chips qts">${qt}</div></div></div>
       </div>
@@ -307,6 +317,7 @@ function settingsScreen(mode, edit) {
     $$("[data-age]").forEach((b) => (b.onclick = () => { S.age = b.dataset.age; SFX.tap(); VIEW.render(); }));
     $$("[data-n]").forEach((b) => (b.onclick = () => { S.n = +b.dataset.n; SFX.tap(); VIEW.render(); }));
     $$("[data-tm]").forEach((b) => (b.onclick = () => { S.time = +b.dataset.tm; SFX.tap(); VIEW.render(); }));
+    $$("[data-sk]").forEach((b) => (b.onclick = () => { S.skip = b.dataset.sk === "1"; SFX.tap(); VIEW.render(); }));
     $$("[data-qt]").forEach((b) => (b.onclick = () => { const k = b.dataset.qt; if (S.types.includes(k)) { if (S.types.length > 1) S.types = S.types.filter((x) => x !== k); } else S.types = S.types.concat(k); SFX.tap(); VIEW.render(); }));
     $("#bCreate").onclick = () => {
       SFX.tap(); LS.set("wr-settings", S);
@@ -349,11 +360,13 @@ function freeLane() { const used = new Set([...H.players.values()].map((p) => p.
 function addPlayer(cid, name, ch, local) {
   let p = H.players.get(cid);
   if (p) { p.on = true; p.last = now(); if (H.ph === "lobby") { p.name = name; p.ch = ch; } return p; }   // rejoin keeps lane + score
-  if (H.ph !== "lobby") return "late";
+  if (H.ph === "end") return "ended";   // results are final; they wait and join the next race
+  if (H.ph !== "lobby" && H.ph !== "count" && H.ph !== "q" && H.ph !== "rev") return "late";
   if (H.players.size >= MAX_PLAYERS) return "full";
   const pid = H.players.size ? Math.max(...[...H.players.values()].map((x) => x.pid)) + 1 : 1;
-  p = { cid, pid, name, ch, lane: freeLane(), ok: 0, pts: 0, tsum: 0, ans: {}, on: true, last: now(), local: !!local };
+  p = { cid, pid, name, ch, lane: freeLane(), ok: 0, pts: 0, tsum: 0, sk: 0, ans: {}, on: true, last: now(), local: !!local };
   H.players.set(cid, p); SFX.tap();
+  if (H.ph !== "lobby" && !local) toast(T_("שחקן הצטרף באמצע המירוץ"));
   return p;
 }
 function hostRecv(m, cid) {
@@ -363,11 +376,14 @@ function hostRecv(m, cid) {
   if (m.t === "hello") {
     const name = cleanName(m.name) || "Player", ch = CH[m.ch] ? m.ch : CHARS[0].id;
     const r = addPlayer(cid, name, ch, false);
+    if (r === "ended") { H.net.send(cid, { t: "ended" }); return; }   // stay connected: they join when the teacher starts the next race
     if (r === "late" || r === "full") { H.net.send(cid, { t: r }); H.net.forget(cid); return; }
     H.net.send(cid, { t: "you", pid: r.pid });
     hostBroadcast(); hostView();
   } else if (m.t === "ans") hostAnswer(p, m.qi, m.a);
+  else if (m.t === "skip") hostSkip(p, m.qi);
   else if (m.t === "ping") { if (p) { const was = p.on; p.on = true; p.last = now(); if (!was) { hostBroadcast(); hostView(); } } }
+  else if (m.t === "leave") { if (p) { hostDrop(cid); H.net.forget(cid); } }   // player pressed the exit button: gone for good (no ban)
   else if (m.t === "bye" || m.t === "_drop") {
     if (!p) return;
     if (m.t === "bye" && H.ph === "lobby") { H.players.delete(cid); H.net.forget(cid); }
@@ -389,14 +405,29 @@ function hostAnswer(p, qi, a) {
   if ([...H.players.values()].filter((x) => x.on || x.local).every((x) => x.ans[qi])) H.phEnd = Math.min(H.phEnd, now() + 800);
   hostBroadcast(); hostView();
 }
+function hostSkip(p, qi) {
+  if (!H || !p || H.ph !== "q" || qi !== H.qi || p.ans[qi] || H.set.skip === false) return;
+  p.on = true; p.last = now();
+  p.ans[qi] = { a: -1, ok: false, skip: true, ms: now() - H.t0, pts: 0 };
+  p.sk = (p.sk || 0) + 1;
+  if ([...H.players.values()].filter((x) => x.on || x.local).every((x) => x.ans[qi])) H.phEnd = Math.min(H.phEnd, now() + 800);
+  hostBroadcast(); hostView();
+}
+/* presentation host: skip this question for everyone still unanswered (no points, no penalty) */
+function hostSkipQuestion() {
+  if (!H || H.ph !== "q" || H.set.skip === false) return;
+  for (const p of H.players.values()) if (!p.ans[H.qi]) { p.ans[H.qi] = { a: -1, ok: false, skip: true, ms: now() - H.t0, pts: 0 }; p.sk = (p.sk || 0) + 1; }
+  H.ph = "rev"; H.phEnd = now() + 2400;
+  hostBroadcast(); hostView();
+}
 const ranked = () => [...H.players.values()].sort((a, b) => b.ok - a.ok || a.tsum - b.tsum || b.pts - a.pts || a.lane - b.lane);
 function stateMsg() {
   const rank = new Map(ranked().map((p, i) => [p.cid, i + 1]));
   const pl = [...H.players.values()].sort((a, b) => a.lane - b.lane).map((p) => {
     const an = H.ph === "q" || H.ph === "rev" ? p.ans[H.qi] : null;
-    return [p.pid, p.name, p.ch, p.lane, p.ok, p.pts, p.on || p.local ? 1 : 0, an ? (an.ok ? 2 : 1) : 0, rank.get(p.cid), an ? an.a : -1];
+    return [p.pid, p.name, p.ch, p.lane, p.ok, p.pts, p.on || p.local ? 1 : 0, an ? (an.skip ? 3 : an.ok ? 2 : 1) : 0, rank.get(p.cid), an ? an.a : -1, p.sk || 0];
   });
-  const m = { t: "st", ph: H.ph, code: H.code, mode: H.mode, set: { l: H.set.level, a: H.set.age, n: H.set.n, tm: H.set.time }, n: H.set.n, qi: H.qi, race: H.race, pl, left: Math.max(0, H.phEnd - now()), dur: H.dur };
+  const m = { t: "st", ph: H.ph, code: H.code, mode: H.mode, set: { l: H.set.level, a: H.set.age, n: H.set.n, tm: H.set.time, sk: H.set.skip !== false }, n: H.set.n, qi: H.qi, race: H.race, pl, left: Math.max(0, H.phEnd - now()), dur: H.dur };
   if ((H.ph === "q" || H.ph === "rev") && H.qs[H.qi]) m.q = publicQ(H.qs[H.qi]);
   if (H.ph === "rev") m.ok = H.qs[H.qi].ans;
   return m;
@@ -433,14 +464,14 @@ function hostQuestion(i) {
 function hostStart() {
   if (!H || H.ph !== "lobby" || !H.players.size) return;
   H.qs = buildRace({ types: H.set.types, level: H.set.level, age: H.set.age, n: H.set.n, seed: (Math.random() * 4294967295) >>> 0 });
-  [...H.players.values()].sort((a, b) => a.lane - b.lane).forEach((p, i) => { p.lane = i; p.ok = 0; p.pts = 0; p.tsum = 0; p.ans = {}; });
+  [...H.players.values()].sort((a, b) => a.lane - b.lane).forEach((p, i) => { p.lane = i; p.ok = 0; p.pts = 0; p.tsum = 0; p.sk = 0; p.ans = {}; });
   H.race++; H.ph = "count"; H.qi = -1; H.phEnd = now() + 3200;
   hostBroadcast(); hostView();
 }
 function hostRematch() {
   if (!H) return;
   H.ph = "lobby"; H.qi = -1; H.qs = []; H.editing = false;
-  for (const p of [...H.players.values()]) { p.ok = 0; p.pts = 0; p.tsum = 0; p.ans = {}; if (!p.on && !p.local) H.players.delete(p.cid); }
+  for (const p of [...H.players.values()]) { p.ok = 0; p.pts = 0; p.tsum = 0; p.sk = 0; p.ans = {}; if (!p.on && !p.local) H.players.delete(p.cid); }
   hostBroadcast();
   if (VIEW.name !== "lobby") lobbyScreen();
 }
@@ -450,7 +481,7 @@ function hostApplySettings(S) {
   if (!H) return;
   H.editing = false;
   if (H.ph === "lobby") {
-    H.set = { level: S.level, age: S.age, n: S.n, time: S.time, types: S.types.slice() };
+    H.set = { level: S.level, age: S.age, n: S.n, time: S.time, types: S.types.slice(), skip: S.skip !== false };
     Object.assign(PREF, H.set, { types: S.types.slice() }); LS.set("wr-settings", PREF);
     hostBroadcast();
   }
@@ -476,7 +507,7 @@ function lobbyScreen() {
     const present = H.mode === "present";
     stage.innerHTML = `<section class="scr on" id="s-lobby">${LOW ? "" : clouds([[560, 40, 160, 0.7], [1120, 620, 150, 0.5]])}
       <div class="topbar"><div class="tb-r"><button class="iconbtn" id="bBack" aria-label="חזרה">${ico(BACK, 30, 3)}</button>${MOBILE ? "" : logo(46, 7, 5)}
-        <span class="hud" style="font-size:${MOBILE ? 16 : 20}px">${present ? ico("projector", 22, 2.6, "#ff4f8b") + "<span>מצב הצגה</span>" : ico("globe", 22, 2.6, "#2f7bff") + "<span>חדר אונליין</span>"}</span>${netBadge()}${present ? musicBtn() : ""}${MOBILE ? `<button class="iconbtn" id="bEditSet" aria-label="שינוי הגדרות" title="שינוי הגדרות">${ico("sliders", 24, 2.6)}</button>` : ""}</div>
+        <span class="hud" style="font-size:${MOBILE ? 16 : 20}px">${present ? ico("projector", 22, 2.6, "#ff4f8b") + "<span>מצב הצגה</span>" : ico("globe", 22, 2.6, "#2f7bff") + "<span>חדר אונליין</span>"}</span>${netBadge()}${musicBtn()}${MOBILE ? `<button class="iconbtn" id="bEditSet" aria-label="שינוי הגדרות" title="שינוי הגדרות">${ico("sliders", 24, 2.6)}</button>` : ""}</div>
         ${MOBILE ? "" : `<button class="hud hudedit" id="bEditSet" style="font-size:20px" aria-label="שינוי הגדרות" title="שינוי הגדרות">${ico("gauge", 22, 2.6, "#ff9a1f")}<span>${setSummary(H.set)}</span><span class="hudedit-i">${ico("pen", 18, 2.8, "#fff")}</span></button>`}</div>
       <div class="card joincard">
         <div class="jt">הצטרפו למירוץ!</div>
@@ -517,7 +548,7 @@ function leaveAll() {
   if (PS.net) { try { PS.net.send({ t: "bye" }); } catch (e) {} const n = PS.net; setTimeout(() => { try { n.close(); } catch (e) {} }, 300); }
   clearInterval(PS.helloT); clearInterval(PS.pingT); clearInterval(PS.watch); clearTimeout(PS._rc); PS._rc = null;
   Object.assign(PS, { code: "", net: null, pid: 0, st: null, local: false, recorded: {}, race: -1 });
-  if (H) { const n = H.net; try { n && n.broadcast({ t: "closed" }); } catch (e) {} clearInterval(H.timer); clearInterval(H.beat); setTimeout(() => { try { n && n.close(); } catch (e) {} }, 400); H = null; }
+  if (H) { const n = H.net; try { n && n.broadcast({ t: "closed" }); setTimeout(() => { try { n.broadcast({ t: "closed" }); } catch (e) {} }, 200); } catch (e) {} clearInterval(H.timer); clearInterval(H.beat); setTimeout(() => { try { n && n.close(); } catch (e) {} }, 400); H = null; }
   clearInterval(TIMER_IV); RACE = null;
   try { speechSynthesis.cancel(); } catch (e) {}
   musicSync();
@@ -623,19 +654,28 @@ function banner(txt, ms) {
 }
 const clearBanner = () => { const b = $("#banner"); if (b) b.remove(); };
 
-function playerOnMsg(m, local) {
+function playerOnMsg(m, local) { try { playerOnMsg0(m, local); } finally { musicSync(); } }
+function playerOnMsg0(m, local) {
   if (!m || !m.t) return;
   PS.lastMsg = now();
   if (m.t === "you") { PS.pid = m.pid; clearInterval(PS.helloT); clearBanner(); if (PS.st) playerOnMsg(PS.st, false); return; }
-  if (m.t === "kick") { if (!local) kickedScreen(); return; }
-  if (m.t === "late" || m.t === "full" || m.t === "closed") {
+  if (m.t === "kick") { if (!local) noticeScreen("kicked"); return; }
+  if (m.t === "closed") { if (!local && PS.code) noticeScreen("closed"); return; }
+  if (m.t === "ended") {
     if (local) return;
-    const msg = { late: "המירוץ כבר התחיל. חכו למירוץ הבא", full: "החדר מלא (30 שחקנים)", closed: "החדר נסגר" }[m.t];
+    const msg = "המירוץ הסתיים. המתינו שהמורה יתחיל מירוץ חדש.";
+    if (VIEW.name !== "wait") waitScreen(null, msg);
+    else { const t = $("#waitT"); if (t) t.textContent = T_(msg); }
+    return;
+  }
+  if (m.t === "late" || m.t === "full") {
+    if (local) return;
+    const msg = { late: "המירוץ כבר התחיל. חכו למירוץ הבא", full: "החדר מלא (30 שחקנים)" }[m.t];
     const code = PS.code; LS.set("wr-join", null); joinScreen(code, T_(msg)); return;
   }
   if (m.t !== "st") return;
   PS.st = m;
-  if (!local && !PS.pid) return;            // not (yet) a member of this room
+  if (!local && !PS.pid) { sendHello(); return; }   // wait for membership (including after a finished race)
   if (!local && !m.pl.some((x) => x[0] === PS.pid)) { PS.pid = 0; sendHello(); return; }
   clearBanner();
   if (m.race !== PS.race) { PS.race = m.race; PS.recorded = {}; PS.sessionStart = now(); }
@@ -654,7 +694,7 @@ function waitScreen(m, msg) {
   show("wait", () => {
     const code = PS.code;
     stage.innerHTML = `<section class="scr on" id="s-wait">${LOW ? "" : clouds([[24, 110, 100, 0.8], [270, 170, 90, 0.7], [900, 120, 160, 0.6]])}
-      <div class="topbar"><div class="tb-r"><button class="iconbtn" id="bBack" aria-label="יציאה">${ico(BACK, 30, 3)}</button><div class="hud" style="font-size:${MOBILE ? 17 : 20}px"><span>חדר</span> <span class="num en" translate="no">${code.slice(0, 3)} ${code.slice(3)}</span></div></div>${MOBILE ? "" : logo(40, 5, 3)}</div>
+      <div class="topbar"><div class="tb-r"><button class="iconbtn" id="bBack" aria-label="יציאה">${ico(BACK, 30, 3)}</button><div class="hud" style="font-size:${MOBILE ? 17 : 20}px"><span>חדר</span> <span class="num en" translate="no">${code.slice(0, 3)} ${code.slice(3)}</span></div>${musicBtn()}</div>${MOBILE ? "" : logo(40, 5, 3)}</div>
       <div class="wait-t"><div class="title" style="font-size:${MOBILE ? 34 : 48}px" id="waitT">${msg || "ממתינים למורה"}</div><div class="dots3"><i></i><i></i><i></i></div></div>
       <div class="wait-me"><div class="ptag" style="--c:${shirt(PS.ch)};font-size:${MOBILE ? 26 : 32}px" translate="no">${esc(PS.name)}</div>
         <div style="position:relative;margin-top:6px;z-index:2">${front(PS.ch, CHARS.findIndex((c) => c.id === PS.ch) + 1, MOBILE ? 190 : 200, true)}</div><div class="spot"></div></div>
@@ -729,9 +769,9 @@ function raceScreen(m, projector) {
       body = `${trackWrap}
         <div class="card pq" id="pq" translate="no"><div style="display:flex;align-items:center;gap:18px;direction:ltr">${timerHTML(92, 10, 38)}
           <div style="flex:1;min-width:0"><div class="en qlead" style="font-size:22px" id="qLead"></div><div class="en qtext" id="qText" style="font-size:40px"></div></div><span id="qMeta"></span></div>
-          <div class="answers" id="answers" style="margin-top:12px"></div></div>
+          <div class="answers" id="answers" style="margin-top:12px"></div>${skipBtnHTML(true)}</div>
         <div class="card ansd" id="ansd"><div style="font:800 20px var(--ui)" id="ansN"></div><div class="dotsp" id="dotsp"></div></div>
-        ${musicBtn("position:absolute;right:24px;bottom:84px;z-index:1500")}
+        ${musicBtn("position:absolute;right:24px;bottom:84px;z-index:1500")}${exitBtn("position:absolute;right:90px;bottom:84px;z-index:1500")}
         <div class="hud" style="position:absolute;right:24px;bottom:24px;font-size:20px;z-index:1500">${ico("projector", 22, 2.6, "#ff4f8b")}<span>מצב הצגה · עונים בטלפון</span></div>`;
     } else {
       const qhead = MOBILE ? `<div class="qhead">${timerHTML(46, 6, 20)}<span class="qmeta" id="qMeta"></span></div>` : `<div class="qmeta" id="qMeta"></div>`;
@@ -742,19 +782,24 @@ function raceScreen(m, projector) {
           <div class="hud" style="${hs}"><span class="fred" style="font-weight:600">שאלה</span><span class="num" style="font-size:${MOBILE ? 22 : 28}px" id="hQ">1</span><span style="opacity:.6">/ ${m.n}</span></div>
           <div class="hud dark" style="${hs}">${ico("trophy", MOBILE ? 20 : 24, 2.6, "#ffc21a")}<span>${MOBILE ? "מקום" : "אני במקום"}</span><span class="num" style="font-size:${MOBILE ? 22 : 28}px;color:#ffc21a" id="hR">1</span></div>
         </div>
+        <div class="racetools">${musicBtn()}${exitBtn()}</div>
         ${MOBILE ? "" : `<div class="card lb" id="lb"><div class="lbt">${ico("flag", 20, 2.8)}<span>מיקומים</span></div><div id="lbRows"></div></div>`}
         <div class="panel" id="panel">
           <div class="qrow"><div class="qbox card" translate="no">${qhead}<div class="qlead en" id="qLead"></div><div class="qtext en" id="qText"></div></div>${MOBILE ? "" : timerHTML(128, 13, 50)}</div>
           <div class="answers" id="answers" translate="no"></div>
+          ${skipBtnHTML(false)}
         </div>`;
     }
-    stage.innerHTML = `<section class="scr on" id="s-race" style="${MOBILE ? "background:#5cc43f" : ""}">${body}</section>`;
-    if (MOBILE) { const pn = $("#panel"); pn.style.top = (trackH - 8) + "px"; pn.style.borderTop = "4px solid var(--ink)"; pn.style.display = "flex"; pn.style.flexDirection = "column"; }
+    const dockOn = !!H && JOINDOCK_ON;
+    stage.innerHTML = `<section class="scr on${projector ? " proj" : ""}${dockOn ? " has-jdock" : ""}" id="s-race" style="${MOBILE ? "background:#5cc43f" : ""}">${body}${H ? joinDockHTML() : ""}</section>`;
+    if (MOBILE) { const pn = $("#panel"); if (pn) { pn.style.top = (trackH - 8) + "px"; pn.style.borderTop = "4px solid var(--ink)"; pn.style.display = "flex"; pn.style.flexDirection = "column"; } }
     raceUpdate(m, projector);
   });
   clearInterval(TIMER_IV); TIMER_IV = setInterval(updateTimer, 200);
 }
 function placeRunners(m) {
+  const need = Math.max(4, m.pl.length, ...m.pl.map((p) => p[3] + 1));
+  if (need > RACE.L) { raceScreen(m, RACE.projector); return; }
   const { T, sp, L, projector } = RACE, box = $("#runners"); if (!box) return;
   const meP = m.pl.find((p) => p[0] === PS.pid && !projector);
   const base = Math.min(sp.base, (sp.bw / L) * 0.76), seen = new Set(), wk = Math.round(base);
@@ -816,7 +861,9 @@ function raceUpdate(m, projector) {
   if (m.ph === "count") {
     RACE.cdEnd = now() + m.left;
     if (!cd) { const d = document.createElement("div"); d.id = "countdown"; d.className = "countdown"; d.innerHTML = "<b class='fred'></b>"; $("#s-race").appendChild(d); }
-    tickCountdown(); return;
+    tickCountdown();
+    const bsk = $("#bSkip"); if (bsk) { bsk.classList.add("hidden"); bsk.disabled = true; }
+    return;
   }
   if (cd) cd.remove();
   if (!m.q) return;
@@ -844,15 +891,19 @@ function raceUpdate(m, projector) {
   }
   if (meP) {
     const st = meP[7];
-    if (RACE.picked < 0 && meP[9] >= 0) RACE.picked = meP[9];
-    $$(".ans").forEach((b) => { const i = +b.dataset.a; b.disabled = st > 0 || m.ph !== "q" || RACE.picked >= 0; b.classList.toggle("chosen", i === RACE.picked); });
-    if (st && RACE.fbk !== key + st) { RACE.fbk = key + st; feedback(st === 2 ? "ok" : "no"); if (st === 2) SFX.ok(); else SFX.no(); }
+    if (RACE.picked === -1 && st === 3) RACE.picked = -2;
+    if (RACE.picked === -1 && meP[9] >= 0) RACE.picked = meP[9];
+    $$(".ans").forEach((b) => { const i = +b.dataset.a; b.disabled = st > 0 || m.ph !== "q" || RACE.picked !== -1; b.classList.toggle("chosen", i === RACE.picked && RACE.picked >= 0); });
+    if (st && RACE.fbk !== key + st) { RACE.fbk = key + st; feedback(st === 3 ? "skip" : st === 2 ? "ok" : "no"); if (st === 2) SFX.ok(); else if (st === 1) SFX.no(); }
   }
   if (m.ph === "rev") {
     $$(".ans").forEach((b) => { const i = +b.dataset.a; b.disabled = true; b.classList.toggle("right", i === m.ok); b.classList.toggle("dim", i !== m.ok); });
     if (meP && !meP[7] && RACE.fbk !== key + "r") { RACE.fbk = key + "r"; feedback("late"); SFX.no(); }
     RACE.end = now();
   } else if (m.ph === "q") RACE.end = now() + m.left;
+  { const allow = !m.set || m.set.sk !== false && m.set.sk !== 0;
+    const can = allow && m.ph === "q" && (projector ? !!H : (RACE.picked === -1 && !(meP && meP[7])));
+    const bsk = $("#bSkip"); if (bsk) { bsk.classList.toggle("hidden", !can); bsk.disabled = !can; } }
   if (projector) {
     const on = m.pl.filter((p) => p[6]), done = m.pl.filter((p) => p[7] > 0).length;
     $("#ansN").innerHTML = m.ph === "rev"
@@ -863,10 +914,32 @@ function raceUpdate(m, projector) {
   }
   updateTimer(); popRefresh();
 }
+function skipBtnHTML(projector) {
+  const label = projector ? "דילוג על השאלה" : "דילוג";
+  return `<button class="skipbtn${projector ? " host" : ""} hidden" id="bSkip" type="button" aria-label="דילוג על השאלה" title="דילוג על השאלה">${ico("skip-forward", projector ? 28 : MOBILE ? 26 : 24, 2.6)}<span>${label}</span></button>`;
+}
+function pickSkip() {
+  if (!RACE || RACE.picked !== -1) return;
+  if (RACE.projector && H) {
+    if (H.ph !== "q" || H.set.skip === false) return;
+    SFX.tap(); hostSkipQuestion(); return;
+  }
+  if (!PS.st || PS.st.ph !== "q") return;
+  const allow = !PS.st.set || (PS.st.set.sk !== false && PS.st.set.sk !== 0);
+  if (!allow) return;
+  RACE.picked = -2; SFX.tap();
+  $$(".ans").forEach((b) => { b.disabled = true; });
+  const bsk = $("#bSkip"); if (bsk) { bsk.disabled = true; bsk.classList.add("hidden"); }
+  feedback("skip");
+  const qi = PS.st.qi;
+  if (PS.local && H) hostSkip(H.players.get("host-" + CID), qi);
+  else if (PS.net) { PS.net.send({ t: "skip", qi }); setTimeout(() => { if (RACE && RACE.picked === -2 && PS.st && PS.st.qi === qi && PS.st.ph === "q") { const me = PS.st.pl.find((p) => p[0] === PS.pid); if (me && !me[7]) PS.net.send({ t: "skip", qi }); } }, 1500); }
+}
 function pickAnswer(i) {
-  if (!RACE || RACE.picked >= 0 || !PS.st || PS.st.ph !== "q") return;
+  if (!RACE || RACE.picked !== -1 || !PS.st || PS.st.ph !== "q") return;
   RACE.picked = i; SFX.tap();
   $$(".ans").forEach((b) => { b.disabled = true; b.classList.toggle("chosen", +b.dataset.a === i); });
+  const bsk = $("#bSkip"); if (bsk) { bsk.disabled = true; bsk.classList.add("hidden"); }
   feedback("wait");
   const qi = PS.st.qi;
   if (PS.local && H) hostAnswer(H.players.get("host-" + CID), qi, i);
@@ -875,8 +948,8 @@ function pickAnswer(i) {
 function feedback(kind) {
   let f = $("#fbk");
   if (!f) { f = document.createElement("div"); f.id = "fbk"; ($("#panel") || $("#s-race") || stage).appendChild(f); }
-  const txt = { ok: ico("check", 28, 3.4, "#fff") + "<span>נכון!</span>", no: ico("x", 28, 3.4, "#fff") + "<span>לא נכון</span>", wait: ico("timer", 26, 2.8, "#fff") + "<span>התשובה נשלחה</span>", late: ico("timer", 26, 2.8, "#fff") + "<span>נגמר הזמן</span>" }[kind];
-  f.className = "fbk " + (kind === "ok" ? "ok" : kind === "wait" ? "wait" : "no");
+  const txt = { ok: ico("check", 28, 3.4, "#fff") + "<span>נכון!</span>", no: ico("x", 28, 3.4, "#fff") + "<span>לא נכון</span>", wait: ico("timer", 26, 2.8, "#fff") + "<span>התשובה נשלחה</span>", late: ico("timer", 26, 2.8, "#fff") + "<span>נגמר הזמן</span>", skip: ico("skip-forward", 26, 2.6, "#fff") + "<span>דולג</span>" }[kind];
+  f.className = "fbk " + (kind === "ok" ? "ok" : kind === "wait" ? "wait" : kind === "skip" ? "skip" : "no");
   f.innerHTML = txt;
   const pn = $("#panel");
   if (MOBILE && pn && $("#s-race")) { if (f.parentNode !== $("#s-race")) $("#s-race").appendChild(f); f.classList.add("onedge"); f.style.top = (parseFloat(pn.style.top) - 26) + "px"; }
@@ -907,10 +980,10 @@ function recordAnswer(m) {
     if (!window.EnglishiaAuth || !EnglishiaAuth.user || !m.q) return;
     const key = m.race + ":" + m.qi; if (PS.recorded[key]) return; PS.recorded[key] = 1;
     const meP = m.pl.find((p) => p[0] === PS.pid); if (!meP) return;
-    const q = localize(m.q), given = meP[9] >= 0 ? q.opts[meP[9]] : "";
+    const q = localize(m.q), skipped = meP[7] === 3, given = skipped ? "(skipped)" : (meP[9] >= 0 ? q.opts[meP[9]] : "");
     const prompt = (q.lead + " " + (q.listen ? "(listen) " + (q.speak || "") : String(q.text || "").replace("\u0001", "___"))).slice(0, 200);
     const item = q.type + ":" + String(q.te || (q.oe ? q.oe[m.ok] : "") || q.speak || q.text || "").replace("\u0001", "___").slice(0, 60);
-    EnglishiaAuth.recordAnswer(GAME_ID, { item, topic: q.cat, level: m.set.l, prompt, correct: meP[7] === 2, given: String(given), expected: String(q.opts[m.ok]) });
+    EnglishiaAuth.recordAnswer(GAME_ID, { item, topic: q.cat, level: m.set.l, prompt, correct: meP[7] === 2, given: String(given), expected: String(q.opts[m.ok]), skipped });
   } catch (e) {}
 }
 function recordEnd(m) {
@@ -945,18 +1018,19 @@ function podiumScreen(m, myPid) {
   clearInterval(TIMER_IV); RACE = null;
   show("podium", () => {
     const order = m.pl.slice().sort((a, b) => a[8] - b[8]);
+    const skn = (p) => (p[10] > 0 ? `<span class="skn">${ico("skip-forward", 16, 2.6, "#2f7bff")}<span class="fred">${p[10]}</span> דולגו</span>` : "");
     const block = (p, h, cls, place) => !p ? `<div class="pod ${cls}" style="visibility:hidden"></div>` : `<div class="pod ${cls}"><div class="pod-tag" style="background:${shirt(p[2])}" translate="no">${esc(p[1])}</div><div class="pod-ch">${place === 1 ? `<div class="crown">${ico("crown", 54, 2.6, "#2b2140", "#ffc21a")}</div>` : ""}${front(p[2], p[3] + 1, place === 1 ? 150 : 130, true)}</div>
-      <div class="pod-b" style="height:${h}px"><b class="fred">${place}</b><span><span class="fred">${p[4]}</span> ${W_OK()}</span></div></div>`;
+      <div class="pod-b" style="height:${h}px"><b class="fred">${place}</b><span><span class="fred">${p[4]}</span> ${W_OK()}</span>${skn(p)}</div></div>`;
     const pods = block(order[1], 170, "p2", 2) + block(order[0], 230, "p1", 1) + block(order[2], 126, "p3", 3);
-    const row = (p, cls) => `<div class="rr ${cls}"><b class="rkb">${p[8]}</b><span class="rr-av" style="background:${shirt(p[2])}">${front(p[2], p[3] + 1, 44)}</span><span class="rr-n" translate="no">${esc(p[1])}</span><span class="rr-s"><span class="fred">${p[4]}</span> ${W_OK()}</span></div>`;
+    const row = (p, cls) => `<div class="rr ${cls}"><b class="rkb">${p[8]}</b><span class="rr-av" style="background:${shirt(p[2])}">${front(p[2], p[3] + 1, 44)}</span><span class="rr-n" translate="no">${esc(p[1])}</span><span class="rr-s"><span class="fred">${p[4]}</span> ${W_OK()}${skn(p)}</span></div>`;
     const rest = order.slice(3).map((p) => row(p, p[0] === myPid ? "me" : "")).join("");
     const me = myPid ? order.find((p) => p[0] === myPid) : null;
-    stage.innerHTML = `<section class="scr on" id="s-podium">${LOW ? "" : clouds([[90, 120, 140, 0.6], [980, 90, 170, 0.7]])}${confetti(46, 1260, 80, 480)}${H && H.mode === "present" ? musicBtn("position:absolute;left:24px;top:18px;z-index:60") : ""}
+    stage.innerHTML = `<section class="scr on" id="s-podium">${LOW ? "" : clouds([[90, 120, 140, 0.6], [980, 90, 170, 0.7]])}${confetti(46, 1260, 80, 480)}${musicBtn("position:absolute;left:24px;top:18px;z-index:60")}
       <div class="topbar" style="justify-content:center;top:10px"><div class="title" style="font-size:58px;-webkit-text-stroke:10px var(--ink);text-shadow:0 7px 0 var(--ink)">${me ? `סיימת במקום ${me[8]}!` : "המירוץ הסתיים!"}</div></div>
       <div class="stage-p">${pods}</div>
       <div class="card restc">
         ${rest ? `<div class="rt">${ico("medal", 26, 2.6, "#ff9a1f")}<span>שאר המשתתפים</span></div><div class="rlist">${rest}</div>` : ""}
-        ${me ? `<div class="muted" style="font:800 22px var(--ui);color:var(--ink)">${ico("trophy", 22, 2.6, "#ff9a1f")}<span>הניקוד שלי:</span> <b class="fred">${me[5]}</b></div>` : ""}
+        ${me ? `<div class="muted" style="font:800 22px var(--ui);color:var(--ink)">${ico("trophy", 22, 2.6, "#ff9a1f")}<span>הניקוד שלי:</span> <b class="fred">${me[5]}</b>${skn(me)}</div>` : ""}
         <div class="muted">${ico("flag", 18, 2.6)}<span>${setSummary({ level: m.set.l, age: m.set.a, n: m.n })}</span></div>
         <button class="btn orange" id="bAgain" style="width:100%;margin-top:16px;font-size:30px">${ico("rotate", 30, 3)}משחק חדש</button>
         ${H ? `<button class="btn blue" id="bEditEnd" style="width:100%;margin-top:12px;font-size:24px">${ico("sliders", 26, 2.8, "#fff")}שינוי הגדרות</button>` : ""}
@@ -974,12 +1048,13 @@ function resultScreen(m) {
     const me = order.find((p) => p[0] === PS.pid) || order[0], place = me[8];
     const col = place === 1 ? "var(--gold)" : place === 2 ? "var(--silver)" : place === 3 ? "var(--bronze)" : "#c9bfe0";
     let list = order.slice(0, 4); if (!list.includes(me)) list = order.slice(0, 3).concat([me]);
-    const rows = list.map((p) => `<div class="rr ${p === me ? "me" : ""}"><b class="rkb rk${p[8]}">${p[8]}</b><span class="rr-av" style="background:${shirt(p[2])}">${front(p[2], p[3] + 1, 36)}</span><span class="rr-n" translate="no">${esc(p[1])}</span>${p === me ? "<span class='rr-s'>(אני)</span>" : ""}<span class="rr-s"><span class="fred">${p[4]}</span> ${W_OK()}</span></div>`).join("");
+    const skn = (p) => (p[10] > 0 ? `<span class="skn">${ico("skip-forward", 14, 2.6, "#2f7bff")}<span class="fred">${p[10]}</span> דולגו</span>` : "");
+    const rows = list.map((p) => `<div class="rr ${p === me ? "me" : ""}"><b class="rkb rk${p[8]}">${p[8]}</b><span class="rr-av" style="background:${shirt(p[2])}">${front(p[2], p[3] + 1, 36)}</span><span class="rr-n" translate="no">${esc(p[1])}</span>${p === me ? "<span class='rr-s'>(אני)</span>" : ""}<span class="rr-s"><span class="fred">${p[4]}</span> ${W_OK()}${skn(p)}</span></div>`).join("");
     const small = MH < 780, listTop = Math.min(410, MH - 168 - list.length * 49 - 16);
-    stage.innerHTML = `<section class="scr on" id="s-result">${confetti(22, 380, 60, 270)}
+    stage.innerHTML = `<section class="scr on" id="s-result">${confetti(22, 380, 60, 270)}${musicBtn("position:absolute;right:12px;top:10px;z-index:60")}
       <div style="position:absolute;top:${small ? 18 : 58}px;left:0;right:0;text-align:center"><div class="mt">סיימת במקום ${place}!</div></div>
       <div class="mres" style="top:${small ? 64 : 112}px"><div style="position:relative">${front(me[2], me[3] + 1, small ? 104 : 132, true)}<div style="position:absolute;right:-10px;top:${small ? 60 : 84}px;width:50px;height:50px;border-radius:50%;background:${col};border:3px solid var(--ink);display:grid;place-items:center">${ico("medal", 30, 2.6, "#2b2140")}</div></div>
-        <div class="mblock" style="background:${col}"><b class="fred">${place}</b><span><span class="fred">${me[4]}</span> נכונות מתוך ${m.n}</span></div></div>
+        <div class="mblock" style="background:${col}"><b class="fred">${place}</b><span><span class="fred">${me[4]}</span> נכונות מתוך ${m.n}</span>${skn(me)}</div></div>
       <div class="card restc" style="top:${listTop}px">${rows}</div>
       <div class="mbtns"><button class="btn orange mbtn" id="bAgain">${ico("rotate", 26, 3)}משחק חדש</button>${H ? `<button class="btn blue mbtn" id="bEditEnd" style="height:54px;font-size:20px">${ico("sliders", 22, 2.8, "#fff")}שינוי הגדרות</button>` : ""}<button class="btn mbtn" id="bMenu" style="height:62px;font-size:22px">${ico("home", 24, 2.8)}חזרה לתפריט</button></div>
     </section>`;
@@ -1072,28 +1147,83 @@ function hostKick(cid) {
   H.banned.add(cid);
   try { H.net.send(cid, { t: "kick" }); } catch (e) {}
   const net = H.net; setTimeout(() => { try { net.forget(cid); } catch (e) {} }, 1500);
+  return hostDrop(cid);
+}
+/* remove a player from the room (kick, or the player left): counts, track, leaderboard and "answered X of N" follow */
+function hostDrop(cid) {
+  if (!H) return false;
+  const p = H.players.get(cid); if (!p || p.local) return false;
+  if (H.ph === "end") { p.on = false; hostBroadcast(); hostView(); return true; }   // results are final
   H.players.delete(cid);
-  if (H.ph !== "lobby" && H.ph !== "end") {
+  if (H.ph !== "lobby") {
     if (!H.players.size) { hostRematch(); return true; }
     if (H.ph === "q" && [...H.players.values()].some((x) => x.on || x.local) && [...H.players.values()].filter((x) => x.on || x.local).every((x) => x.ans[H.qi])) H.phEnd = Math.min(H.phEnd, now() + 800);
   }
   hostBroadcast(); hostView(); popRefresh();
   return true;
 }
-/* what a removed player sees */
-function kickedScreen() {
+/* what a removed player sees (kicked) / what everyone sees when the host closes the room (closed). No music here. */
+function noticeScreen(kind) {
   leaveAll(); LS.set("wr-join", null);
-  show("kicked", () => {
+  const kicked = kind === "kicked";
+  show(kind, () => {
     stage.innerHTML = `<section class="scr on" id="s-kicked">${LOW ? "" : clouds([[80, 120, 150, 0.6], [900, 90, 140, 0.6]])}
       <div class="topbar"><div class="tb-r"><a class="pillbtn" id="bHub" href="${HUB}" title="חזרה לאינגלישיה">${ico("home", 24, 2.6)}<span class="fred" translate="no">Englishia</span></a></div>${MOBILE ? "" : logo(40, 5, 3)}</div>
-      <div class="card kickc" role="alert"><div class="kick-ic">${ico("user-x", MOBILE ? 48 : 72, 2.6, "#fff")}</div>
-        <div class="kick-t">הוצאת מהמשחק על ידי המורה</div><div class="kick-s">אפשר לחזור לתפריט.</div>
+      <div class="card kickc" role="alert"><div class="kick-ic">${ico(kicked ? "user-x" : "log-out", MOBILE ? 48 : 72, 2.6, "#fff")}</div>
+        <div class="kick-t">${kicked ? "הוצאת מהמשחק על ידי המורה" : "המורה סגר/ה את החדר"}</div><div class="kick-s">אפשר לחזור לתפריט.</div>
         <button class="btn orange kick-b" id="bKMenu">${ico("home", 28, 3)}חזרה לתפריט</button></div>
       ${credit()}
     </section>`;
     $("#bKMenu").onclick = () => homeScreen();
   });
 }
+/* exit during the race: a player leaves; the host/creator closes the room for everyone (both ask first) */
+const exitBtn = (style) => `<button class="iconbtn exitbtn" id="bExit" style="${style || ""}" aria-label="יציאה מהמירוץ" title="יציאה מהמירוץ">${ico("log-out", 26, 2.8)}</button>`;
+function openExit() {
+  if ($("#xcf")) return;
+  closePop(); closeQR();
+  const host = !!H, el = document.createElement("div");
+  el.id = "xcf"; el.className = "xcf"; el.setAttribute("role", "alertdialog"); el.setAttribute("aria-modal", "true");
+  el.innerHTML = `<div class="xcf-card"><div class="xcf-ic">${ico("log-out", MOBILE ? 36 : 52, 2.8, "#fff")}</div>
+    <div class="xcf-t">${host ? "לסגור את החדר לכולם?" : "לצאת מהמירוץ?"}</div>${host ? `<div class="xcf-s">כל השחקנים יחזרו לתפריט.</div>` : ""}
+    <div class="xcf-b"><button class="btn red" data-xc="yes">${host ? "כן, לסגור את החדר" : "כן, לצאת"}</button><button class="btn" data-xc="no">${host ? "המשך במירוץ" : "ביטול"}</button></div></div>`;
+  stage.appendChild(el);
+  try { $('[data-xc="no"]', el).focus({ preventScroll: true }); } catch (e) {}
+}
+function closeExit() { const el = $("#xcf"); if (el) el.remove(); }
+function exitRace() {
+  closeExit();
+  if (H) { homeScreen(); return; }                       // host / creator: closes the room, everyone gets "המורה סגר/ה את החדר"
+  try { if (PS.net) PS.net.send({ t: "leave" }); } catch (e) {}
+  LS.set("wr-join", null); homeScreen();
+}
+/* 1.0.5: small join dock on the host / projector during the race (link, room code, QR) */
+let JOINDOCK_ON = LS.get("wr-joindock", true) !== false;
+const joinShown = () => shortAddr().replace(/\/$/, "") + (H && H.code ? "?code=" + H.code : "");
+function makeQR() {
+  let qr = "";
+  try { const q = qrcode(0, "M"); q.addData(joinURL()); q.make(); qr = q.createSvgTag({ cellSize: 4, margin: 0, scalable: true }); } catch (e) {}
+  QRSVG = qr;
+  return qr;
+}
+function joinDockHTML() {
+  if (!H) return "";
+  if (!JOINDOCK_ON) return `<button class="iconbtn jdock-show" id="bJoinDock" aria-pressed="false" aria-label="הצגת קוד ההצטרפות" title="הצגת קוד ההצטרפות">${ico("hash", 26, 2.6)}</button>`;
+  const digits = H.code.slice(0, 3) + " " + H.code.slice(3), qr = makeQR();
+  return `<div class="jdock" id="jdock"><button class="iconbtn jdock-hide" id="bJoinDock" aria-pressed="true" aria-label="הסתרת קוד ההצטרפות" title="הסתרת קוד ההצטרפות">${ico("eye-off", 20, 2.6)}</button>
+    <div class="jdock-qr qrbox" id="qr" role="button" tabindex="0" aria-label="הגדלת קוד ה-QR" title="הגדלת קוד ה-QR">${qr}<span class="qr-zoom">${ico("zoom-in", 16, 2.8, "#fff")}</span></div>
+    <div class="jdock-meta"><div class="jdock-k">${ico("hash", 18, 2.8, "#22b573")}<span class="jdock-code fred en" translate="no" dir="ltr">${digits}</span></div>
+      <div class="jdock-url en" translate="no" dir="ltr">${ico("link", 16, 2.8, "#2f7bff")}<span>${esc(joinShown())}</span></div></div></div>`;
+}
+function joinDockToggle() {
+  JOINDOCK_ON = !JOINDOCK_ON; LS.set("wr-joindock", JOINDOCK_ON);
+  const host = $("#s-race"); if (!host || !H) return;
+  const old = $("#jdock") || $("#bJoinDock");
+  const wrap = document.createElement("div"); wrap.innerHTML = joinDockHTML();
+  if (old) old.replaceWith(wrap.firstElementChild); else host.appendChild(wrap.firstElementChild);
+  host.classList.toggle("has-jdock", JOINDOCK_ON);
+}
+
 /* QR lightbox: same window, closes on click / Esc / X */
 function openQR() {
   if (!H) return;
@@ -1111,14 +1241,19 @@ function openQR() {
   stage.appendChild(el);
   try { $("#qrlbX").focus({ preventScroll: true }); } catch (e) {}
 }
-function closeQR() { const el = $("#qrlb"); if (el) { el.remove(); const q = $("#qr"); if (q && VIEW.name === "lobby") try { q.focus({ preventScroll: true }); } catch (e) {} } }
+function closeQR() { const el = $("#qrlb"); if (el) { el.remove(); const q = $("#qr"); if (q && (VIEW.name === "lobby" || VIEW.name === "race")) try { q.focus({ preventScroll: true }); } catch (e) {} } }
 (function bindHostUI() {
   const pidOf = (t) => +t.dataset.pid;
   stage.addEventListener("click", (e) => {
     const tg = e.target;
     if (!tg.closest) return;
     if (tg.closest("#qrlb")) return;
+    if (tg.closest("#bExit")) { openExit(); return; }
+    const xc = tg.closest("[data-xc]"); if (xc) { if (xc.dataset.xc === "yes") exitRace(); else closeExit(); return; }
+    if (tg.classList && tg.classList.contains("xcf")) { closeExit(); return; }
     if (tg.closest("#bMusic")) { musicToggle(); return; }
+    if (tg.closest("#bJoinDock")) { joinDockToggle(); return; }
+    if (tg.closest("#bSkip")) { pickSkip(); return; }
     const qb = tg.closest("#qr"); if (qb) { openQR(); return; }
     const pa = tg.closest("[data-pp]"); if (pa) { popAction(pa.dataset.pp); return; }
     if (tg.closest(".ppop")) return;
@@ -1140,19 +1275,25 @@ function closeQR() { const el = $("#qrlb"); if (el) { el.remove(); const q = $("
     const t = e.target.closest("[data-pid]"), to = e.relatedTarget && e.relatedTarget.closest ? e.relatedTarget.closest("[data-pid]") : null;
     if (t && t !== to) closePop();
   });
-  document.addEventListener("keydown", (e) => { if (e.key === "Escape") { if ($("#qrlb")) closeQR(); else closePop(); } });
+  document.addEventListener("keydown", (e) => { if (e.key === "Escape") { if ($("#xcf")) closeExit(); else if ($("#qrlb")) closeQR(); else closePop(); } });
 })();
 
 /* ================= 1.0.3: host-screen music (original loops, generated live with WebAudio — no audio files) =================
-   Plays only on the projector (present-mode host screen), never on players' phones. Starts after the first tap/key.
+   1.0.4: every device (projector, creator, players' phones) plays its own music, each with its own toggle. Starts after the first tap/key.
    Lobby: relaxed bouncy loop · race: faster driving loop (speeds up in the last third) · results: short victory jingle.
    Off when the game's sound is muted or the music button is off (remembered in localStorage). Kept well below the SFX. */
 let MUSIC_ON = LS.get("wr-music", true) !== false;
-const MU = { cur: "", key: "", step: 0, next: 0, tempo: 1, g: null, an: null, iv: 0, gest: false, noise: null };
+/* briefly lower the music under a sound effect / spoken word so they never fight */
+function muDuck(ms) {
+  if (typeof MU === "undefined" || !MU.d || !AC || !MU.cur) return;
+  try { const t = AC.currentTime, g = MU.d.gain; g.cancelScheduledValues(t); g.setValueAtTime(g.value, t); g.linearRampToValueAtTime(0.4, t + 0.04); g.setValueAtTime(0.4, t + ms / 1000); g.linearRampToValueAtTime(1, t + ms / 1000 + 0.3); } catch (e) {}
+}
+const MU = { cur: "", key: "", base: 0.5, d: null, step: 0, next: 0, tempo: 1, g: null, an: null, iv: 0, gest: false, noise: null };
 const mtof = (n) => 440 * Math.pow(2, (n - 69) / 12);
 const musicActive = () => MUSIC_ON && !MUTE;
 const musicBtn = (style) => `<button class="iconbtn musicbtn ${musicActive() ? "" : "off"}" id="bMusic" style="${style || ""}" aria-pressed="${musicActive()}" aria-label="מוזיקת רקע" title="מוזיקת רקע">${ico(musicActive() ? "music" : "music-off", 28, 2.6)}</button>`;
-function musicBtnRefresh() { const b = $("#bMusic"); if (!b) return; b.classList.toggle("off", !musicActive()); b.setAttribute("aria-pressed", String(musicActive())); b.innerHTML = ico(musicActive() ? "music" : "music-off", 28, 2.6); }
+function musicBtnRefresh() { $$("#bMusic").forEach(musicBtnFix); }
+function musicBtnFix(b) { b.classList.toggle("off", !musicActive()); b.setAttribute("aria-pressed", String(musicActive())); b.innerHTML = ico(musicActive() ? "music" : "music-off", 28, 2.6); }
 function musicToggle() {
   if (MUTE) { MUTE = false; MUSIC_ON = true; LS.set("wr-mute", false); } else MUSIC_ON = !MUSIC_ON;
   LS.set("wr-music", MUSIC_ON); musicBtnRefresh(); musicSync(); if (musicActive()) SFX.tap();
@@ -1234,24 +1375,39 @@ function muStart(kind, key) {
   if (!muCtx()) return;
   muStop(0.2);
   const g = AC.createGain(), t = AC.currentTime;
-  g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(0.5, t + 0.4);   // overall music level: moderate, under the SFX
-  g.connect(AC.destination);
-  if (!MU.an) { MU.an = AC.createAnalyser(); MU.an.fftSize = 512; }
-  g.connect(MU.an);
+  g.gain.setValueAtTime(0.0001, t); g.gain.linearRampToValueAtTime(MU.base || 0.5, t + 0.4);   // overall music level: moderate, under the SFX
+  if (!MU.d) { MU.d = AC.createGain(); MU.d.connect(AC.destination); MU.an = AC.createAnalyser(); MU.an.fftSize = 512; MU.d.connect(MU.an); }
+  g.connect(MU.d);
   MU.g = g; MU.cur = kind; MU.key = key; MU.step = 0; MU.next = t + 0.08;
-  if (kind === "win") { g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(0.5, t); muJingle(t + 0.05); return; }
+  if (kind === "win") { g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(MU.base || 0.5, t); muJingle(t + 0.05); return; }
   muSched(); MU.iv = setInterval(muSched, 90);
 }
 /* decide what the host screen should be playing right now (called on every room state change) */
+/* what this device should be hearing: the room state it is looking at (host: its own table; player: the last state it got) */
+function musicState() {
+  if (!musicActive() || document.visibilityState === "hidden") return null;
+  const v = VIEW.name; let st = null;
+  if (H) {
+    if (H.mode === "online" && ![...H.players.values()].some((p) => p.local)) return null;   // creator still picking a runner
+    st = { ph: H.ph, race: H.race, qi: H.qi, n: H.set.n };
+  } else if (PS.code && PS.pid && PS.st) st = { ph: PS.st.ph, race: PS.st.race, qi: PS.st.qi, n: PS.st.n };
+  if (!st) return null;
+  if (st.ph === "lobby") return v === "wait" || v === "lobby" || (v === "settings" && H && H.editing) ? st : null;
+  if (st.ph === "q" || st.ph === "rev") return v === "race" ? st : null;
+  if (st.ph === "end") return v === "podium" ? st : null;
+  return null;   // countdown, kicked / closed screens, menu, join, runner pick: silent
+}
 function musicSync() {
   let kind = "", key = "";
-  if (H && H.mode === "present" && musicActive() && document.visibilityState !== "hidden") {
-    if (H.ph === "lobby") kind = "lobby"; else if (H.ph === "q" || H.ph === "rev") kind = "race"; else if (H.ph === "end") kind = "win";
-    key = kind === "win" ? "win" + H.race : kind;
+  const st = musicState();
+  if (st) {
+    if (st.ph === "lobby") kind = "lobby"; else if (st.ph === "q" || st.ph === "rev") kind = "race"; else if (st.ph === "end") kind = "win";
+    key = kind === "win" ? "win" + st.race : kind;
   }
   if (!kind) { if (MU.cur || MU.key) muStop(0.3); return; }
-  if (kind === "race") { const f = (H.qi + 1) / Math.max(1, H.set.n); MU.tempo = H.qi + 1 >= H.set.n ? 1.25 : f >= 0.7 ? 1.12 : 1; } else MU.tempo = 1;
+  if (kind === "race") { const f = (st.qi + 1) / Math.max(1, st.n); MU.tempo = st.qi + 1 >= st.n ? 1.25 : f >= 0.7 ? 1.12 : 1; } else MU.tempo = 1;
   if (!MU.gest || key === MU.key) return;
+  MU.base = H && H.mode === "present" ? 0.5 : 0.36;   // phones / creator devices a little softer than the projector
   muStart(kind, key);
 }
 ["pointerdown", "keydown", "touchend", "click"].forEach((ev) => document.addEventListener(ev, () => {
@@ -1272,4 +1428,4 @@ fit();
 }
 window.addEventListener("pagehide", () => { try { if (PS.net) PS.net.send({ t: "bye" }); } catch (e) {} });
 // read-only status for the automated tests (nothing here can change a score)
-window.__WR = { get host() { return H ? { code: H.code, ph: H.ph, qi: H.qi, n: H.players.size, status: H.status, ans: [...H.players.values()].map((p) => [p.pid, p.ans[H.qi] ? p.ans[H.qi].a : -1, p.ok]) } : null; }, get player() { return { pid: PS.pid, ph: PS.st && PS.st.ph, qi: PS.st && PS.st.qi, view: VIEW.name }; } };
+window.__WR = { get host() { return H ? { code: H.code, ph: H.ph, qi: H.qi, n: H.players.size, status: H.status, skip: H.set.skip !== false, ans: [...H.players.values()].map((p) => [p.pid, p.ans[H.qi] ? p.ans[H.qi].a : -1, p.ok, p.sk || 0, !!(p.ans[H.qi] && p.ans[H.qi].skip)]) } : null; }, get player() { return { pid: PS.pid, ph: PS.st && PS.st.ph, qi: PS.st && PS.st.qi, view: VIEW.name }; }, get joindock() { return !!(H && JOINDOCK_ON && document.getElementById("jdock")); } };
