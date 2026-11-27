@@ -79,6 +79,24 @@
       "level": "בחירת גיל בהגדרות",
       "path": "games/word-blast/",
       "thumbnail": "assets/thumbs/word-blast.jpg"
+    },
+    {
+      "id": "sentence-sprint",
+      "title": "Sentence Sprint",
+      "subtitleHe": "ספרינט המשפטים",
+      "description": "A live online platformer race for the whole class with three modes: build sentences from floating English words, jump into the balloon with the right answer to a question, or catch the English translation. A correct answer gives points and spins a power-up roulette: boosts help you, attacks hit only the runner directly ahead. Online room or projector mode with a big code and QR, six difficulty levels.",
+      "category": "Grammar",
+      "tags": [
+        "Multiplayer",
+        "Sentences",
+        "Grammar",
+        "Vocabulary",
+        "Translation",
+        "Projector"
+      ],
+      "level": "בחירת גיל בהגדרות",
+      "path": "games/sentence-sprint/",
+      "thumbnail": "assets/thumbs/sentence-sprint.jpg"
     }
   ]
 }

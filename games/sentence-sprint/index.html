@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sentence Sprint · ספרינט המשפטים · Englishia</title>
+<meta name="description" content="ספרינט המשפטים: מירוץ פלטפורמות אונליין לכיתה. רצים, קופצים בין הקומות, אוספים מילים באנגלית ובונים משפטים נכונים כדי לזכות בנקודות ובכוחות-על.">
+<meta name="theme-color" content="#4eaef5">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Sentence Sprint">
+<link rel="apple-touch-icon" href="img/icon-180.png">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='4' y='4' width='56' height='56' rx='16' fill='%23ff7a00' stroke='%231d2350' stroke-width='5'/%3E%3Cpath d='M36 10 18 36h12l-4 18 20-28H34z' fill='%23fff' stroke='%231d2350' stroke-width='4' stroke-linejoin='round'/%3E%3C/svg%3E">
+<link rel="preload" href="img/level.jpg" as="image">
+<link rel="stylesheet" href="css/fonts.css?v=1.2">
+<link rel="stylesheet" href="css/sprint.css?v=1.2">
+<script src="../../js/englishia-lang.js?v=1.2" data-nomount></script>
+</head>
+<body>
+<div id="vp"><div id="stage" class="d" aria-live="polite"></div></div>
+<noscript><p style="padding:24px;font:700 20px Arial">Sentence Sprint needs JavaScript.</p></noscript>
+<script src="../word-detective/lib/peerjs.min.js"></script>
+<script src="../word-detective/lib/qrcode.js"></script>
+<script src="js/net.js?v=1.2"></script>
+<script type="module" src="js/app.js?v=1.2"></script>
+<script>
+/* Englishia account (one login for all games). Guests play with just a name if it can't load. */
+(function(){var s=document.createElement("script");s.src="../../js/englishia-auth.js?v=12.8";
+s.onload=function(){try{EnglishiaAuth.init({gameId:"sentence-sprint",gameTitle:"\u05E1\u05E4\u05E8\u05D9\u05E0\u05D8 \u05D4\u05DE\u05E9\u05E4\u05D8\u05D9\u05DD",mount:false});if(window.SSApp)SSApp.onAuth();}catch(e){console.warn(e);}};
+s.onerror=function(){};document.head.appendChild(s);})();
+</script>
+</body>
+</html>

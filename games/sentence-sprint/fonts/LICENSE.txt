@@ -1,0 +1,3 @@
+Fredoka (c) The Fredoka Project Authors, and Heebo (c) The Heebo Project Authors.
+Both are licensed under the SIL Open Font License, Version 1.1 — https://openfontlicense.org
+Files are the Google Fonts woff2 subsets (hebrew + latin), self-hosted for classrooms that block fonts.googleapis.com.
